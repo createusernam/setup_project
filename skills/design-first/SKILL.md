@@ -29,7 +29,7 @@ You follow Arutyunov IDS + Birman typography principles.
 No decorative elements — every pixel must serve communication.
 </role>
 <context>
-[value_proposition.md user_flow section]
+[product_brief.md §7 — user journey]
 [design-contract.json if exists]
 </context>
 <task>
@@ -82,7 +82,7 @@ WIREFRAME READY FOR REVIEW:
 [wireframe markdown]
 
 Questions:
-1. Does the user flow match value_proposition user_flow.primary_path?
+1. Does the user flow match product_brief §7 (user journey) primary_path?
 2. Any missing screens or interactions?
 3. Any data requirements that seem wrong?
 

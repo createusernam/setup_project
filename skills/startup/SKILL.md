@@ -23,11 +23,10 @@ Or without args — the skill will ask for project name.
 ## Questions asked
 
 ```
-1. Product name (for value_proposition.md)?
+1. Product name?
 2. Is there a frontend? (y/n)
 3. Tech stack? (e.g. React + Express + Postgres)
 4. Is architecturally complex? (≥5 modules with cross-deps) (y/n)
-5. MK description in one sentence? (optional, can fill later)
 ```
 
 ## Instructions
@@ -36,7 +35,7 @@ Read this prompt before executing. Then execute step by step.
 
 ### Step 1 — gather inputs
 
-Ask the 5 questions above if not provided via args. Store answers.
+Ask the 4 questions above if not provided via args. Store answers.
 
 ### Step 2 — create directory structure
 
@@ -68,7 +67,6 @@ Generate `$PROJECT_PATH/CLAUDE.md` with answers substituted:
 ## Config
 - is_frontend: <y/n>
 - is_architecturally_complex: <y/n>
-- mk_description: "<mk-description>"
 
 ## Pipeline
 See ~/.setup/PIPELINE.md
@@ -82,13 +80,12 @@ GRACE Lite mandatory. See PROMPT-FORMAT.md for structured prompts.
 - test: <fill-in>
 ```
 
-### Step 5 — fill value_proposition.md metadata
+### Step 5 — fill product_brief.md metadata
 
-Pre-fill the YAML metadata block in `value_proposition.md`:
+Pre-fill the YAML metadata block in `product_brief.md`:
 ```yaml
 product_name: "<product-name>"
 created: "<today ISO>"
-mk_level: "МК₁"   # will be confirmed by /researcher
 is_frontend: false
 is_backend: false
 status: draft
@@ -117,11 +114,11 @@ Print summary:
 ```
 ✓ Project created: ~/[project-name]
 ✓ GRACE Lite: active (MODULE_CONTRACT required in all files)
-✓ value_proposition.md: ready to fill
-✓ Next step: fill value_proposition.md → /researcher or /grill-with-docs
+✓ product_brief.md: ready to fill
+✓ Next step: fill product_brief.md → /methodology or /grill-with-docs
 
 Key files:
-  ~/[project-name]/value_proposition.md   ← fill first
+  ~/[project-name]/product_brief.md        ← fill first
   ~/[project-name]/CLAUDE.md              ← project config
   ~/[project-name]/docs/agents/domain.md  ← domain terminology
 ```
@@ -134,7 +131,7 @@ Key files:
   "data": {
     "project_path": "~/...",
     "github_url": "https://github.com/...",
-    "next_step": "/researcher or fill value_proposition.md first"
+    "next_step": "fill product_brief.md → /methodology or /grill-with-docs"
   },
   "issues": []
 }

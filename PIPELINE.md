@@ -17,11 +17,12 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  PHASE -1: PRODUCT DISCOVERY                                 │
-│  Fill product_brief.md using your product discovery method.  │
-│  Template: templates/project/product_brief.md                │
-│  Gate: metamodel distortion check + PM review of brief       │
-│  Required status: pm-approved before entering Phase 0        │
+│  PHASE -1: PRODUCT DISCOVERY [/methodology or manual]        │
+│  Fill product_brief.md using your product discovery methodology │
+│  Criteria: PM approval required before entering Phase 0.        │
+│  Gate: metamodel distortion check + PM review                │
+│  Output: product_brief.md (status: pm-approved)              │
+│                                                                 │
 └─────────────────────────────────────────────────────────────┘
           │
           ▼
@@ -44,7 +45,7 @@
 ┌──────────────────────────────────┐
 │  PHASE 1: /grill-with-docs       │
 │  Model:  Opus/Sonnet             │
-│  Input:  value_proposition.md    │
+│  Input:  product_brief.md        │
 │  Output: CONTEXT.md, domain.md,  │
 │          docs/adr/               │
 └──────────────────────────────────┘
@@ -151,7 +152,7 @@
 └──────────────────────────────────┘
 
 State files at each transition:
-  product_brief.md (from Phase -1 product discovery)
+  [methodology/value_proposition_mk.md] → product_brief.md (Phase -1, private)
   product_brief.md → research-state.json → CONTEXT.md
   → task_plan.md → pm-review.json → contract.json → handoff.json → judge-report.json
 ```
@@ -191,10 +192,11 @@ RFC-раунд между слоями: Opus генерирует RFC → GLM/So
 |---------|----------|
 | product_brief.md заполнен (status: pm-approved) | Пропустить `/researcher` |
 | product_brief.md есть, но есть gaps | `/researcher` → заполнить gaps (market/technical/user mode) |
-| product_brief.md не заполнен | Заполни по шаблону: `templates/project/product_brief.md` |
+| product_brief.md не заполнен | Запустить Phase -1: `/methodology` (private) или заполнить вручную |
 | Только багфикс | Короткий путь: `/triage → /diagnose → /tdd → commit` |
 
-> **Note**: Phase 0 /researcher fills gaps in product_brief.md. Run /researcher without mode flags.
+> **Encapsulation**: `/researcher --mode mk` используется только внутри `/methodology` (Phase -1).
+> В фазах 0–7 МК-терминология не появляется.
 
 ### Branch A — GRACE Full или Lite?
 
@@ -320,7 +322,7 @@ LLM мыслит переходами состояний (Belief State в residu
 
 Цепочка state-файлов:
 ```
-product_brief.md                       — from Phase -1 product discovery
+[methodology/value_proposition_mk.md]  — private, Phase -1 only
 product_brief.md                       — pipeline entry (pm-approved)
   → research-state.json (после /researcher, если gaps)
   → CONTEXT.md (после /grill-with-docs)
@@ -369,7 +371,7 @@ product_brief.md                       — pipeline entry (pm-approved)
 Изолированный evaluator — другая модель или отдельный контекст (не связан с generator).
 
 Запускать:
-- После `value_proposition.md` → тип `value-proposition`
+- После `product_brief.md` → тип `product-brief`
 - После `/contract` → тип `contract`
 - После `/planning-with-files` → тип `plan`
 - После завершения фичи → тип `feature`
@@ -382,7 +384,7 @@ product_brief.md                       — pipeline entry (pm-approved)
 
 | Фаза | Skill | Model | Артефакты |
 |------|-------|-------|-----------|
-| -1. Discovery | your methodology / manual | any | `product_brief.md` (pm-approved) |
+| -1. Discovery | `/methodology` (private) | Flash→Sonnet→Opus | `product_brief.md`, `methodology/*.json` |
 | 0. Research | `/researcher` | Flash→Sonnet→Opus | `research-state.json` |
 | 1. Discovery | `/grill-with-docs` | Opus/Sonnet | `CONTEXT.md`, `docs/adr/` |
 | 2. Planning | `/planning-with-files` | Opus (PBS) | `task_plan.md` |
@@ -402,7 +404,7 @@ product_brief.md                       — pipeline entry (pm-approved)
 
 | ❌ Не делай | ✅ Вместо |
 |-----------|----------|
-| Пропускать `product_brief.md` | Заполни по шаблону `templates/project/product_brief.md` |
+| Пропускать `product_brief.md` | Заполни через `/methodology` или вручную (см. шаблон) |
 | МК-термины в фазах 0–7 | Encapsulation: вся терминология методологии — только в Phase -1 |
 | Пропускать PM validation в Phase 2 | Архитектура ДОЛЖНА трассироваться до user journey из product_brief §7 |
 | Пропускать MODULE_CONTRACT | GRACE Lite обязателен везде |

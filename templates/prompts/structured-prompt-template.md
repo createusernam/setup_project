@@ -15,7 +15,6 @@ Principles: see `~/.setup/PROMPT-FORMAT.md`
   <context>
     Project: [PROJECT_NAME]
     Stack: [STACK]
-    МК: [ONE_SENTENCE_MK_DESCRIPTION]
 
     [PASTE RELEVANT FILES/CODE WITH GRACE MARKUP HERE]
     [Use MODULE_CONTRACT headers from actual files — inject inline, not as attachments]
@@ -81,11 +80,11 @@ Principles: see `~/.setup/PROMPT-FORMAT.md`
 
 ```json
 "data": {
-  "mk_validated": false,
-  "mk_hypothesis": "...",
-  "p1p": { "a": "...", "b": "...", "incompatibility": "..." },
-  "nto": "...",
-  "mk_level": "МК₁",
+  "problem_validated": false,
+  "core_tension": "...",
+  "false_dichotomy": { "a": "...", "b": "...", "incompatibility": "..." },
+  "resolution": "...",
+  "problem_depth": "surface | behavioral | identity",
   "evidence": [],
   "language": { "exact_quotes": [], "key_metaphors": [] }
 }

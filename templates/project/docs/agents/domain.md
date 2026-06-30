@@ -2,17 +2,17 @@
 
 Project-specific terminology and domain context for agents.
 
-## МК Context
+## Problem Context
 
 **Segment**: REPLACE — who is the client, their context, experience level
 
-**МК description**: REPLACE — one-sentence motivational conflict
+**Core problem**: REPLACE — one-sentence description of the core tension
 
-**МК level**: МК₁ | МК₁₋₂ | МК₂₋₃
+**Problem depth**: surface | behavioral | identity
 
-**Resolution**: REPLACE — what the client achieves when the core tension is resolved (from product_brief.md §2)
+**Resolution**: REPLACE — what the client achieves when the problem is solved
 
-**P1П**:
+**False dichotomy**:
 - Assumption A: REPLACE
 - Assumption B: REPLACE
 - Why incompatible: REPLACE
@@ -25,7 +25,7 @@ Project-specific terminology and domain context for agents.
 
 ## Key User Language
 
-Exact quotes from users that capture the МК in their words:
+Exact quotes from users that capture the core problem in their words:
 - "REPLACE"
 - "REPLACE"
 
@@ -44,5 +44,5 @@ Key architectural concepts specific to this project:
 
 ## References
 
-- `value_proposition.md` — full МК and product description
+- `product_brief.md` — full product description and user journey
 - `docs/research-log.md` — field research evidence

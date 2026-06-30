@@ -14,7 +14,6 @@
 ```yaml
 is_frontend: false
 is_architecturally_complex: false
-mk_description: "REPLACE — one-sentence МК"
 grace_mode: "lite"   # lite (always) | full (if ≥2/4 criteria)
 ```
 
@@ -31,7 +30,7 @@ test:  REPLACE
 See `~/.setup/PIPELINE.md` for full process.
 
 Key reminders:
-1. Fill `value_proposition.md` before anything else
+1. Fill `product_brief.md` before anything else
 2. GRACE Lite mandatory — MODULE_CONTRACT in every file
 3. All agent outputs follow structured JSON format (see `~/.setup/PROMPT-FORMAT.md`)
 4. `/judge` before shipping any feature
@@ -56,4 +55,4 @@ Issues: REPLACE_WITH_ISSUES_URL
 
 ## Domain context
 
-See `docs/agents/domain.md` for terminology and МК context.
+See `docs/agents/domain.md` for terminology and domain context.

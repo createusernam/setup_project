@@ -221,7 +221,7 @@ All artifacts are plain files — compatible across all runtimes:
 
 | Artifact | Format | Role |
 |----------|--------|------|
-| `value_proposition.md` | Markdown | Starting artifact |
+| `product_brief.md` | Markdown | Starting artifact |
 | `research-state.json` | JSON | Research handoff |
 | `CONTEXT.md` | Markdown | Discovery output |
 | `task_plan.md` | Markdown | PBS task tree |

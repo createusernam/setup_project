@@ -5,7 +5,7 @@
 ### One command
 
 ```bash
-git clone https://github.com/createusernam/setup_project.git ~/.setup
+git clone https://github.com/createusernam/setup.git ~/.setup
 bash ~/.setup/install.sh
 ```
 
@@ -18,7 +18,7 @@ That's it. `install.sh` does steps 1–3 below automatically.
 #### 1. Clone
 
 ```bash
-git clone https://github.com/createusernam/setup_project.git ~/.setup
+git clone https://github.com/createusernam/setup.git ~/.setup
 ```
 
 #### 2. Register skills
@@ -57,24 +57,23 @@ cat ~/.claude/.env | grep GH_TOKEN
 /startup my-project-name
 
 # Answers these questions:
-# 1. Product name (for value_proposition.md)?
+# 1. Product name?
 # 2. Is there a frontend? (y/n)
 # 3. Tech stack?
 # 4. Is architecturally complex? (y/n)
-# 5. МК description in one sentence? (optional)
 ```
 
 ## Per-project first session
 
 ```bash
-# 1. If МК is unknown or unvalidated:
+# 1. If product_brief.md has gaps:
 /researcher
 
-# 2. Fill value_proposition.md (sections 1-5)
-# Open: ~/my-project/value_proposition.md
+# 2. Fill product_brief.md (sections 1-5)
+# Open: ~/my-project/product_brief.md
 
 # 3. Validate with judge:
-/judge value-proposition
+/judge product-brief
 
 # 4. Start discovery:
 /grill-with-docs
@@ -130,13 +129,13 @@ Then continue with `/contract` referencing the plan.
 → See PROMPT-FORMAT.md §7 "GRACE anchors in prompts"
 
 **Judge always returns CONDITIONAL**
-→ Check: is the value_proposition.md fully filled? All 9 sections?
-→ Run `/judge value-proposition` with verbose output to see which criteria fail
+→ Check: is the product_brief.md fully filled? All 9 sections?
+→ Run `/judge product-brief` with verbose output to see which criteria fail
 
 **/design-first API doesn't match wireframe**
 → Ensure data_requirements table in Phase 1 output is complete
 → Run Phase 3 with explicit wireframe data_requirements as context
 
-**МК feels vague after /researcher**
+**Problem feels vague after /researcher**
 → Run Phase 2 again with more user quotes
-→ If МК level МК₂₋₃: need identity-level evidence, not just practical pain
+→ If problem_depth = identity: need identity-level evidence, not just practical pain

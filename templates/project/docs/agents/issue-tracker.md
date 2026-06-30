@@ -13,7 +13,7 @@ See `triage-labels.md` for full label set.
 [One sentence: what is broken or missing]
 
 ## Why it matters
-[Link to contract.json criterion or value_proposition.md section]
+[Link to contract.json criterion or product_brief.md section]
 
 ## Steps to reproduce (for bugs)
 1. ...

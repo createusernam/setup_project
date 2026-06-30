@@ -448,6 +448,6 @@ Criteria for research validation:
 
 ## After research
 
-**If mode = mk**: update `value_proposition.md` sections 2–3 from synthesis output.
+**If mode = mk**: update `value_proposition_mk.md` sections 2–3 from synthesis output.
 **If mode = market/domain**: create `docs/research-report.md` + `CONTEXT.md` entries.
 **Always**: run `/judge` on synthesis before using it as input to `/contract` or `/grill-with-docs`.

@@ -9,7 +9,7 @@ Evaluates key artifacts against criteria using an isolated evaluator context. Th
 ```
 
 Artifact types:
-- `value-proposition` — evaluates `value_proposition.md`
+- `product-brief` — evaluates `product_brief.md`
 - `contract` — evaluates `contract.json` completeness and quality
 - `plan` — evaluates `task_plan.md` coverage
 - `feature` — evaluates completed feature against `contract.json` criteria

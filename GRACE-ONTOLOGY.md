@@ -1,6 +1,6 @@
 # GRACE Ontology — Markup Vocabulary and Business Grounding
 
-How the GRACE annotation system is structured in this setup, what it does and does not know about the business model from `value_proposition.md`.
+How the GRACE annotation system is structured in this setup, what it does and does not know about the business model from `product_brief.md`.
 
 ---
 
@@ -62,16 +62,16 @@ This is where the value proposition touches GRACE.
 |---------|-------------------|-------------|
 | `MK_CONTEXT` | `development-plan.xml` `<mk_context>` | **project-level only** |
 | `SCOPE` | `development-plan.xml` `<scope>` | **project-level only** |
-| Roles (creator/customer/admin) | `value_proposition.md` sections 1–2 | **not in GRACE markup** |
-| Exchange phases | `value_proposition.md` sections 4, 7 | **not in GRACE markup** |
-| Discovery output (core tension, resolution) | `product_brief.md` sections 2–3 | **not in GRACE markup** |
+| Roles (creator/customer/admin) | `product_brief.md` §1-2 | **not in GRACE markup** |
+| Exchange phases | `product_brief.md` §4, §7 | **not in GRACE markup** |
+| МК aspects (P1/P2/НТО) | `product_brief.md` §2 | **not in GRACE markup** |
 
-**Current link from VP to GRACE:**
+**Current link from PB to GRACE:**
 
 ```
-value_proposition.md
+product_brief.md
   §1.2 scope  →  contract.json.scope  →  development-plan.xml <scope>
-  §2 Resolution →  contract.json.user_flow.jtbd
+  §2.3 НТО   →  contract.json.user_flow.jtbd
   §8 criteria →  contract.json.criteria[]
   §2 МК      →  development-plan.xml <mk_context>  (project level)
                                      ↑
@@ -94,8 +94,8 @@ value_proposition.md
 ### Does not know (current gap)
 - Which **role** a module serves (creator? customer? both?)
 - Which **exchange phase** it participates in (pre-exchange infrastructure, during-exchange core, post-exchange follow-up)
-- Which **product goal** it serves (onboarding, core mechanism, resolution, creator tooling)
-- Whether a module is **core-critical** (removing it breaks the product resolution) or infrastructure
+- Which **МК pole** it helps resolve (P1 facilitation, P2 facilitation, НТО bridge, creator tooling)
+- Whether a module is **МК-critical** (removing it would break the НТО) or infrastructure
 
 ---
 
@@ -113,15 +113,15 @@ If we extended the ontology to include VP business context at module level:
   <!-- Business context annotations (currently missing) -->
   <serves_role>customer</serves_role>              <!-- creator | customer | admin | both | system -->
   <exchange_phase>during-exchange</exchange_phase>  <!-- pre | during | post | infrastructure -->
-  <domain_aspect>resolution-bridge</domain_aspect>  <!-- none | problem-side | goal-side | resolution-bridge | creator-tool -->
-  <core_critical>true</core_critical>              <!-- true = removing breaks product resolution -->
+  <mk_aspect>nto-bridge</mk_aspect>                <!-- none | p1-facilitation | p2-facilitation | nto-bridge | creator-tool -->
+  <mk_critical>true</mk_critical>                  <!-- true = removing breaks НТО -->
 
   <verification-ref>V-M-TRANSFORM</verification-ref>
 </M-TRANSFORM>
 ```
 
 This would let the knowledge graph answer questions like:
-- "Which modules are core-critical?" → `core_critical=true` filter
+- "Which modules are МК-critical?" → `mk_critical=true` filter
 - "What does the customer interact with during exchange?" → `serves_role=customer` + `exchange_phase=during-exchange`
 - "What serves only the creator?" → `serves_role=creator`
 
@@ -131,8 +131,8 @@ This would let the knowledge graph answer questions like:
 |-----------|--------------|-------|
 | `serves_role` | §2 segment + §3.4 customer contribution + §5 systems | Roles come from who uses each part |
 | `exchange_phase` | §4.1 format + §7.2 primary path | Map path steps to modules |
-| `product_aspect` | product_brief.md §2–3 (problem + mechanism) | Core module = `resolution-bridge`; enablers = `problem-facilitation` |
-| `core_critical` | product_brief §3 + §8 criteria `must_pass:true` | Modules whose `criteria[]` has `must_pass:true` linked items |
+| `mk_aspect` | §2.2 P1P + §2.3 НТО + §3.2 transformer | The transformer module = `nto-bridge`; enablers = `p1/p2-facilitation` |
+| `mk_critical` | §3.2 + §8 criteria `must_pass:true` | Modules whose `criteria[]` has `must_pass:true` linked items |
 
 ---
 
@@ -144,7 +144,7 @@ The current GRACE ontology is **code-structural, not business-semantic**. This i
 
 2. **VP → contract.json → GRACE is the current bridge** — contract.json is the translation layer. Business context reaches GRACE at project level via `<scope>` and `<mk_context>`, not at module level.
 
-3. **Module-level grounding requires stable product brief** — adding `domain_aspect` to modules before product_brief.md is pm-approved risks annotating based on an unvalidated problem definition. The pipeline runs `/judge` on product_brief before GRACE Full runs.
+3. **Module-level business grounding requires stable МК** — adding `mk_aspect` to modules before the МК is validated risks annotating based on wrong P1P. The pipeline runs `/judge` on VP before GRACE Full runs.
 
 ---
 
@@ -152,10 +152,10 @@ The current GRACE ontology is **code-structural, not business-semantic**. This i
 
 When the МК is validated and `contract.json` is sha256-locked, the `<mk_context>` in `development-plan.xml` is stable enough to annotate modules. The `/grace-plan` skill could:
 
-1. Read `contract.json.user_flow` (resolution as JTBD)
-2. Read `value_proposition.md §2–3` (P1P, transformer, customer contribution)
-3. For each module in `knowledge-graph.xml`: ask the orchestrator to assign `serves_role`, `exchange_phase`, `domain_aspect`
-4. Flag `core_critical=true` for any module whose removal would break a `must_pass:true` criterion
+1. Read `contract.json.user_flow` (НТО as JTBD)
+2. Read `product_brief.md §2–3` (P1P, transformer, customer contribution)
+3. For each module in `knowledge-graph.xml`: ask the orchestrator to assign `serves_role`, `exchange_phase`, `mk_aspect`
+4. Flag `mk_critical=true` for any module whose removal would break a `must_pass:true` criterion
 
 This would make the knowledge graph queryable by business intent, not just by technical structure.
 
@@ -167,6 +167,6 @@ The GRACE ontology today has two active tiers:
 - **Tier 1 (Lite)**: code-level — what each module/function/block does, verified at every file
 - **Tier 2 (Full)**: architecture-level — how modules form a dependency graph, in what order they build
 
-**Business context from the value proposition enters at project level only** — via `<scope>` and `<mk_context>` in `development-plan.xml`. Roles (creator/customer/admin) and exchange system (pre/during/post exchange, МК poles) are **not yet annotated at the module level**.
+**Business context from the product brief enters at project level only** — via `<scope>` and `<mk_context>` in `development-plan.xml`. Roles (creator/customer/admin) and exchange system (pre/during/post exchange, МК poles) are **not yet annotated at the module level**.
 
 The ontology answers *what the code does and how it connects*, not *whose job it serves or which МК pole it addresses*. Tier 3 (business grounding at module level) is a defined next step, pending stable МК validation.

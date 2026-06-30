@@ -215,7 +215,7 @@ Before sending a goal/task to an agent, scan it for NLP distortions that hide mi
 | **Cliché** | "best practices", "modern approach" | Which ones specifically? Why those? |
 
 Run this check on:
-- `value_proposition.md` before `/grill-with-docs`
+- `product_brief.md` before `/grill-with-docs`
 - Research questions before `/researcher`
 - User stories before `/contract`
 

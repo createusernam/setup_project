@@ -1,6 +1,6 @@
 # Setup v2 — Development Harness
 
-Harness for product development with GRACE markup, МК-driven design, and LLM-as-judge verification.
+Harness for product development with GRACE markup, product-brief-driven design, and LLM-as-judge verification.
 
 **Core philosophy**: LLMs don't read docs — they follow trajectories set by structured context. This setup encodes that reality into every artifact and prompt.
 
@@ -11,7 +11,7 @@ Harness for product development with GRACE markup, МК-driven design, and LLM-a
 ### Claude Code
 
 ```bash
-git clone https://github.com/createusernam/setup_project.git ~/.setup
+git clone https://github.com/createusernam/setup.git ~/.setup
 bash ~/.setup/install.sh
 ```
 
@@ -21,7 +21,7 @@ Verify: open Claude Code, type `/startup` — should appear in skill list.
 ### OpenCode + DeepSeek V4/Flash
 
 ```bash
-git clone https://github.com/createusernam/setup_project.git ~/.setup
+git clone https://github.com/createusernam/setup.git ~/.setup
 
 # Add to ~/.config/opencode/opencode.json:
 # {
@@ -48,7 +48,7 @@ Clone repo. Paste `SKILL.md` content directly into your prompt. Human = orchestr
 | Feature | v1 (claude-config) | v2 (this repo) |
 |---------|-------------------|----------------|
 | GRACE | Optional (≥2/4 gate) | GRACE Lite mandatory always |
-| Starting artifact | Free-form brief | `value_proposition.md` (МК-structured) |
+| Starting artifact | Free-form brief | `product_brief.md` |
 | Research | Implicit in grill | Explicit `/researcher` 3-phase flow |
 | Design | design-rubric one-time | `/design-first`: wireframe → approve → API contract |
 | Verification | human review | `/judge` LLM-as-judge (isolated evaluator) |
@@ -60,7 +60,7 @@ Clone repo. Paste `SKILL.md` content directly into your prompt. Human = orchestr
 ### New machine
 
 ```bash
-git clone https://github.com/createusernam/setup_project.git ~/.setup
+git clone https://github.com/createusernam/setup.git ~/.setup
 ```
 
 ### New project
@@ -71,19 +71,19 @@ git clone https://github.com/createusernam/setup_project.git ~/.setup
 
 The skill:
 1. Creates `~/<project-name>/` with full template
-2. Asks 5 questions (frontend? stack? МК? etc.)
-3. Pre-fills CLAUDE.md and value_proposition.md metadata
+2. Asks 4 questions (frontend? stack? complexity?)
+3. Pre-fills CLAUDE.md and product_brief.md metadata
 4. Git init + GitHub repo creation
 
 ### First work session
 
 ```
-1. Fill value_proposition.md  (sections 1-5 minimum)
-   OR run /researcher to discover МК first
+1. Fill product_brief.md  (sections 1-5 minimum)
+   OR run /methodology for product discovery
 
-2. /judge value-proposition   (validate before proceeding)
+2. /judge product-brief   (validate before proceeding)
 
-3. /grill-with-docs           (with value_proposition.md as primary input)
+3. /grill-with-docs       (with product_brief.md as primary input)
 
 4. Continue per PIPELINE.md
 ```
@@ -110,7 +110,7 @@ setup/
 └── templates/
     ├── project/          # Copied to new projects
     │   ├── CLAUDE.md
-    │   ├── product_brief.md       # pipeline entry point (methodology-agnostic)
+    │   ├── product_brief.md        # pipeline entry point (from /methodology or manual)
     │   ├── contract.json
     │   └── docs/
     │       ├── knowledge-graph.xml
@@ -129,7 +129,7 @@ setup/
 | Requirement | Implementation |
 |-------------|---------------|
 | 1. GRACE in all projects | GRACE Lite mandatory (MODULE_CONTRACT in every file). GRACE Full optional (≥2/4). |
-| 2. Product brief as input | `product_brief.md`. Fill using your product discovery process. Starting artifact for all projects. |
+| 2. Value proposition as input | `product_brief.md`. Starting artifact for all projects. |
 | 3. Design-first → API → contract | `/design-first`: wireframe → human approval → api-contract.json → contract |
 | 4. TDD and good practices | Inherited from claude-config: `/tdd`, `/contract`, `/build-loop` |
 | 5. Harness practices | Orchestrator/worker separation, State-First, XML anchors. No LangChain — Claude Code natively implements the graph (Task tool = node, skills = steps, build-loop = generator-evaluator). |
@@ -163,5 +163,5 @@ This repo extends, does not replace `claude-config`.
 Install both:
 ```bash
 git clone https://github.com/createusernam/claude-config.git ~/.claude
-git clone https://github.com/createusernam/setup_project.git ~/.setup
+git clone https://github.com/createusernam/setup.git ~/.setup
 ```

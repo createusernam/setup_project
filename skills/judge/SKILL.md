@@ -53,16 +53,16 @@ Your job: find gaps, not validate effort.
 
 ### Rubric by artifact type
 
-#### value-proposition
+#### product-brief
 
 Criteria (score each 0.0–1.0):
-- `vp-mk-clarity`: МК is a genuine motivational conflict, not just a problem
-- `vp-p1p-incompatibility`: P1P assumptions are truly incompatible
-- `vp-nto-articulable`: NTO can be formulated by the user without prompting
-- `vp-language-authentic`: Pyramid vertices use user's language, not theory terms
-- `vp-transformer-concrete`: Transformer is a specific operation, not vague "help"
-- `vp-criteria-testable`: ≥10 criteria, each is observable/testable
-- `vp-pipeline-ready`: Section 9 mapping is complete and consistent
+- `pb-problem-clarity`: Core problem/tension is clearly stated in user's language
+- `pb-scope-concrete`: Scope is testable, not aspirational
+- `pb-user-journey-complete`: User journey has ≥3 concrete steps
+- `pb-language-authentic`: Uses user's language, not theory terms
+- `pb-transformer-concrete`: Transformer is a specific operation, not vague "help"
+- `pb-criteria-testable`: §9 criteria are observable/testable
+- `pb-pipeline-ready`: Pipeline mapping is complete and consistent
 
 **PASS threshold**: all must_pass criteria ≥ 0.7
 

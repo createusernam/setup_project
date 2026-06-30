@@ -4,7 +4,6 @@
 Transmitter document — output of the product discovery phase.
 Pipeline entry point. Methodology-agnostic: fill using any discovery process.
 
-For МК-methodology integration: see ~/.setup/skills/methodology/SKILL.md
 Mapping to contract.json: section 9.
 Size limit: ≤200 lines (MODULE_CONTRACT rule).
 -->

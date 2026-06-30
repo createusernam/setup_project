@@ -24,7 +24,7 @@ Responsibilities:
 - Final acceptance verdict per task wave
 - PLAN_CONFIRM gate before autonomous build cycles
 
-PCAM framing: receives `value_proposition.md` as goal; produces `task_plan.md` as guide for implementers.
+PCAM framing: receives `product_brief.md` as goal; produces `task_plan.md` as guide for implementers.
 
 ```xml
 <role>
@@ -174,7 +174,7 @@ Every role uses PCAM framing:
 
 | Role | Gets | Produces | Interface |
 |------|------|----------|-----------|
-| ORCHESTRATOR | value_proposition.md (goal) | task_plan.md (guide), contract.json | PBS + PLAN_CONFIRM |
+| ORCHESTRATOR | product_brief.md (goal) | task_plan.md (guide), contract.json | PBS + PLAN_CONFIRM |
 | RESEARCHER | clarified_question (goal) | research-state.json (state) | research-state schema |
 | IMPLEMENTER | PBS leaf task (goal) | code + handoff.json | handoff schema |
 | TEST OWNER | handoff.json (goal) | AGREE/DISAGREE + test results | collegium verdict schema |
@@ -187,10 +187,11 @@ No role receives a step-by-step script. Every role receives a GOAL and a GUIDE. 
 ## Handoff Chain
 
 ```
-value_proposition.md
+product_brief.md
   → [ORCHESTRATOR] PBS decomposition → task_plan.md
-    → [RESEARCHER team] if МК unclear → research-state.json
-      → [ORCHESTRATOR] contract.json → [JUDGE gate]
+    → [RESEARCHER team] if gaps in brief → research-state.json
+      → [PM REVIEW] pm-review.json → [GATE: APPROVE]
+        → [ORCHESTRATOR] contract.json → [JUDGE gate]
         → [IMPLEMENTER per PBS leaf] code + handoff.json
           → [TEST OWNER] AGREE/DISAGREE + tests
             → [ACCEPTOR: ORCHESTRATOR] accept / reject loop

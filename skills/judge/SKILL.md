@@ -1,3 +1,8 @@
+---
+name: judge
+description: LLM-as-Judge artifact evaluation with isolated evaluator context. Supports product-brief, contract, plan, feature, design types. Invoke when user says "judge this", "evaluate", "validate artifact", "check quality", or after completing any phase output.
+---
+
 # /judge — LLM-as-Judge Artifact Evaluation
 
 Evaluates key artifacts against criteria using an isolated evaluator context. The evaluator has no access to the generator's reasoning — only the artifact and the rubric.

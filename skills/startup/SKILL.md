@@ -1,3 +1,8 @@
+---
+name: startup
+description: Create new project from setup template — copies templates, pre-fills config, git init, GitHub repo creation. Invoke when user says "create project", "new project", "init project", "startup", or wants to bootstrap a new workspace.
+---
+
 # /startup — Create New Project
 
 Creates a new project folder from the setup template, configures GRACE Lite, and asks key setup questions.

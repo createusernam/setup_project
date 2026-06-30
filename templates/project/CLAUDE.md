@@ -33,7 +33,8 @@ Key reminders:
 1. Fill `product_brief.md` before anything else
 2. GRACE Lite mandatory — MODULE_CONTRACT in every file
 3. All agent outputs follow structured JSON format (see `~/.setup/PROMPT-FORMAT.md`)
-4. `/judge` before shipping any feature
+4. Judge before shipping any feature
+5. OpenCode: this file is read via `AGENTS.md` symlink. Skills discovered from `~/.claude/skills/`.
 
 ## GRACE Lite (mandatory)
 

@@ -103,31 +103,41 @@ Task("judge", model="opus", isolated=true)  →  final verdict
 
 ```bash
 git clone https://github.com/createusernam/setup.git ~/.setup
-
-# Per project:
-ln -sf CLAUDE.md AGENTS.md
-
-# Register in ~/.config/opencode/opencode.json:
-# {
-#   "$schema": "https://opencode.ai/config.json",
-#   "instructions": "Process: ~/.setup/PIPELINE.md. Compat: ~/.setup/COMPAT.md.",
-#   "mcp": {
-#     "playwright": { "type": "local", "command": ["npx", "@playwright/mcp@latest", "--headless"], "enabled": true }
-#   }
-# }
+bash ~/.setup/install.sh        # symlinks skills to ~/.claude/skills/
 ```
+
+OpenCode discovers skills from `~/.claude/skills/` — the same path Claude Code uses. `install.sh` handles both CLI.
+
+Add to `~/.config/opencode/opencode.json`:
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": "Process: ~/.setup/PIPELINE.md. Compat: ~/.setup/COMPAT.md.",
+  "mcp": {
+    "playwright": { "type": "local", "command": ["npx", "@playwright/mcp@latest", "--headless"], "enabled": true }
+  }
+}
+```
+
+Per-project: startup skill creates `AGENTS.md → CLAUDE.md` symlink automatically — no manual step needed.
+
+Verify: `opencode` → "start a new project" → startup skill should load.
 
 ### Skill invocation
 
-No `/skill-name` syntax. Instead:
+No `/slash` syntax. Skills are invoked by name or purpose:
 
 ```
-Option A — in chat:
-  "Run /researcher for [topic]. See ~/.setup/skills/researcher/SKILL.md."
+"Run the researcher skill for e-commerce market"
+"Judge this contract against the rubric"
+"Use design-first to wireframe the landing page"
+```
 
-Option B — AGENTS.md includes skill reference:
-  "## Available skills
-  researcher: ~/.setup/skills/researcher/SKILL.md"
+OpenCode's native `skill` tool loads any skill's full instructions into context. Use `skill({ name: "startup" })` or describe the task and the model maps it to the right skill.
+
+Alternatively — reference the path directly:
+```
+"Run ~/.setup/skills/researcher/SKILL.md for e-commerce market research"
 ```
 
 ### Sequential Collegium

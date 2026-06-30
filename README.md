@@ -22,20 +22,29 @@ Verify: open Claude Code, type `/startup` — should appear in skill list.
 
 ```bash
 git clone https://github.com/createusernam/setup.git ~/.setup
-
-# Add to ~/.config/opencode/opencode.json:
-# {
-#   "instructions": "Process: ~/.setup/PIPELINE.md. Compat: ~/.setup/COMPAT.md.",
-#   "mcp": {
-#     "playwright": { "type": "local", "command": ["npx", "@playwright/mcp@latest", "--headless"] }
-#   }
-# }
-
-# Per project — symlink AGENTS.md so OpenCode reads it:
-ln -sf CLAUDE.md AGENTS.md
+bash ~/.setup/install.sh        # symlinks skills to ~/.claude/skills/
 ```
 
-Skills work via mention in chat. Multi-agent = sequential turns with `research-state.json` as handoff. See `COMPAT.md` for full guide.
+OpenCode discovers skills from `~/.claude/skills/` (same path Claude Code uses). `install.sh` handles both.
+
+Add to `~/.config/opencode/opencode.json`:
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": "Process: ~/.setup/PIPELINE.md. Compat: ~/.setup/COMPAT.md.",
+  "mcp": {
+    "playwright": {
+      "type": "local",
+      "command": ["npx", "@playwright/mcp@latest", "--headless"],
+      "enabled": true
+    }
+  }
+}
+```
+
+Verify: `opencode` → type "start a new project" — startup skill should load.
+
+Skills are invoked by name or purpose in chat. Multi-agent = sequential turns with `research-state.json` as handoff. See `COMPAT.md §OpenCode` for full guide.
 
 ### Any LLM (terminal / API)
 
@@ -61,32 +70,34 @@ Clone repo. Paste `SKILL.md` content directly into your prompt. Human = orchestr
 
 ```bash
 git clone https://github.com/createusernam/setup.git ~/.setup
+bash ~/.setup/install.sh
 ```
 
 ### New project
 
-```
-/startup <project-name>
-```
+**Claude Code:** `/startup <project-name>`
+
+**OpenCode:** Ask "create a new project called <name>" → startup skill runs, asks 4 questions
 
 The skill:
 1. Creates `~/<project-name>/` with full template
 2. Asks 4 questions (frontend? stack? complexity?)
 3. Pre-fills CLAUDE.md and product_brief.md metadata
-4. Git init + GitHub repo creation
+4. Creates `AGENTS.md → CLAUDE.md` symlink (OpenCode compatibility)
+5. Git init + GitHub repo creation
 
 ### First work session
 
+**Claude Code:**
 ```
 1. Fill product_brief.md  (sections 1-5 minimum)
    OR run /methodology for product discovery
-
 2. /judge product-brief   (validate before proceeding)
-
 3. /grill-with-docs       (with product_brief.md as primary input)
-
 4. Continue per PIPELINE.md
 ```
+
+**OpenCode:** Same flow — say "validate the product brief" (triggers judge), "grill my product brief against the domain model" (triggers grill-with-docs). All skills listed in `PIPELINE.md` work.
 
 ## Directory structure
 

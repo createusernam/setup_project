@@ -96,10 +96,11 @@ is_backend: false
 status: draft
 ```
 
-### Step 6 — git init
+### Step 6 — git init and AGENTS.md symlink
 
 ```bash
 cd "$PROJECT_PATH"
+ln -sf CLAUDE.md AGENTS.md      # OpenCode reads AGENTS.md
 git init
 git branch -m main
 git add .
@@ -119,12 +120,14 @@ Print summary:
 ```
 ✓ Project created: ~/[project-name]
 ✓ GRACE Lite: active (MODULE_CONTRACT required in all files)
+✓ AGENTS.md → CLAUDE.md (OpenCode ready)
 ✓ product_brief.md: ready to fill
 ✓ Next step: fill product_brief.md → /methodology or /grill-with-docs
 
 Key files:
   ~/[project-name]/product_brief.md        ← fill first
   ~/[project-name]/CLAUDE.md              ← project config
+  ~/[project-name]/AGENTS.md              ← → CLAUDE.md symlink
   ~/[project-name]/docs/agents/domain.md  ← domain terminology
 ```
 
@@ -136,7 +139,7 @@ Key files:
   "data": {
     "project_path": "~/...",
     "github_url": "https://github.com/...",
-    "next_step": "fill product_brief.md → /methodology or /grill-with-docs"
+    "next_step": "fill product_brief.md → methodology or grill-with-docs"
   },
   "issues": []
 }

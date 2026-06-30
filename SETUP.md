@@ -1,6 +1,6 @@
 # Setup Guide
 
-## Install
+## Install — Claude Code
 
 ### One command
 
@@ -50,10 +50,42 @@ cat ~/.claude/.env | grep GH_TOKEN
 # If missing: echo 'GH_TOKEN=ghp_...' >> ~/.claude/.env
 ```
 
-## Creating a new project
+---
+
+## Install — OpenCode
 
 ```bash
-# In Claude Code:
+git clone https://github.com/createusernam/setup.git ~/.setup
+bash ~/.setup/install.sh
+```
+
+`install.sh` symlinks skills to `~/.claude/skills/`. OpenCode discovers them from the same path — nothing extra needed for skills.
+
+Add to `~/.config/opencode/opencode.json` (merge with existing):
+```json
+{
+  "instructions": "Process: ~/.setup/PIPELINE.md. Compat: ~/.setup/COMPAT.md.",
+  "mcp": {
+    "playwright": {
+      "type": "local",
+      "command": ["npx", "@playwright/mcp@latest", "--headless"],
+      "enabled": true
+    }
+  }
+}
+```
+
+Verify: run `opencode`, type "start a new project" — startup skill should load.
+
+> **Skills location**: Both Claude Code and OpenCode read from `~/.claude/skills/`. Skills live once, work in both CLI. No per-project skill copies needed — project CLAUDE.md references the pipeline, not individual skills.
+>
+> OpenCode also has a native `skill` tool — call it to load any skill's full instructions into context.
+
+## Creating a new project
+
+### Claude Code
+
+```bash
 /startup my-project-name
 
 # Answers these questions:
@@ -61,6 +93,25 @@ cat ~/.claude/.env | grep GH_TOKEN
 # 2. Is there a frontend? (y/n)
 # 3. Tech stack?
 # 4. Is architecturally complex? (y/n)
+```
+
+### OpenCode
+
+```
+"create a new project called my-project-name"
+```
+
+Startup skill asks the same 4 questions, creates project, and:
+- Copies all templates from `~/.setup/templates/project/`
+- Generates `CLAUDE.md` with answers
+- Creates `AGENTS.md → CLAUDE.md` symlink (auto, no manual step needed)
+- `git init` + `gh repo create`
+
+### After creation
+
+```bash
+cd ~/my-project-name
+# AGENTS.md symlink already created by startup — OpenCode reads project config immediately
 ```
 
 ## Per-project first session

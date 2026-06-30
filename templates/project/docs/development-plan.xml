@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  GRACE Development Plan
+  Created by /grace-plan. Modules ordered by dependency layer.
+  This is the blueprint — code implements this, not the other way around.
+-->
+<DevelopmentPlan>
+  <Project NAME="PROJECT_NAME" VERSION="0.1.0">
+    <scope>REPLACE_WITH_SCOPE_FROM_CONTRACT_JSON</scope>
+    <mk_context>REPLACE_WITH_MK_DESCRIPTION</mk_context>
+  </Project>
+
+  <!--
+    Execution waves: modules in the same wave can be developed in parallel.
+    Modules in wave N must wait for wave N-1 to be complete.
+
+    Example wave structure:
+
+    <Wave ORDER="1" label="Foundation">
+      <M-CONFIG NAME="Config" TYPE="UTILITY" LAYER="1" ORDER="1">
+        <contract>
+          <purpose>Application configuration management</purpose>
+          <inputs>
+            <param name="env" type="NodeJS.ProcessEnv" />
+          </inputs>
+          <outputs>
+            <param name="config" type="AppConfig" />
+          </outputs>
+          <errors>
+            <error code="CONFIG_MISSING" />
+          </errors>
+        </contract>
+        <interface>
+          <export-loadConfig PURPOSE="Load and validate config" />
+          <type-AppConfig PURPOSE="Config type" />
+        </interface>
+        <depends>none</depends>
+        <mental_tests>
+          - Given valid env vars → returns AppConfig
+          - Given missing required var → throws CONFIG_MISSING
+        </mental_tests>
+      </M-CONFIG>
+    </Wave>
+  -->
+
+</DevelopmentPlan>

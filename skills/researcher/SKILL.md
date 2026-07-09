@@ -1,6 +1,6 @@
 ---
 name: researcher
-description: Multi-agent research flow with parallel workers, consensus, synthesis, and judge validation. Modes: market, domain, technical, competitor. Invoke when user says "research", "investigate", "discover", "analyze market", or product_brief.md has gaps.
+description: Multi-agent research flow with parallel workers, consensus, synthesis, and judge validation. Modes: market, technical, user, domain, custom (custom is the extension point — domain-specific applications ride on it rather than adding a mode). Invoke when user says "research", "investigate", "discover", "analyze market", or product_brief.md has gaps.
 ---
 
 # /researcher — Multi-Agent Research Flow

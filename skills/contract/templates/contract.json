@@ -1,0 +1,73 @@
+{
+  "version": "2",
+  "scope": "REPLACE: single-sentence statement of what we're building",
+  "created": "REPLACE-WITH-ISO-8601",
+  "is_frontend": true,
+  "is_backend": true,
+  "is_architecturally_complex": false,
+  "linked_issue": null,
+  "linked_plan": "task_plan.md",
+  "linked_cjm": null,
+  "linked_grace_plan": null,
+  "inherits": ["design-contract.json"],
+  "user_flow": {
+    "jtbd": "REPLACE: user job in user's own words",
+    "primary_path": [
+      { "step": 1, "action": "REPLACE", "expect": "REPLACE" }
+    ],
+    "error_paths": [
+      { "condition": "REPLACE", "expect": "REPLACE" }
+    ]
+  },
+  "integrations": {
+    "data_flow": "REPLACE: source → transport → store → consumer (one line)",
+    "frontend_calls": [
+      {
+        "from": "REPLACE: src/components/X.tsx",
+        "method": "POST",
+        "endpoint": "/api/...",
+        "request_schema": {},
+        "response_201": {},
+        "response_400": {},
+        "response_500": "REPLACE: how the client handles 5xx"
+      }
+    ],
+    "backend_endpoints": [
+      {
+        "path": "POST /api/...",
+        "handler": "REPLACE: file:function",
+        "validates": "REPLACE: zod/joi schema reference",
+        "writes": "REPLACE: SQL/orm operation",
+        "side_effects": "none|email|webhook|queue",
+        "auth": "REPLACE: session|api-key|none"
+      }
+    ],
+    "schema_changes": [],
+    "external_services": []
+  },
+  "criteria": [
+    {
+      "id": "c1-flow-happy-path",
+      "category": "functionality",
+      "weight": 5,
+      "must_pass": true,
+      "check": "primary_path completes end-to-end",
+      "verify": { "method": "playwright", "steps": "replay user_flow.primary_path" }
+    }
+  ],
+  "out_of_scope": [],
+  "restart_threshold": {
+    "max_iterations": 5,
+    "no_progress_iterations": 3,
+    "criteria_floor": 0.6,
+    "must_pass_failures_allowed": 0
+  },
+  "verify_commands": {
+    "test": "npm test",
+    "lint": "npm run lint",
+    "typecheck": "npm run typecheck",
+    "build": "npm run build",
+    "dev_server": "npm run dev",
+    "dev_url": "http://localhost:5173"
+  }
+}

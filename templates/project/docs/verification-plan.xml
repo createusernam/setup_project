@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  GRACE Verification Plan
+  Created by /grace-verification. Answers: how will another agent prove this module is correct?
+
+  Three proof layers:
+  1. Deterministic assertions — exact outcomes
+  2. Trace/log assertions — execution trajectory
+  3. Phase-level / integration checks — merged surfaces
+-->
+<VerificationPlan>
+  <Project NAME="PROJECT_NAME" />
+
+  <GlobalPolicy>
+    <log_format>[ModuleName][functionName][BLOCK_NAME] message</log_format>
+    <structured_fields>correlationId, userId (if applicable), timestamp</structured_fields>
+    <redaction>Redact: passwords, tokens, PII. Log: IDs, statuses, operation names.</redaction>
+  </GlobalPolicy>
+
+  <CriticalFlows>
+    <!--
+      Document the product's highest-risk user flows here.
+      These must remain observable even after autonomous runs.
+
+      Example:
+      <Flow name="user-authentication">
+        <description>User logs in and receives a valid session</description>
+        <must_remain_observable>true</must_remain_observable>
+      </Flow>
+    -->
+  </CriticalFlows>
+
+  <ModuleVerification>
+    <!--
+      One V-M-xxx entry per important module.
+      ID must derive from M-xxx: M-AUTH → V-M-AUTH
+
+      Example:
+      <V-M-AUTH MODULE="M-AUTH" PRIORITY="high">
+        <test-files>
+          <file>src/auth/index.test.ts</file>
+        </test-files>
+        <module-checks>
+          <check-1>bun test src/auth/index.test.ts</check-1>
+        </module-checks>
+        <scenarios>
+          <scenario-1 kind="success">Valid credentials → session created</scenario-1>
+          <scenario-2 kind="failure">Invalid credentials → AUTH_FAILED error</scenario-2>
+        </scenarios>
+        <required-log-markers>
+          <marker-1>[Auth][login][BLOCK_VALIDATE_CREDENTIALS]</marker-1>
+        </required-log-markers>
+      </V-M-AUTH>
+    -->
+  </ModuleVerification>
+
+  <PhaseGates>
+    <!--
+      Broader checks required before calling a phase done.
+      These run after a wave or before ship.
+
+      Example:
+      <Gate name="pre-ship">
+        <check>All V-M-xxx module checks pass</check>
+        <check>No open must_pass criteria in contract.json</check>
+        <check>judge-report.json verdict = PASS</check>
+      </Gate>
+    -->
+  </PhaseGates>
+
+</VerificationPlan>

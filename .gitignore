@@ -1,0 +1,6 @@
+.DS_Store
+*.local
+.env
+judge-reports/
+traces/
+*:Zone.Identifier

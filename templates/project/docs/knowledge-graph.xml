@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  GRACE Knowledge Graph
+  Maintain this file as modules change: add, remove, update CrossLinks.
+  Run /grace-refresh to detect drift between this graph and actual code.
+-->
+<KnowledgeGraph>
+  <Project NAME="PROJECT_NAME" VERSION="0.1.0">
+    <keywords>REPLACE_WITH_DOMAIN_KEYWORDS</keywords>
+    <annotation>REPLACE_WITH_ONE_SENTENCE_PROJECT_DESCRIPTION</annotation>
+
+    <!--
+      Add module entries here. Each module tag uses its unique M-xxx ID as the tag name.
+      Example:
+
+      <M-CONFIG NAME="Config" TYPE="UTILITY" STATUS="planned">
+        <purpose>Application configuration and environment management</purpose>
+        <path>src/config/index.ts</path>
+        <depends>none</depends>
+        <verification-ref>V-M-CONFIG</verification-ref>
+        <annotations>
+          <fn-loadConfig PURPOSE="Load and validate config from environment" />
+          <type-AppConfig PURPOSE="Configuration type definition" />
+        </annotations>
+      </M-CONFIG>
+
+      Module types: ENTRY_POINT | CORE_LOGIC | DATA_LAYER | UI_COMPONENT | UTILITY | INTEGRATION
+
+      CrossLink relations: reads-config | queries-db | calls-api | renders-component | validates-input
+    -->
+
+  </Project>
+</KnowledgeGraph>

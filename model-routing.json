@@ -1,0 +1,93 @@
+{
+  "_description": "Model routing rules for setup pipeline. Agents MUST read this before each phase, verify their current model matches the required model, and halt with instructions to the operator if mismatched.",
+  "_enforcement": "Run 'bash scripts/model-check.sh <phase>' to print a phase's required model (and collegium roles). A shell script/hook CANNOT detect the running model, so enforcement is agent-cooperative: the agent identifies its own model (from its system prompt) and, on mismatch with required_model, outputs 'MODEL MISMATCH: phase [N] requires [model], current is [detected]' and STOPs. For collegium phases (3, 6) also verify the roles are different models. There is deliberately no blocking hook — one without model detection would be theatre.",
+  "_state_ledger_note": "'requires' (input artifacts) and 'human_gate' (a human sign-off required before the phase) are consumed by scripts/pipeline-preflight.sh, which validates them against the project's .pipeline-state.json ledger. The creator_interview and discovery_signoff gates are enforced INSIDE the methodology skill (Steps 0-1 and the Step 2->3 gate) — not here — because the manual-brief path (no /methodology) skips methodology entirely.",
+  "phases": {
+    "-1": {
+      "skill": "methodology",
+      "required_model": "opus|sonnet",
+      "fallback": "any — methodology is model-agnostic within Opus/Sonnet tier",
+      "note": "Collegium rule (Step 4): designer ≠ reviewer MUST be different models",
+      "requires": []
+    },
+    "0": {
+      "skill": "researcher",
+      "required_model": "opus|sonnet",
+      "workers": "deepseek-flash|flash",
+      "note": "Orchestrator/synthesis = Opus/Sonnet; parallel desk research workers = Flash",
+      "requires": ["product_brief.md"]
+    },
+    "1": {
+      "skill": "grill-with-docs",
+      "required_model": "opus|sonnet",
+      "note": "Reasoning-heavy document analysis",
+      "requires": ["product_brief.md"]
+    },
+    "2": {
+      "skill": "planning-with-files",
+      "required_model": "opus|sonnet",
+      "note": "PBS decomposition requires strong reasoning",
+      "requires": ["product_brief.md"]
+    },
+    "2-PM": {
+      "skill": "pm-review",
+      "required_model": "opus",
+      "note": "Isolated context gate — must NOT be same model as planner",
+      "requires": ["task_plan.md", "product_brief.md"]
+    },
+    "2b": {
+      "skill": "grace-init, grace-plan",
+      "required_model": "opus",
+      "note": "GRACE architecture requires Opus reasoning depth",
+      "requires": ["task_plan.md"]
+    },
+    "3": {
+      "skill": "design-first",
+      "required_model": "sonnet|opus",
+      "note": "Wireframes = Sonnet; Approval gate = Opus (different models)",
+      "requires": ["task_plan.md"]
+    },
+    "4": {
+      "skill": "contract",
+      "required_model": "opus",
+      "note": "Contract negotiation requires Opus authority",
+      "requires": ["task_plan.md"]
+    },
+    "4b": {
+      "skill": "judge",
+      "required_model": "opus",
+      "note": "Isolated evaluator context — must NOT share context with contract writer",
+      "requires": ["contract.json"]
+    },
+    "4c": {
+      "skill": "visualization",
+      "required_model": "opus",
+      "note": "Architect renders plan as Mermaid before issues. Human-supervision gate.",
+      "requires": ["contract.json"]
+    },
+    "5": {
+      "skill": "to-issues",
+      "required_model": "sonnet|opus",
+      "note": "Issue slicing is cost-effective on Sonnet",
+      "requires": ["contract.json", "task_plan.md"],
+      "human_gate": "viz_before_tickets"
+    },
+    "6": {
+      "skill": "build-loop, tdd",
+      "required_model": "deepseek|glm",
+      "implementer": "deepseek-v4|deepseek",
+      "test_owner": "glm|deepseek — MUST be different from implementer",
+      "acceptor": "opus — isolated context",
+      "note": "Collegium enforced: implementer ≠ test-owner ≠ acceptor",
+      "requires": ["contract.json"],
+      "human_gate": "contract_locked"
+    },
+    "7": {
+      "skill": "judge feature, code-review-expert",
+      "required_model": "opus|sonnet",
+      "note": "Judge (isolated Opus) → code-review-expert → ship. Combined verification + review phase.",
+      "requires": []
+    }
+  },
+  "_operator_note": "To switch models: edit ~/.config/opencode/opencode.json model field, or use OpenCode's model selector. After switch, agent re-reads this file on next phase invocation."
+}

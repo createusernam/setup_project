@@ -1,0 +1,19 @@
+{
+  "version": "1",
+  "phase": "-1",
+  "gates_passed": [],
+  "artifacts": {
+    "product_brief.md": { "sha256": null, "status": "draft" }
+  },
+  "human_gates": {
+    "creator_interview": { "by": null, "at": null },
+    "discovery_signoff": { "by": null, "at": null },
+    "viz_before_tickets": { "by": null, "at": null },
+    "contract_locked": { "by": null, "at": null }
+  },
+  "models_required": [],
+  "models_available": ["opus", "sonnet"],
+  "open_questions": [],
+  "updated_at": null,
+  "_note": "models_available is the declared env manifest — list the models actually reachable in this environment (e.g. opus, sonnet, deepseek-v4, glm, deepseek-flash). pipeline-preflight.sh fails a phase whose routed model is not listed. Each skill updates artifacts{}/gates_passed/phase on completion; a new session reads this file to resume. human_gates.creator_interview and human_gates.discovery_signoff are enforced inside the discovery skill (Phase -1), recorded here for audit and resume."
+}

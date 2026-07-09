@@ -1,0 +1,108 @@
+{
+  "version": "1",
+  "scope": "REPLACE: which UI surface this rubric covers",
+  "created": "REPLACE-WITH-ISO-8601",
+  "sources": [
+    "~/.claude/design-guidelines.md",
+    "REPLACE: project-specific design docs"
+  ],
+  "design_tokens": {
+    "space": ["--space-xs", "--space-sm", "--space-md", "--space-lg", "--space-xl"],
+    "color_text": "--color-text",
+    "color_action_primary": "--color-action-primary",
+    "breakpoint": 768,
+    "values": {
+      "ink": "#1c1c1c",
+      "accent": "#9a3b2f",
+      "accent2": "#d98b6a",
+      "warm_bg": "#f6f1ee",
+      "code_bg": "#ece7e3",
+      "th_bg": "#f1e7e4",
+      "zebra": "#faf7f6"
+    }
+  },
+  "criteria": [
+    {
+      "id": "ids-spacing-token",
+      "category": "design",
+      "weight": 3,
+      "must_pass": false,
+      "check": "padding/margin берутся из --space-{xs,sm,md,lg,xl}, не magic numbers",
+      "verify": {
+        "method": "grep",
+        "command": "! grep -rnE '(padding|margin)(-top|-right|-bottom|-left)?:\\s*[0-9]+(px|rem|em)' src/ --include='*.css' --include='*.scss' --include='*.module.css' | grep -v 'var(--space-'"
+      }
+    },
+    {
+      "id": "birman-text-color",
+      "category": "design",
+      "weight": 3,
+      "must_pass": false,
+      "check": "Текст #1a1a1a..#2d2d2d или var(--color-text), не pure #000",
+      "verify": {
+        "method": "grep",
+        "command": "! grep -rnE 'color:\\s*(#000|#000000|black)\\s*[;}]' src/ --include='*.css'"
+      }
+    },
+    {
+      "id": "birman-underline-opacity",
+      "category": "design",
+      "weight": 2,
+      "must_pass": false,
+      "check": "Underline opacity 0.2, currentColor",
+      "verify": {
+        "method": "playwright",
+        "steps": "navigate to a page with links; locate first <a>; assert getComputedStyle.textDecorationColor has alpha ≈ 0.2 (±0.05)"
+      }
+    },
+    {
+      "id": "ids-breakpoint-single",
+      "category": "design",
+      "weight": 3,
+      "must_pass": false,
+      "check": "Только @media (min-width: 768px), никаких других",
+      "verify": {
+        "method": "grep",
+        "command": "! grep -rnE '@media[^{]*(min|max)-width:\\s*(?!768px)[0-9]+px' src/ --include='*.css'"
+      }
+    },
+    {
+      "id": "no-tailwind-mui",
+      "category": "craft",
+      "weight": 4,
+      "must_pass": true,
+      "check": "Запрещены Tailwind/Bootstrap/MUI/Chakra/Ant/Mantine — custom CSS only",
+      "verify": {
+        "method": "grep",
+        "command": "! grep -E '\"(tailwindcss|bootstrap|@mui|@chakra-ui|antd|@mantine)' package.json"
+      }
+    },
+    {
+      "id": "copy-jtbd-copy",
+      "category": "design",
+      "weight": 2,
+      "must_pass": false,
+      "check": "UI copy формулирует JTBD пользователя, не описывает фичу системы",
+      "verify": {
+        "method": "manual",
+        "prompt": "Read all visible UI strings on the modified screens. For each: is it framed as user-job ('Накопить на путешествие') or system-feature ('Создать цель')? Score: 1.0 if all JTBD, 0 if all system, linear between. Quote 3 worst offenders if any."
+      }
+    },
+    {
+      "id": "a11y-tap-target",
+      "category": "accessibility",
+      "weight": 2,
+      "must_pass": false,
+      "check": "Touch targets ≥44×44px (PWA / mobile only)",
+      "verify": {
+        "method": "playwright",
+        "steps": "viewport 375×667; for each <button> and <a role=button>: getBoundingClientRect; assert min(width, height) ≥ 44"
+      }
+    }
+  ],
+  "out_of_scope": [
+    "Animation timings — separate rubric if needed",
+    "Сложные dark-mode переходы — отдельный sprint"
+  ],
+  "calibration_images": []
+}

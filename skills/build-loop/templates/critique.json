@@ -1,0 +1,31 @@
+{
+  "iteration": 1,
+  "evaluator_started": "REPLACE-WITH-ISO-8601",
+  "evaluator_finished": "REPLACE-WITH-ISO-8601",
+  "scores": {
+    "c1": 1.0,
+    "c2": 0.4,
+    "c3": 1.0
+  },
+  "weighted_score": 0.78,
+  "must_pass_failures": [],
+  "verdict": "fail",
+  "blocking_criteria": ["c2"],
+  "critique_per_criterion": {
+    "c1": "Form submits valid input, success toast appears within 1.2s. Screenshot iterations/1/screenshots/success-toast.png. PASS.",
+    "c2": "Submit button uses hardcoded #007aff at src/components/Form.tsx:42. Expected var(--color-action-primary). Single grep hit. Targeted fix.",
+    "c3": "Unit test 'invalid email' covers the branch in __tests__/form.spec.ts:18-32. PASS."
+  },
+  "summary": "Functionality and craft pass. Single design-token violation in c2 (one-line fix). Recommend patch, not restart.",
+  "recommend_restart": false,
+  "screenshots": [
+    "iterations/1/screenshots/success-toast.png",
+    "iterations/1/screenshots/form-empty.png",
+    "iterations/1/screenshots/form-invalid.png"
+  ],
+  "verify_command_outputs": {
+    "test": { "exit_code": 0, "tail": "12 passed, 0 failed" },
+    "typecheck": { "exit_code": 0 },
+    "lint": { "exit_code": 0 }
+  }
+}

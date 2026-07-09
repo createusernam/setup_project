@@ -1,0 +1,29 @@
+{
+  "_comment": "Fill this via /contract skill. This is the pre-flight template.",
+  "version": "2",
+  "scope": "",
+  "created": "",
+  "is_frontend": false,
+  "is_backend": false,
+  "is_architecturally_complex": false,
+  "linked_issue": null,
+  "linked_plan": "task_plan.md",
+  "linked_cjm": null,
+  "linked_product_brief": "product_brief.md",
+  "user_flow": {
+    "jtbd": "",
+    "primary_path": [],
+    "error_paths": []
+  },
+  "integrations": {
+    "data_flow": "",
+    "frontend_calls": [],
+    "backend_endpoints": [],
+    "schema_changes": [],
+    "external_services": []
+  },
+  "criteria": [],
+  "out_of_scope": [],
+  "judge_required": true,
+  "grace_mode": "lite"
+}

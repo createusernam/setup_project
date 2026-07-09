@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  GRACE Development Plan (v0.2.0 schema) — placeholder stub.
+
+  Only meaningful under GRACE Full (≥2/4 criteria — see PIPELINE.md Branch A).
+  Scaffold with /grace-init, then populate with /grace-plan. The canonical full schema
+  (Modules / DataFlow / ImplementationOrder / ExecutionPolicy) lives in
+  skills/grace-init/assets/docs/development-plan.xml.template and is what /grace-init installs.
+
+  Business / problem context does NOT live here. GRACE is code-structural: the problem the
+  project addresses stays in product_brief.md (§2) + contract.json (scope, user_flow). Only
+  <scope> (mirrored from contract.json.scope) crosses into GRACE at project level.
+-->
+<DevelopmentPlan VERSION="0.2.0">
+  <ArchitectureNotes>
+    <!-- <objective>What this plan optimizes for.</objective>
+         <non-goal>What the implementation should explicitly avoid.</non-goal>
+         <risk-1>Key design risk to watch during execution.</risk-1> -->
+  </ArchitectureNotes>
+
+  <Modules>
+    <!-- Filled by /grace-plan. See skills/grace-init/assets/docs/development-plan.xml.template
+         for the <M-xxx> module-contract shape (purpose / inputs / outputs / interface /
+         depends / target / observability / verification-ref). -->
+  </Modules>
+
+  <ImplementationOrder>
+    <!-- <Phase-1 name="Foundation" status="pending">
+           <goal>What this phase proves or unlocks</goal>
+           <step-1 module="M-CONFIG" status="pending" verification="V-M-CONFIG">…</step-1>
+         </Phase-1> -->
+  </ImplementationOrder>
+</DevelopmentPlan>

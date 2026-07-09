@@ -1,0 +1,21 @@
+{
+  "version": "1",
+  "contract_sha": "<sha256 of contract.json at loop start>",
+  "contract_path": "contract.json",
+  "design_contract_path": "design-contract.json",
+  "start_commit": "<git HEAD sha at loop start — restart rollback point>",
+  "started": "2026-05-19T12:00:00Z",
+  "iterations": [
+    {
+      "n": 1,
+      "generator_model": "deepseek-v4",
+      "evaluator_model": "opus",
+      "weighted_score": 0.78,
+      "verdict": "continue",
+      "blocking_criteria": ["c2-flow-amount-negative"],
+      "recommend_restart": false
+    }
+  ],
+  "restart_count": 0,
+  "final_verdict": null
+}

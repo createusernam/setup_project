@@ -80,7 +80,7 @@ Test-owner reads handoff.json and either:
 
 ## Claude Code (primary)
 
-Skills work natively. Install: `bash ~/.setup/install.sh`
+Skills work natively. Install: `bash ~/setup/install.sh`
 
 ```bash
 /startup      /researcher     /judge     /design-first
@@ -102,8 +102,8 @@ Task("judge", model="opus", isolated=true)  →  final verdict
 ### Install
 
 ```bash
-git clone https://github.com/createusernam/setup_project.git ~/.setup
-bash ~/.setup/install.sh        # symlinks skills to ~/.claude/skills/
+git clone https://github.com/createusernam/setup_project.git ~/setup
+bash ~/setup/install.sh        # symlinks skills to ~/.claude/skills/
 ```
 
 OpenCode discovers skills from `~/.claude/skills/` — the same path Claude Code uses. `install.sh` handles both CLI.
@@ -115,8 +115,8 @@ subdirs. `install.sh` prints the exact block with absolute paths for your machin
 {
   "$schema": "https://opencode.ai/config.json",
   "instructions": [
-    "~/.setup/docs/human/PIPELINE.md",
-    "~/.setup/docs/agent/COMPAT.md"
+    "~/setup/docs/human/PIPELINE.md",
+    "~/setup/docs/agent/COMPAT.md"
   ],
   "model": "deepseek/deepseek-v4-pro",
   "small_model": "deepseek/deepseek-v4-flash",
@@ -145,7 +145,7 @@ OpenCode's native `skill` tool loads any skill's full instructions into context.
 
 Alternatively — reference the path directly:
 ```
-"Run ~/.setup/skills/researcher/SKILL.md for e-commerce market research"
+"Run ~/setup/skills/researcher/SKILL.md for e-commerce market research"
 ```
 
 ### Parallel Collegium — for research / broad-breadth tasks
@@ -209,7 +209,7 @@ Before each phase, output:
 
 Human = orchestrator. Each agent role = separate LLM call.
 
-1. Open SKILL.md from `~/.setup/skills/<skill>/SKILL.md`
+1. Open SKILL.md from `~/setup/skills/<skill>/SKILL.md`
 2. Send each phase as separate prompt with role activation (first sentence = role)
 3. Copy JSON output between turns manually
 4. Save state to `research-state.json` yourself
@@ -246,6 +246,38 @@ All skills use state files as Belief State anchors.
 - State file = Belief State anchor across turns and agents
 - Agent starts each turn: "Read current state → produce next state"
 - Verification = read state dump, not trace code
+
+---
+
+## State format — JSON vs XML
+
+Two findings that look contradictory, and the line between them. Get this wrong in either direction
+and the agent either destroys its own state or goes blind on a long context.
+
+| Finding | Source | About |
+|---------|--------|-------|
+| Models overwrite **markdown** far more readily than JSON | Anthropic Applied AI talk, May 2026 | **writing** — braces make a file feel structural, and the model treats it as data, not prose to rewrite |
+| **JSON degrades as read-context**; prefer XML-like markup | OpenAI GPT-4.1 prompting guide (`#delimiters`); GRACE | **reading** — on long context the model ends up matching braces, attention drifts, comprehension collapses |
+
+Both are true because they describe different operations. The rule that satisfies both:
+
+- **JSON — control state.** Small (≲5k tokens), schema'd, parsed by scripts, read whole, and it must
+  survive an agent's urge to "tidy" it: `contract.json`, `critique.json`, `handoff.json`,
+  `.pipeline-state.json`, `judge-report.json`, `api-contract.json`.
+- **XML-like — everything the agent reads in bulk to navigate.** Graphs, plans, verification surfaces,
+  logs and traces: `docs/knowledge-graph.xml`, `docs/development-plan.xml`,
+  `docs/verification-plan.xml`, GRACE in-code anchors, `[Module][function][BLOCK]` log lines.
+- **Markdown — for humans.** `product_brief.md`, `CONTEXT.md`, `task_plan.md`, gate diagrams. Expect
+  agents to rewrite it freely; never make it the sole carrier of state a later phase depends on.
+
+**The threshold, stated once:** if an artifact will be handed to a model as context and exceeds
+roughly 5k tokens, it must not be JSON. Long worker findings, captured traces, accumulated research —
+write them as XML-like sections with named anchors, not as growing JSON arrays. A `research-state.json`
+whose `worker_findings` has swollen to 30k tokens is the exact failure mode both findings warn about:
+maximally overwrite-resistant, and unreadable by the model that has to synthesize it.
+
+Do **not** mirror an artifact into both formats to get both properties. Two copies of one state is a
+drift bug waiting to happen — pick the format from the table by what the artifact is *for*.
 
 ---
 

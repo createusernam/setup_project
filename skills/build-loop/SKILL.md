@@ -52,9 +52,15 @@ Validate before any iteration starts. Halt with a clear message if any check fai
     OpenCode:    check `~/.config/opencode/opencode.json` mcp.playwright.enabled)
 8. Dev server command runs cleanly: contract.json.verify_commands.dev_server
 9. Git working tree is clean (no uncommitted changes — restart-from-scratch needs a rollback point)
-10. Routed models available: run scripts/pipeline-preflight.sh 6 — implementer/test-owner/acceptor
-    models are in the project ledger's models_available and are distinct. (Closes the "cycle
-    stalls on a missing model" gap.)
+10. Routed models available: run `bash ~/.claude/scripts/pipeline-preflight.sh 6` — implementer/
+    test-owner/acceptor models are in the project ledger's models_available and are distinct.
+    (Closes the "cycle stalls on a missing model" gap.)
+11. GRACE Lite markup is clean on the code the loop will edit:
+    `bash ~/.claude/scripts/grace-lint.sh --profile autonomous` exits 0.
+    Not cosmetic: the loop has no human in it. The generator navigates by MODULE_CONTRACT /
+    FUNCTION_CONTRACT anchors, and the evaluator's `trace` criteria grade against the
+    [Module][function][BLOCK] log anchors. Unmarked code blinds both halves of the cycle.
+    If this fails on a greenfield feature, you skipped `/scaffold` — run it.
 ```
 
 If any check fails, print a precise diagnostic:
@@ -155,6 +161,17 @@ Evaluator's task:
 - For each criterion in `contract.json`:
   - If `verify.method` is `grep`/`test`/`typecheck`/`build`/`lint` — run the command, exit code 0 = pass
   - If `verify.method` is `playwright` — execute the steps via Playwright MCP, screenshot key states to `iterations/<n>/screenshots/`, score 0–1
+  - If `verify.method` is `trace` — run `verify.command`, capture stdout+stderr to
+    `iterations/<n>/traces/<criterion-id>.log`, then grade the **trajectory**:
+      1. every anchor in `expect_sequence` appears, **in that order** (interleaving lines are fine) — a
+         missing or reordered anchor scores 0;
+      2. no anchor in `forbid` appears — any match scores 0;
+      3. **semantic verdict on the captured trace**: read it and state whether the trajectory is coherent
+         for `verify.flow` — a retry that "succeeded", a fallback that swallowed a failure, a path that
+         passed by accident. Put the reasoning in `critique_per_criterion`, not just a number.
+    A trace criterion grades *how the system got there*; an assertion only grades where it landed. The
+    generator can satisfy assertions with code that is wrong everywhere they don't look — the trajectory
+    is far harder to fake. (Contract-side schema: `/contract` §Verify methods.)
   - If `verify.method` is `manual` — make a judgment call, write reasoning into critique
 - Compute weighted score: `Σ(score_i × weight_i) / Σ(weight_i)`
 - Check must_pass criteria — any failure with `must_pass: true` → verdict `fail` regardless of weighted score
@@ -269,15 +286,26 @@ Every iteration's transcripts are dumped to `.build-loop/iterations/<n>/traces/`
 
 This is the "trace-reading is the primary debug loop" pattern from the Anthropic talk. Don't skip the post-mortem read.
 
-## JSON state files (not markdown)
+## State files — JSON, and where JSON stops
 
-Per the Anthropic empirical finding: **models overwrite markdown more aggressively than JSON**. All /build-loop state is JSON:
+Per the Anthropic empirical finding: **models overwrite markdown more aggressively than JSON**. So
+the loop's *control* state is JSON — small, schema'd, parsed by scripts, read whole:
 
-- `contract.json`
-- `iteration-log.json`
+- `contract.json` (the rubric — also parsed by `verdict.sh`, `pipeline-preflight.sh`)
+- `iteration-log.json` (append-only audit; the orchestrator reads it, agents don't)
 - `iterations/<n>/critique.json`
 - `iterations/<n>/handoff.json` (COMPAT audit record per role — orchestrator reads it; never passed between the isolated roles)
 - `.build-loop/start-commit` (file, single sha)
+
+**Where JSON stops:** the *evidence* the agents read in bulk — traces, graphs, plans — is XML-like,
+never JSON. Long JSON degrades as read-context (the model ends up counting braces; OpenAI's GPT-4.1
+guide says the same, and it is why GRACE artifacts are `.xml`). The two findings don't conflict —
+they're about different operations, write-resistance vs read-navigability. The rule and the size
+threshold: `docs/agent/COMPAT.md` §State format.
+
+Concretely, in this loop: `iterations/<n>/traces/*.log` carry `[Module][function][BLOCK]` anchors and
+are read by the evaluator for `trace` criteria; `docs/*.xml` carry the graph the generator navigates.
+Neither is ever converted to JSON to "keep the state uniform".
 
 `progress.md` is still updated for human readability — but its content is mirrored to `progress.json` by the modified `/planning-with-files`.
 

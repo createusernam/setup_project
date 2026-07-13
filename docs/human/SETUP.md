@@ -5,8 +5,8 @@
 ### One command
 
 ```bash
-git clone https://github.com/createusernam/setup_project.git ~/.setup
-bash ~/.setup/install.sh
+git clone https://github.com/createusernam/setup_project.git ~/setup
+bash ~/setup/install.sh
 ```
 
 That's it. `install.sh` does steps 1–3 below automatically.
@@ -18,7 +18,7 @@ That's it. `install.sh` does steps 1–3 below automatically.
 #### 1. Clone
 
 ```bash
-git clone https://github.com/createusernam/setup_project.git ~/.setup
+git clone https://github.com/createusernam/setup_project.git ~/setup
 ```
 
 #### 2. Register skills
@@ -26,7 +26,7 @@ git clone https://github.com/createusernam/setup_project.git ~/.setup
 Skills live in `~/.claude/skills/`. Symlink each skill directory:
 
 ```bash
-for skill in ~/.setup/skills/*/; do
+for skill in ~/setup/skills/*/; do
   ln -sf "$skill" ~/.claude/skills/"$(basename "$skill")"
 done
 ```
@@ -35,7 +35,7 @@ Verify — in Claude Code type `/startup`. Should appear in skill list.
 
 > **How it works**: Claude Code loads skills from `~/.claude/skills/<name>/SKILL.md`.
 > There is no `skillsDirectories` setting — the only path Claude Code reads is `~/.claude/skills/`.
-> Symlinks keep skills in sync with the repo (`git pull ~/.setup` → skills update automatically).
+> Symlinks keep skills in sync with the repo (`git pull ~/setup` → skills update automatically).
 
 #### 3. Playwright MCP (for /build-loop)
 
@@ -55,8 +55,8 @@ cat ~/.claude/.env | grep GH_TOKEN
 ## Install — OpenCode
 
 ```bash
-git clone https://github.com/createusernam/setup_project.git ~/.setup
-bash ~/.setup/install.sh
+git clone https://github.com/createusernam/setup_project.git ~/setup
+bash ~/setup/install.sh
 ```
 
 `install.sh` symlinks skills to `~/.claude/skills/`. OpenCode discovers them from the same path — nothing extra needed for skills.
@@ -67,8 +67,8 @@ Add to `~/.config/opencode/opencode.json` (merge with existing). `instructions` 
 ```json
 {
   "instructions": [
-    "~/.setup/docs/human/PIPELINE.md",
-    "~/.setup/docs/agent/COMPAT.md"
+    "~/setup/docs/human/PIPELINE.md",
+    "~/setup/docs/agent/COMPAT.md"
   ],
   "model": "deepseek/deepseek-v4-pro",
   "small_model": "deepseek/deepseek-v4-flash",
@@ -109,7 +109,7 @@ Verify: run `opencode`, type "start a new project" — startup skill should load
 ```
 
 Startup skill asks the same 4 questions, creates project, and:
-- Copies all templates from `~/.setup/templates/project/`
+- Copies all templates from `~/setup/templates/project/`
 - Generates `CLAUDE.md` with answers
 - Creates `AGENTS.md → CLAUDE.md` symlink (auto, no manual step needed)
 - `git init` + `gh repo create`
@@ -136,7 +136,7 @@ cd ~/my-project-name
 # 4. Start discovery:
 /grill-with-docs
 
-# 5. Continue per ~/.setup/docs/human/PIPELINE.md
+# 5. Continue per ~/setup/docs/human/PIPELINE.md
 ```
 
 ## Mandatory GRACE Lite checklist
@@ -158,7 +158,7 @@ For Python: use `# ` prefix. For SQL: use `-- `. Adapt to language.
 
 ## Prompt format (for agents you write)
 
-Follow `~/.setup/docs/agent/PROMPT-FORMAT.md`. Minimum viable:
+Follow `~/setup/docs/agent/PROMPT-FORMAT.md`. Minimum viable:
 
 ```xml
 <role>You are [role]. [N years experience]. [domain].</role>

@@ -26,6 +26,7 @@ All skills in `skills/` → symlinked to `~/.claude/skills/` by `install.sh`:
 | `contract` | Hard-gate contract before build |
 | `judge` | LLM-as-Judge artifact evaluation |
 | `to-issues` | Break plans into GitHub issues |
+| `scaffold` | GRACE-marked module skeletons — the implementer's few-shot (Phase 5.5, strong model) |
 | `build-loop` | Autonomous generator-evaluator cycle |
 | `tdd` | Human-paced test-driven development |
 | `code-review-expert` | Senior engineer code review |
@@ -56,6 +57,9 @@ Apply to every agent in every phase:
 - **Model routing.** Before a pipeline phase, run `bash scripts/model-check.sh <phase>` — it prints that phase's `required_model` (+ collegium roles) from `model-routing.json`. A shell hook can't detect the running model, so the halt is **agent-cooperative**: identify your own model (system prompt), and on mismatch output `MODEL MISMATCH: phase [N] requires [required], current is [detected]. Switch and re-run.` then STOP. Collegium phases (6 build; 3 design): verify implementer ≠ test-owner ≠ acceptor are different models.
 - **Arithmetic → calculator tool.** All arithmetic goes through the JS-sandbox calculator tool — never mental math. Token-by-token generation is unreliable for numbers.
 - **Delete superseded code immediately.** Don't leave dead/orphaned code "just in case" — agents read existing code as few-shot examples, so dead code becomes a false template that propagates. `/code-review-expert` flags it MUST-FIX.
+- **GRACE Lite is checked, not trusted.** Every source file carries a MODULE_CONTRACT. Verify with `bash ~/.claude/scripts/grace-lint.sh --changed` before you hand work on; `--profile autonomous` adds FUNCTION_CONTRACT on exports and block-anchored logs, and is a hard gate for `/build-loop`. The rule used to live only in prose here — and prose is not an enforcement mechanism.
+- **The handoff to a cheaper model is code, not a spec.** Writing a module spec costs roughly what writing the module costs, and a small model imitates code far more faithfully than it follows prose. Strong model → `/scaffold` (contracts, blocks, log anchors, `IMPL:` directives, mocks, no logic); implementer fills the blocks and must not alter contracts, block names or log anchors.
+- **Tests are feedback, not the spec.** The spec is the contract; the trace is the evidence. Grade trajectories (`verify.method: trace` against `[Module][function][BLOCK]` logs), not just return values — an LLM will otherwise write code that satisfies every assertion and breaks everywhere nobody asserted. Never hand an agent a bare `TEST FAIL`: say which anchor was missed, which branch fired, what the trace shows.
 
 ## Maintaining this file
 

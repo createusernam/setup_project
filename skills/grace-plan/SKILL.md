@@ -11,7 +11,7 @@ Run the GRACE architectural planning phase.
 - `docs/requirements.xml` must exist and have at least one UseCase
 - `docs/technology.xml` must exist with stack decisions
 - `docs/verification-plan.xml` should exist as the shared verification artifact template
-- If requirements or technology are missing, tell the user to run `$grace-init` first
+- If requirements or technology are missing, tell the user to run `/grace-init` first
 - If the verification plan template is missing, recreate it before finalizing the planning artifacts
 
 ## Architectural Principles

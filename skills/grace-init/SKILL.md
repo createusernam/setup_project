@@ -46,4 +46,4 @@ Read each template file, replace the `$PLACEHOLDER` variables with actual values
     - If `AGENTS.md` already exists — warn the user and ask whether to overwrite or keep the existing one
 
 4. **Print a summary** of all created files and suggest the next step:
-    > "Run `$grace-plan` to design modules, data flows, and verification references. Then deepen tests, traces, and log-driven evidence with `/tdd` + `/judge` before large execution waves. Use `docs/operational-packets.xml` as the canonical packet and delta reference during execution and refactors."
+    > "Run `/grace-plan` to design modules, data flows, and verification references. Then deepen tests, traces, and log-driven evidence with `/tdd` + `/judge` before large execution waves. Use `docs/operational-packets.xml` as the canonical packet and delta reference during execution and refactors."

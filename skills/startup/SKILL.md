@@ -18,7 +18,7 @@ Or without args — the skill will ask for project name.
 ## What it does
 
 1. Creates `~/<project-name>/` directory structure
-2. Copies templates from `~/.setup/templates/project/`
+2. Copies templates from `~/setup/templates/project/`
 3. Asks 5 setup questions
 4. Generates pre-filled `CLAUDE.md` for the project
 5. Initializes git repo
@@ -53,10 +53,10 @@ mkdir -p "$PROJECT_PATH"/{docs/{agents,adr},src}
 
 ### Step 3 — copy templates
 
-Copy all files from `~/.setup/templates/project/` to `$PROJECT_PATH/`:
+Copy all files from `~/setup/templates/project/` to `$PROJECT_PATH/`:
 
 ```bash
-cp -r ~/.setup/templates/project/. "$PROJECT_PATH/"
+cp -r ~/setup/templates/project/. "$PROJECT_PATH/"
 ```
 
 ### Step 4 — fill CLAUDE.md
@@ -74,10 +74,10 @@ Generate `$PROJECT_PATH/CLAUDE.md` with answers substituted:
 - is_architecturally_complex: <y/n>
 
 ## Pipeline
-See ~/.setup/docs/human/PIPELINE.md
+See ~/setup/docs/human/PIPELINE.md
 
 ## GRACE
-GRACE Lite mandatory. See ~/.setup/docs/agent/PROMPT-FORMAT.md for structured prompts.
+GRACE Lite mandatory. See ~/setup/docs/agent/PROMPT-FORMAT.md for structured prompts.
 
 ## Commands
 - dev: <fill-in>

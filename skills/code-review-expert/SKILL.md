@@ -60,6 +60,24 @@ If `contract.json` is missing or unattested, fall back to generic review (steps 
 
 > No `contract.json` found. Falling back to generic SOLID/security/quality review. Consider running `/contract` first for contract-driven grading.
 
+### 0b) GRACE Lite check — mechanical, runs before the human-judgment passes
+
+```bash
+bash ~/.claude/scripts/grace-lint.sh --changed        # add --profile autonomous if /build-loop will run on this code
+```
+
+**Every error is P1** (block merge; P0 if the file is on a critical path — auth, payments, data writes).
+Report them in their own section, before the SOLID pass, with the exact fix.
+
+This is not style policing. GRACE Lite is declared mandatory for every file in the pipeline
+(PIPELINE §GRACE Lite), and this review is the only place it gets checked mechanically. The rule
+exists because the next agent to touch this file navigates by those anchors — an unmarked module is
+one the agent will re-derive from scratch, wrongly. Same reasoning as dead code in step 3: what the
+agent reads becomes its template.
+
+Do not accept "it's a small file" or "the tests pass" as a reason to skip a MODULE_CONTRACT. If the
+diff adds source files with no contract header, that is a finding, not a preference.
+
 ### 1) Preflight context
 
 - Use `git status -sb`, `git diff --stat`, and `git diff` to scope changes.

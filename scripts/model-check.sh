@@ -8,7 +8,9 @@
 # match and switch if wrong. Enforcement is agent-cooperative, not OS-level. This is why there is no
 # blocking hook — a hook that "enforces model per phase" without model detection would be theatre.
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# Resolve through the symlink install.sh puts at ~/.claude/scripts/ (see install.sh §2).
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+ROOT="$(cd "$(dirname "$SELF")/.." && pwd)"
 MR="$ROOT/model-routing.json"
 PHASE="${1:-}"
 [ -f "$MR" ] || { echo "model-check: model-routing.json not found at $MR"; exit 2; }

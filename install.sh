@@ -1,38 +1,80 @@
 #!/usr/bin/env bash
 # Setup v2 — one-command install
-# Run from anywhere: bash ~/.setup/install.sh
+# Run from anywhere: bash ~/setup/install.sh
+#
+# Install is fail-closed on skill collisions. A skill that exists in ~/.claude/skills/ as a real
+# directory SHADOWS this repo: you edit setup/skills/X, and the CLI keeps loading the stale copy.
+# That failure is silent and expensive — so this script HALTS on it instead of skipping.
 
-set -e
+set -euo pipefail
 
 SETUP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_DIR="$HOME/.claude"
 SKILLS_SRC="$SETUP_DIR/skills"
 SKILLS_DST="$CLAUDE_DIR/skills"
+SCRIPTS_DST="$CLAUDE_DIR/scripts"
 
 echo "=== Setup v2 install ==="
 echo "Source: $SETUP_DIR"
 echo "Claude: $CLAUDE_DIR"
 echo ""
 
-# 1. Symlink skills into ~/.claude/skills/
+# 1. Symlink skills into ~/.claude/skills/ — every skill, or none.
 echo "→ Registering skills..."
 mkdir -p "$SKILLS_DST"
+COLLISIONS=()
 
 for skill_dir in "$SKILLS_SRC"/*/; do
   skill_name="$(basename "$skill_dir")"
   target="$SKILLS_DST/$skill_name"
 
   if [ -L "$target" ]; then
-    echo "  ✓ $skill_name (already linked)"
-  elif [ -d "$target" ]; then
-    echo "  ⚠ $skill_name — directory already exists at $target (skipped)"
+    if [ "$(readlink -f "$target")" = "$(readlink -f "$skill_dir")" ]; then
+      echo "  ✓ $skill_name"
+    else
+      COLLISIONS+=("$skill_name|symlink points at $(readlink -f "$target"), not at this repo")
+    fi
+  elif [ -e "$target" ]; then
+    COLLISIONS+=("$skill_name|real directory — a stale copy that shadows $skill_dir")
   else
     ln -s "$skill_dir" "$target"
     echo "  + $skill_name"
   fi
 done
 
-# 2. Check GH_TOKEN
+if [ ${#COLLISIONS[@]} -gt 0 ]; then
+  echo ""
+  echo "✗ HALT — ${#COLLISIONS[@]} skill(s) in $SKILLS_DST do not come from this repo:"
+  for c in "${COLLISIONS[@]}"; do
+    printf '    %-24s %s\n' "${c%%|*}" "${c#*|}"
+  done
+  cat <<EOF
+
+  Why this is fatal, not a warning: the CLI loads whatever is at $SKILLS_DST.
+  While a stale copy sits there, every edit you make in $SKILLS_SRC is dead code —
+  it is committed, reviewed, and never executed.
+
+  Resolve each one (after saving anything you still want from the stale copy):
+
+      rm -rf $SKILLS_DST/<skill>          # or: mv it aside
+      bash $SETUP_DIR/install.sh          # re-run — it will link it
+
+  Nothing else was installed.
+EOF
+  exit 1
+fi
+
+# 2. Expose scripts at a stable path, so skills can call them from any project directory.
+#    Skills reference ~/.claude/scripts/<name>.sh — independent of where this repo is cloned.
+echo ""
+echo "→ Exposing scripts at $SCRIPTS_DST..."
+mkdir -p "$SCRIPTS_DST"
+for script in "$SETUP_DIR"/scripts/*.sh; do
+  ln -sfn "$script" "$SCRIPTS_DST/$(basename "$script")"
+  echo "  ✓ $(basename "$script")"
+done
+
+# 3. Check GH_TOKEN
 echo ""
 echo "→ Checking GH_TOKEN..."
 if grep -q "GH_TOKEN" "$CLAUDE_DIR/.env" 2>/dev/null; then
@@ -42,7 +84,7 @@ else
   echo "    echo 'GH_TOKEN=ghp_...' >> ~/.claude/.env"
 fi
 
-# 3. Check Playwright MCP
+# 4. Check Playwright MCP
 echo ""
 echo "→ Checking Playwright MCP..."
 if claude mcp list 2>/dev/null | grep -q "playwright"; then
@@ -52,7 +94,7 @@ else
   echo "    Run: claude mcp add playwright -- npx -y @playwright/mcp@latest --headless"
 fi
 
-# 4. Check OpenCode + DeepSeek (parity path — skips cleanly if you only use Claude Code)
+# 5. Check OpenCode + DeepSeek (parity path — skips cleanly if you only use Claude Code)
 echo ""
 echo "→ Checking OpenCode + DeepSeek..."
 OC_CFG="$HOME/.config/opencode/opencode.json"
@@ -77,7 +119,7 @@ else
   echo "        \"model\": \"deepseek/deepseek-v4-pro\", \"small_model\": \"deepseek/deepseek-v4-flash\" }"
 fi
 # DeepSeek/OpenRouter key — OpenCode needs one to actually run DeepSeek
-if [ -f "$HOME/.opencode/openrouter-key" ] || [ -n "$DEEPSEEK_API_KEY" ] || [ -n "$OPENROUTER_API_KEY" ]; then
+if [ -f "$HOME/.opencode/openrouter-key" ] || [ -n "${DEEPSEEK_API_KEY:-}" ] || [ -n "${OPENROUTER_API_KEY:-}" ]; then
   echo "  ✓ DeepSeek/OpenRouter key present"
 else
   echo "  ⚠ No DeepSeek/OpenRouter key found:"
@@ -87,20 +129,19 @@ fi
 echo ""
 echo "=== Done ==="
 echo ""
-echo "Available skills (Claude Code: /startup | OpenCode: mention by name):"
-echo "  startup       — create new project from template"
-echo "  researcher    — multi-agent research flow"
-echo "  judge         — LLM-as-judge artifact evaluation"
-echo "  design-first  — wireframe → API contract"
+echo "Every skill in $SKILLS_SRC is now linked — what you edit is what runs."
 echo ""
-echo "OpenCode: skills discovered from ~/.claude/skills/ — same path, both CLI."
-echo "See docs/agent/COMPAT.md for OpenCode model routing and collegium protocol."
+echo "Pipeline (docs/human/PIPELINE.md):"
+echo "  /startup → /researcher → /grill-with-docs → /planning-with-files → /pm-review"
+echo "  → /grace-init + /grace-plan → /design-first → /contract → /judge → /to-issues"
+echo "  → /scaffold → /build-loop | /tdd → /judge feature → /code-review-expert → ship"
 echo ""
-echo "Model routing:"
-echo "  Orchestrator  → Claude Opus / DeepSeek V4 Pro"
-echo "  Backend code  → DeepSeek V4"
-echo "  Frontend code → GLM 5.2 / DeepSeek V4"
-echo "  Research work → DeepSeek Flash"
-echo "  Judge         → Claude Opus (isolated context)"
+echo "Model routing (model-routing.json · scripts/model-check.sh <phase>):"
+echo "  Orchestrator / architect / scaffold → Claude Opus"
+echo "  Backend code   → DeepSeek V4        Frontend code → GLM 5.2 / DeepSeek V4"
+echo "  Research work  → DeepSeek Flash     Judge         → Claude Opus (isolated)"
 echo ""
-echo "Next: open Claude Code or OpenCode and create a new project."
+echo "Gates callable from any project dir:"
+echo "  bash ~/.claude/scripts/pipeline-preflight.sh <phase>   # inputs, models, human gates"
+echo "  bash ~/.claude/scripts/grace-lint.sh                   # GRACE Lite markup"
+echo "  bash ~/.claude/scripts/model-check.sh <phase>          # required model for a phase"

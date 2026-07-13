@@ -11,7 +11,10 @@
 # Usage: bash scripts/pipeline-preflight.sh <phase> [project_dir]
 #        project_dir defaults to $PWD; ledger is <project_dir>/.pipeline-state.json
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# Resolve through the symlink install.sh puts at ~/.claude/scripts/ — otherwise ROOT would be
+# ~/.claude and model-routing.json would not be found.
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+ROOT="$(cd "$(dirname "$SELF")/.." && pwd)"
 MR="$ROOT/model-routing.json"
 PHASE="${1:-}"
 PROJ="${2:-$PWD}"

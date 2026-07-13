@@ -7,14 +7,17 @@
 - Cross-model compat — `../agent/COMPAT.md`
 - GRACE markup — `templates/project/docs/knowledge-graph.xml`
 
-**Три обязательных правила:**
-1. **GRACE Lite mandatory** — MODULE_CONTRACT во всех файлах
+**Четыре обязательных правила:**
+1. **GRACE Lite mandatory** — MODULE_CONTRACT во всех файлах. Проверяется механически:
+   `bash ~/.claude/scripts/grace-lint.sh` (P1 в `/code-review-expert`, hard-gate в `/build-loop`)
 2. **product_brief.md** — стартовый артефакт pipeline; заполняется в Phase -1 (или вручную)
 3. **Collegium** — reviewer и implementer ДОЛЖНЫ быть разными моделями
+4. **Дешёвой модели передают код, а не ТЗ** — `/scaffold` (Phase 5.5) пишет размеченный скелет;
+   implementer заполняет блоки. Спека на модуль стоит почти столько же токенов, сколько сам модуль
 
 ---
 
-## Когерентный флоу (9 фаз)
+## Когерентный флоу (10 фаз)
 
 > **Human-legible version** (renders in Obsidian + agent web-chats). The ASCII below is the terminal fallback — keep both in sync.
 
@@ -30,8 +33,8 @@ flowchart TD
     CR --> P2
     P2 --> PMg{"PHASE 2-PM · PM review<br/>Opus isolated · GATE"}
     PMg -->|reject| P2
-    PMg -->|"GRACE Full ≥2/4"| P2b["PHASE 2b · /grace-init + /grace-plan<br/>docs/*.xml"]
-    PMg -->|approve| FE{"Frontend?"}
+    PMg -->|"approve → GRACE Full (default)"| P2b["PHASE 2b · /grace-init + /grace-plan<br/>docs/*.xml — граф ПЕРЕД кодом"]
+    PMg -->|"opt-out: багфикс / мелкая правка"| FE{"Frontend?"}
     P2b --> FE
     FE -->|yes| P3["PHASE 3 · /design-first<br/>wireframe → APPROVE → api-contract.json"]
     FE -->|no| P4
@@ -41,9 +44,15 @@ flowchart TD
     J1 -->|pass| P4b["PHASE 4b · /judge contract gate<br/>Opus (isolated) → judge-report.json"]
     P4b --> VIZ["GATE · Visualize before tickets<br/>Architect renders plan → Mermaid<br/>(skills/visualization/SKILL.md)"]
     VIZ --> P5["PHASE 5 · /to-issues<br/>GitHub issues ≤200 lines"]
-    P5 --> P6["PHASE 6 · BUILD LOOP<br/>Implementer(DeepSeek) → Test-Owner(GLM) → Acceptor(Opus)<br/>/build-loop or /tdd"]
+    P5 --> P55["PHASE 5.5 · /scaffold<br/>Opus writes GRACE-marked skeletons<br/>contracts + blocks + log anchors + IMPL, no logic"]
+    P55 --> P6["PHASE 6 · BUILD LOOP<br/>Implementer(DeepSeek) fills blocks → Test-Owner(GLM) → Acceptor(Opus)<br/>/build-loop or /tdd"]
     P6 --> P7["PHASE 7 · /judge feature → /code-review-expert → ship"]
 ```
+
+> **Phase 5.5 is the hinge.** Everything above it runs on the expensive tier and produces *intent*;
+> everything below runs cheap and produces *code*. The handoff between them is a marked-up skeleton,
+> not a spec — a spec costs about as many tokens as the code it describes, and a cheap model imitates
+> code far more faithfully than it follows prose. See `skills/scaffold/SKILL.md`.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -165,13 +174,32 @@ flowchart TD
           │
           ▼
 ┌──────────────────────────────────────────────────────────────┐
+│  PHASE 5.5: /scaffold  — last phase on the expensive model    │
+│  Mode: AGENT (PLAN_CONFIRM before writing)                   │
+│  Model: Opus                                                 │
+│  Input:  contract.json + docs/*.xml + task_plan.md           │
+│  Output: module skeletons —                                  │
+│    · MODULE_CONTRACT / FUNCTION_CONTRACT                     │
+│    · typed signatures, real imports, full interfaces         │
+│    · START_BLOCK/END_BLOCK named after the trace criteria    │
+│    · [Module][function][BLOCK] log anchors                   │
+│    · IMPL: directive in every empty block                    │
+│    · throw NOT_IMPLEMENTED — must typecheck, must not run    │
+│    · NO business logic (that is what the cheap tier is for)  │
+│  Gate: grace-lint --profile autonomous + typecheck must pass │
+│  Skip for bugfixes (the code already exists)                 │
+└──────────────────────────────────────────────────────────────┘
+          │
+          ▼
+┌──────────────────────────────────────────────────────────────┐
 │  PHASE 6: BUILD LOOP (per task, per wave)                    │
 │  Mode: AGENT (contract_locked gate before)                   │
 │                                                              │
 │  [IMPLEMENTER: DeepSeek V4 / GLM 5.2]                       │
-│    ↓ reads task + contract.json + GRACE anchors              │
+│    ↓ reads the SKELETON (few-shot) + task + contract.json    │
+│    ↓ fills NOT_IMPLEMENTED blocks; contracts/blocks/log      │
+│      anchors are FIXED — altering them breaks the grading    │
 │    ↓ PLAN_CONFIRM before coding                              │
-│    ↓ writes code with GRACE Lite markup                      │
 │    ↓ writes handoff.json                                     │
 │                                                              │
 │  [TEST-OWNER: GLM 5.2] ← DIFFERENT MODEL than implementer   │
@@ -250,8 +278,17 @@ RFC-раунд между слоями: Opus генерирует RFC → GLM/So
 - MODULE_CONTRACT в каждом файле
 - START_BLOCK/END_BLOCK для логических блоков
 - Логи привязаны к блокам
+- **Проверяется механически**: `bash ~/.claude/scripts/grace-lint.sh` (P1 в `/code-review-expert`,
+  hard-gate в `/build-loop`). До появления линтера правило жило в прозе — и не соблюдалось ни разу.
 
-**GRACE Full** (если ≥ 2 из 4 критериев):
+**GRACE Full — по умолчанию ВКЛЮЧЁН.** Отключается явно, а не включается по настроению.
+
+Граф — это вход в разработку, а не надстройка над ней. Если явного графа нет, модель всё равно
+построит свой — по ходу чтения, из обрывков, и заморозит его в KV-cache вместе с ошибками. Дальше она
+будет упрямо держаться этой кривой ветки. Порядок обязателен: **граф → контракт модуля → контракт
+функции → код** (`/grace-init` → `/grace-plan` → `/scaffold`).
+
+Opt-out — только когда **ни один** из критериев не выполняется:
 
 | Критерий | True когда |
 |----------|-----------|
@@ -259,6 +296,10 @@ RFC-раунд между слоями: Opus генерирует RFC → GLM/So
 | Multi-session | Переживёт `/clear` и `/compact` |
 | Long-context | LLM читает 50k+ токенов |
 | Multi-agent | Несколько агентов редактируют одни файлы |
+
+Практически это значит: багфикс и одиночная мелкая правка идут на Lite; **всё остальное — Full**.
+Если решили пропустить Full — запишите причину в `.pipeline-state.json` (`grace_full: false, reason`),
+иначе следующая сессия не поймёт, почему графа нет, и начнёт достраивать его в уме.
 
 GRACE Full добавляет: `docs/knowledge-graph.xml`, `docs/development-plan.xml`, `docs/verification-plan.xml`.
 
@@ -278,11 +319,14 @@ GRACE Full добавляет: `docs/knowledge-graph.xml`, `docs/development-pla
 
 ### Branch C — autonomous или human-paced?
 
+Обе ветки идут **после** `/scaffold` (Phase 5.5) — кроме багфикса, где скелет уже существует в виде
+живого кода.
+
 | Решение | Skill | Когда |
 |---------|-------|-------|
-| Autonomous | `/build-loop` | Greenfield, полный contract, Playwright MCP |
-| Human-paced | `/tdd` v2 | Backend, сложная логика |
-| Bugfix | `/tdd` без contract | Issue = spec |
+| Autonomous | `/scaffold` → `/build-loop` | Greenfield, полный contract, Playwright MCP |
+| Human-paced | `/scaffold` → `/tdd` v2 | Backend, сложная логика |
+| Bugfix | `/tdd` без contract | Issue = spec. `/scaffold` пропускается |
 
 ### Branch D — Architecture reasoning surface (Phase 2 / 2b)
 
@@ -394,9 +438,14 @@ product_brief.md                       — pipeline entry (pm-approved)
   → task_plan.md (после /planning-with-files)
   → pm-review.json (после Phase 2-PM — GATE)
   → contract.json (после /contract)
+  → module skeletons (после /scaffold — GRACE-размеченный код, few-shot для implementer'а)
   → handoff.json (после каждого BUILD шага)
   → judge-report.json (после /judge)
 ```
+
+Скелет — единственное звено цепочки, которое одновременно **артефакт состояния и рабочий код**. Это
+не случайность: базовое обучение (FIM) научило модели опираться на код, а не на документацию, поэтому
+замысел, встроенный в код, они проигнорировать физически не могут — а лежащий рядом в `.md` могут.
 
 ---
 
@@ -487,6 +536,7 @@ They're still recorded in the ledger for audit and cross-session resume.
 | 4b. Judge gate | 🤖 agent gate, isolated | `/judge` | Opus (isolated) | `judge-report.json` |
 | 4c. Viz gate | 🤖 renders, 👤 HUMAN gate (viz_before_tickets) | Architect (plan→Mermaid) | Opus | plan diagram `.md` (skills/visualization/SKILL.md) |
 | 5. Issues | 🤖 agent | `/to-issues` | Sonnet | GitHub issues |
+| 5.5. Scaffold | 🤖 agent (👤 PLAN_CONFIRM) | `/scaffold` | Opus | module skeletons (GRACE-marked, no logic) |
 | 6. Build | 🤖 agent (👤 contract_locked gate before start) | `/tdd` / `/build-loop` | DeepSeek V4 + GLM | commits + `handoff.json` |
 | 7. Verify + Review | 🤖 agent gate, isolated — 👤 final acceptance | `/judge feature` → `/code-review-expert` → ship | Opus (isolated) + Sonnet/Opus | `judge-report.json`, review report |
 
@@ -512,10 +562,10 @@ and where each requirement lives in this pipeline.
 
 | Requirement | Implementation |
 |-------------|---------------|
-| 1. GRACE in all projects | GRACE Lite mandatory (MODULE_CONTRACT in every file). GRACE Full optional (≥2/4, see Branch A above). |
+| 1. GRACE in all projects | GRACE Lite mandatory (MODULE_CONTRACT in every file), **enforced by `scripts/grace-lint.sh`** — P1 in `/code-review-expert`, hard-gate in `/build-loop`. GRACE Full on by default (Branch A). |
 | 2. Value proposition as input | `product_brief.md`. Starting artifact for all projects. |
 | 3. Design-first → API → contract | `/design-first`: wireframe → human approval → api-contract.json → contract |
-| 4. TDD and good practices | `/tdd`, `/contract`, `/build-loop` |
+| 4. Verification that an LLM can't game | Three layers, in this order: **contracts** carry the spec (`/contract`, `/scaffold` — not the tests); **traces** grade the trajectory (`verify.method: trace` against block-anchored logs); **tests** are feedback inside the self-correction loop (`/tdd`, `/build-loop`), not the analysis phase. Assertion-only grading is what an LLM overfits to — it will produce code that passes every assertion and fails everywhere nobody asserted. |
 | 5. Harness practices | Orchestrator/worker separation, State-First, XML anchors. |
 | 6. Researcher agent flow | `/researcher`: 4-phase multi-agent flow (decompose → parallel workers → consensus → synthesis). General purpose, selected with the `--mode` flag. |
 | 7. Formalized output + verification | Structured JSON with `hypotheses[]` (superposition). `/judge` LLM-as-judge (isolated evaluator, different model). |
@@ -540,6 +590,10 @@ and where each requirement lives in this pipeline.
 | Кодировать сразу без PLAN_CONFIRM | Агент строит план → APPROVE → code |
 | Большой spec → один context | PBS: small leaf tasks, goal alignment |
 | Тикеты без визуализации плана | Сначала bird's-eye Mermaid плана (skills/visualization/SKILL.md), потом `/to-issues` |
+| Передавать дешёвой модели **ТЗ** на модуль | `/scaffold`: размеченный скелет = few-shot. Спека стоит почти столько же токенов, сколько сам код, а имитирует модель код, а не прозу |
+| Скелет со «слегка реализованной» логикой или заглушками вроде `return []` | `throw NOT_IMPLEMENTED` в каждом пустом блоке: недоделанный путь обязан падать громко, иначе evaluator засчитает зелёное |
+| Тесты как спека («напишем тесты — модель поймёт задачу») | Спека — это контракты. Тесты — **feedback** в цикле самокоррекции: `verify.method: trace` + богатые логи, а не только assert-равенства |
+| Бинарный сигнал `TEST FAIL` агенту | Детальные флаговые сигналы: какой якорь не сработал, какая ветка сорвалась, что в трассе |
 
 ---
 
@@ -558,11 +612,11 @@ and where each requirement lives in this pipeline.
 
 ```bash
 # Claude Code:
-git clone https://github.com/createusernam/setup_project.git ~/.setup
-bash ~/.setup/install.sh   # symlinks skills, checks deps
+git clone https://github.com/createusernam/setup_project.git ~/setup
+bash ~/setup/install.sh   # symlinks skills, checks deps
 
 # OpenCode:
-git clone https://github.com/createusernam/setup_project.git ~/.setup
+git clone https://github.com/createusernam/setup_project.git ~/setup
 # Add docs/human/PIPELINE.md + docs/agent/COMPAT.md reference to ~/.config/opencode/opencode.json
 # See ../agent/COMPAT.md §OpenCode
 
@@ -583,8 +637,8 @@ install/troubleshooting reference. This is the walkthrough.
 
 **Claude Code:**
 ```bash
-git clone https://github.com/createusernam/setup_project.git ~/.setup
-bash ~/.setup/install.sh
+git clone https://github.com/createusernam/setup_project.git ~/setup
+bash ~/setup/install.sh
 ```
 `install.sh` symlinks skills into `~/.claude/skills/`, checks `GH_TOKEN` + Playwright MCP.
 Verify: open Claude Code, type `/startup` — should appear in the skill list.
@@ -593,7 +647,7 @@ Verify: open Claude Code, type `/startup` — should appear in the skill list.
 then add to `~/.config/opencode/opencode.json`:
 ```json
 {
-  "instructions": ["~/.setup/docs/human/PIPELINE.md", "~/.setup/docs/agent/COMPAT.md"],
+  "instructions": ["~/setup/docs/human/PIPELINE.md", "~/setup/docs/agent/COMPAT.md"],
   "model": "deepseek/deepseek-v4-pro",
   "small_model": "deepseek/deepseek-v4-flash",
   "mcp": { "playwright": { "type": "local", "command": ["npx", "@playwright/mcp@latest", "--headless"], "enabled": true } }
@@ -605,7 +659,7 @@ Verify: run `opencode`, type "start a new project" — startup skill should load
 **Any terminal LLM:** clone the repo, paste a `SKILL.md`'s content directly into your prompt.
 You are the orchestrator. See `../agent/COMPAT.md §Terminal`.
 
-If `install.sh` fails, manual steps (symlink each `~/.setup/skills/*/` into `~/.claude/skills/`,
+If `install.sh` fails, manual steps (symlink each `~/setup/skills/*/` into `~/.claude/skills/`,
 `claude mcp add playwright -- npx -y @playwright/mcp@latest --headless`, check `GH_TOKEN` in
 `~/.claude/.env`) are in `SETUP.md §Manual steps`.
 

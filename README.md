@@ -8,14 +8,24 @@ Works with Claude Code, OpenCode + DeepSeek, or any terminal LLM as the orchestr
 **Core philosophy**: LLMs don't read docs — they follow trajectories set by structured context.
 This setup encodes that into every artifact and prompt.
 
+Three consequences, load-bearing throughout:
+
+- **The graph comes first, then contracts, then code.** Skip the explicit graph and the model builds
+  its own from fragments, freezes it in KV-cache, and defends it. GRACE Full is on by default.
+- **The handoff to a cheap model is code, not a spec.** `/scaffold` (Phase 5.5) writes marked-up
+  skeletons — contracts, named blocks, log anchors, `IMPL:` directives, no logic. A spec costs about
+  what the code costs to write, and a small model imitates code far more faithfully than prose.
+- **Rules that aren't checked don't exist.** GRACE Lite is enforced by `scripts/grace-lint.sh`, not by
+  asking nicely; `verify.method: trace` grades the execution trajectory, not just return values.
+
 ---
 
 ## Install
 
 **Claude Code:**
 ```bash
-git clone https://github.com/createusernam/setup_project.git ~/.setup
-bash ~/.setup/install.sh
+git clone https://github.com/createusernam/setup_project.git ~/setup
+bash ~/setup/install.sh
 ```
 Verify: open Claude Code, type `/startup` — should appear in the skill list.
 
@@ -39,11 +49,25 @@ setup/
 ├── docs/
 │   ├── human/  PIPELINE.md · SETUP.md · ARCHITECTURE-GUIDE.md
 │   └── agent/  PROMPT-FORMAT.md · COMPAT.md
-├── scripts/                # model-check.sh · pipeline-preflight.sh
-├── skills/                 # one dir per skill
+├── scripts/                # model-check.sh · pipeline-preflight.sh · grace-lint.sh
+├── skills/                 # one dir per skill — symlinked into ~/.claude/skills/
 ├── agents/                 # evaluator.md · team.md
 └── templates/project/      # copied into new projects by /startup
 ```
+
+`install.sh` symlinks every skill and exposes `scripts/` at `~/.claude/scripts/`, so skills can call
+the gates from any project directory:
+
+```bash
+bash ~/.claude/scripts/pipeline-preflight.sh 6   # inputs present · models routed · human gate signed
+bash ~/.claude/scripts/grace-lint.sh --changed   # GRACE Lite markup on the diff
+bash ~/.claude/scripts/model-check.sh 5.5        # which model this phase requires
+```
+
+**Install is fail-closed on collisions.** If a skill already exists in `~/.claude/skills/` as a real
+directory (not a symlink into this repo), install halts instead of skipping it. A skipped skill is the
+worst failure mode there is: you edit the skill here, commit it, and the CLI keeps loading a stale copy
+from somewhere else — silently, for weeks.
 
 ---
 
@@ -56,6 +80,11 @@ setup/
 - **Agent-facing standards** (structured prompts, cross-model compat, model routing):
   [`docs/agent/PROMPT-FORMAT.md`](docs/agent/PROMPT-FORMAT.md), [`docs/agent/COMPAT.md`](docs/agent/COMPAT.md)
 - **Global agent rules** (OpenCode/Claude Code entrypoint): [`AGENTS.md`](AGENTS.md)
+
+## Attribution
+
+The `grace-*` skills are adapted from [osovv/grace-marketplace](https://github.com/osovv/grace-marketplace)
+(MIT). Full notice: [`NOTICE.md`](NOTICE.md).
 
 ## Relationship to claude-config
 

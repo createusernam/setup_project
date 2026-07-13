@@ -1,3 +1,12 @@
+---
+name: visualization
+description: Render the human-track views at pipeline gates — the Mermaid plan diagram the human approves before tickets are cut (viz_before_tickets), module/dependency flowcharts, and the SUPERVISION.md index. Notation is chosen by concern (разрез → масштаб → нотация), never tool-first. Separate from the agent GRACE track — the two never render into each other. Use at the gate between /judge and /to-issues, or when user says "visualize the plan", "draw the architecture", "mermaid diagram", "show me what will be built", or invokes /visualization.
+user-invocable: true
+metadata:
+  version: "1.1.0"
+  track: "human (supervision) — the agent track is GRACE in-code markup"
+---
+
 # Visualization Guide — human-track views at pipeline decision points
 
 Where the **human** sees what the AI is about to do, at the gates of `docs/human/PIPELINE.md`. This is the **human track** — the **agent** documentation track is separate (GRACE: in-code, not human-read; see `AGENTS.md`, `skills/grace-ontology/SKILL.md`). The two coexist and **do not render into each other**.

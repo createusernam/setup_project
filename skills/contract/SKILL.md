@@ -234,9 +234,60 @@ Next: /to-issues  (derives issues per criterion-slice or user_flow step)
 | `playwright` | User flow replay, UI state, screenshots | `steps` — Playwright sequence (executed by evaluator) |
 | `lighthouse` | Performance, a11y | `min_score` per category |
 | `api_contract` | Schema validation against OpenAPI | `command` — `npx dredd` or similar |
+| `trace` | Execution trajectory: did the run walk the intended path? | `command`, `flow`, `expect_sequence`, `forbid` |
 | `manual` | Subjective taste (rare — push to verifiable where possible) | `prompt` |
 
 **Avoid `manual` for >30% of criteria.** Push to playwright/grep/test.
+
+### `trace` — grading the trajectory, not just the endpoint
+
+An assertion says the output equalled X. A trace says the system *got there the intended way*. The
+difference matters because an LLM optimises against whatever it is graded on: given only equality
+assertions, it will produce code that satisfies them and fails in the cases nobody asserted. Grading
+the trajectory is much harder to game — the run has to actually walk the path.
+
+This is the contract-side half of the GRACE Lite log anchors (`[Module][function][BLOCK_NAME]`,
+PIPELINE §GRACE Lite rule 4) and the `<CriticalFlows>` in `verification-plan.xml`. Anchors that
+nothing grades against are decoration; this is what reads them.
+
+```json
+{
+  "id": "c9-trace-goal-creation",
+  "category": "behavior",
+  "weight": 4,
+  "must_pass": true,
+  "check": "creating a goal walks validate → persist → emit, and never enters the error branch",
+  "verify": {
+    "method": "trace",
+    "command": "npm run test:e2e -- --grep 'create goal' 2>&1 | tee .build-loop/run.log",
+    "flow": "goal-creation",
+    "expect_sequence": [
+      "[Goals][createGoal][VALIDATE_INPUT]",
+      "[Goals][createGoal][PERSIST]",
+      "[Events][emit][GOAL_CREATED]"
+    ],
+    "forbid": ["[Goals][createGoal][ERROR]", "[DB][query][RETRY]"]
+  }
+}
+```
+
+Grading (done by the evaluator, see `/build-loop` §2b):
+
+1. Run `command`, capture stdout+stderr.
+2. `expect_sequence` — the anchors must appear **in this order** (other lines may sit between them).
+   A missing or out-of-order anchor scores 0.
+3. `forbid` — any match scores 0, regardless of the sequence.
+4. **Semantic verdict on the whole trace.** Beyond the mechanical checks, the evaluator reads the
+   captured log and states whether the trajectory is coherent for `flow` — retries that "succeeded",
+   fallbacks that silently swallowed a failure, a path that passed by accident. A binary PASS/FAIL is
+   a weak signal; the critique carries the reasoning.
+
+`flow` names the corresponding `<Flow>` in `verification-plan.xml` when GRACE Full is on. Without
+GRACE Full, `flow` is a free-text label and the anchors are still required.
+
+**When to use it:** business logic whose correctness is a *path*, not a value — ETL steps, payment
+state machines, sync/merge, retry and fallback behavior. These are exactly the cases where equality
+assertions look green and the feature is broken.
 
 ## Hard gate logic
 
@@ -260,7 +311,8 @@ This is the load-bearing rule: **no integration spec + no user flow → no auton
 - **`/to-issues`** reads contract.json. Each issue gets a slice of user_flow steps + relevant criteria. The autonomous cycle picks up an issue and inherits the contract context.
 - **`/build-loop`** is the primary consumer — hard-gated on contract.json being complete.
 - **`/code-review-expert`** (modified v2.0+) — reads contract.json if present; grades against it before falling back to generic checklist.
-- **`/grace-plan`** — produces `verification-plan.xml`; for architecturally-complex features its log markers can be referenced from contract criteria (`verify.method: trace`). Deepen coverage with `/tdd` + `/judge`.
+- **`/grace-plan`** — produces `verification-plan.xml`. Its `<CriticalFlows>` and log markers are what `verify.method: trace` criteria grade against (see §Verify methods). If GRACE Full ran, every flow marked `must_remain_observable` should have a `trace` criterion here — otherwise the observability requirement is unenforced.
+- **`/scaffold`** — writes the module skeletons with the GRACE Lite anchors (`START_BLOCK_*`, `[Module][function][BLOCK]` logs) that `trace` criteria reference. Write the contract first: the scaffold is generated *from* it.
 
 ## Portable invocation (OpenCode, DeepSeek, etc.)
 

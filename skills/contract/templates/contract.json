@@ -53,6 +53,22 @@
       "must_pass": true,
       "check": "primary_path completes end-to-end",
       "verify": { "method": "playwright", "steps": "replay user_flow.primary_path" }
+    },
+    {
+      "id": "c2-trace-core-flow",
+      "category": "behavior",
+      "weight": 4,
+      "must_pass": false,
+      "check": "REPLACE: the core operation walks its intended path (not just returns the right value)",
+      "verify": {
+        "method": "trace",
+        "command": "REPLACE: command that exercises the flow, e.g. npm run test:e2e 2>&1 | tee .build-loop/run.log",
+        "flow": "REPLACE: flow name — matches a <Flow> in docs/verification-plan.xml if GRACE Full is on",
+        "expect_sequence": [
+          "REPLACE: [Module][function][BLOCK_NAME] anchors, in the order the run must hit them"
+        ],
+        "forbid": ["REPLACE: anchors that must NOT appear, e.g. [Module][function][ERROR]"]
+      }
     }
   ],
   "out_of_scope": [],

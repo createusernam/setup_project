@@ -1,6 +1,21 @@
+---
+name: grace-ontology
+description: The GRACE annotation vocabulary — what MODULE_CONTRACT, FUNCTION_CONTRACT, BLOCK, LOG_ANCHOR and the knowledge-graph tags mean, how the three tiers relate, and what GRACE does and does not know about the product's business context. Read this before writing or reviewing GRACE markup, before extending the knowledge graph, or when unsure which tier an annotation belongs to. Use when user says "grace markup", "what does MODULE_CONTRACT mean", "grace ontology", "annotation vocabulary", or invokes /grace-ontology.
+user-invocable: true
+metadata:
+  version: "1.1.0"
+  track: "agent (in-code documentation — not the human visualization track)"
+---
+
 # GRACE Ontology — Markup Vocabulary and Business Grounding
 
 How the GRACE annotation system is structured in this setup, what it does and does not know about the business model from `product_brief.md`.
+
+**Enforcement**: the Tier-1 vocabulary below is not advisory. `bash ~/.claude/scripts/grace-lint.sh`
+checks it mechanically (`--profile autonomous` for the stricter set), `/code-review-expert` reports
+violations as P1, and `/build-loop` refuses to start on unmarked code. `/scaffold` writes these
+annotations at module-creation time, on the strong model — which is where they belong, since the
+implementer tier is the worst place to demand them.
 
 ---
 

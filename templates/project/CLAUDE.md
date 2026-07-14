@@ -34,7 +34,10 @@ Key reminders:
 2. GRACE Lite mandatory — MODULE_CONTRACT in every file
 3. All agent outputs follow structured JSON format (see `~/setup/docs/agent/PROMPT-FORMAT.md`)
 4. Judge before shipping any feature
-5. OpenCode: this file is read via `AGENTS.md` symlink. Skills discovered from `~/.claude/skills/`.
+5. Route skills before tools: load a named or clearly matching skill. `planning-with-files` is
+   mandatory for a saved-and-executed plan, likely 5+ tool calls, or cross-CLI/provider continuity.
+6. Discovery: Claude reads `~/.claude/skills/`; Codex reads `~/.agents/skills/`; OpenCode scans
+   both. Setup links both roots to the same canonical skill source.
 
 ## GRACE Lite (mandatory)
 

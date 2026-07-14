@@ -223,7 +223,7 @@ flowchart TD
 └──────────────────────────────────┘
 
 State files at each transition:
-  [methodology/*_state.json + situational_assessment.md] (private) → business_model.md + product_brief.md (Phase -1)
+  [methodology/*_state.json + situational_assessment.md] (private) → business_model.md + product_brief.md only after the build-entry gate (Phase -1)
   product_brief.md → docs/research-state.json → CONTEXT.md
   → task_plan.md → pm-review.json → contract.json → handoff.json → judge-report.json
 ```
@@ -679,10 +679,11 @@ install/troubleshooting reference. This is the walkthrough.
 git clone https://github.com/createusernam/setup_project.git ~/setup
 bash ~/setup/install.sh
 ```
-`install.sh` symlinks skills into `~/.claude/skills/`, checks `GH_TOKEN` + Playwright MCP.
+`install.sh` links one canonical skill tree into `~/.claude/skills/` and `~/.agents/skills/`,
+installs cross-CLI routing rules, and checks `GH_TOKEN` + Playwright MCP.
 Verify: open Claude Code, type `/startup` — should appear in the skill list.
 
-**OpenCode:** same clone + `install.sh` (skills are read from the same `~/.claude/skills/` path),
+**OpenCode:** same clone + `install.sh` (both discovery roots resolve to the canonical setup skills),
 then add to `~/.config/opencode/opencode.json`:
 ```json
 {
@@ -698,7 +699,7 @@ Verify: run `opencode`, type "start a new project" — startup skill should load
 **Any terminal LLM:** clone the repo, paste a `SKILL.md`'s content directly into your prompt.
 You are the orchestrator. See `../agent/COMPAT.md §Terminal`.
 
-If `install.sh` fails, manual steps (symlink each `~/setup/skills/*/` into `~/.claude/skills/`,
+If `install.sh` fails, manual steps (symlink each `~/setup/skills/*/` into both discovery roots,
 `claude mcp add playwright -- npx -y @playwright/mcp@latest --headless`, check `GH_TOKEN` in
 `~/.claude/.env`) are in `SETUP.md §Manual steps`.
 

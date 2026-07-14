@@ -29,8 +29,9 @@ bash ~/setup/install.sh
 ```
 Verify: open Claude Code, type `/startup` — should appear in the skill list.
 
-**OpenCode:** same clone + `install.sh` (skills are read from the same `~/.claude/skills/`
-path), then add the `instructions` + `mcp.playwright` block to
+**Codex and OpenCode:** use the same clone + `install.sh`. The installer links one canonical skill
+tree into both standard discovery roots and installs the same routing policy for every CLI. For
+OpenCode, then add the `instructions` + `mcp.playwright` block to
 `~/.config/opencode/opencode.json`. Full snippet: `docs/human/SETUP.md`.
 
 **Any terminal LLM:** clone the repo, paste a `SKILL.md`'s content into your prompt — you are
@@ -64,9 +65,9 @@ setup/
 ├── install.sh
 ├── docs/
 │   ├── human/  PIPELINE.md · SETUP.md · ARCHITECTURE-GUIDE.md · WORKCTL.md
-│   └── agent/  PROMPT-FORMAT.md · COMPAT.md
-├── scripts/                # model-check · preflight · GRACE lint · runtime-aware skill validation
-├── skills/                 # one dir per skill — symlinked into ~/.claude/skills/
+│   └── agent/  PROMPT-FORMAT.md · COMPAT.md · SKILL-ROUTING.md
+├── scripts/                # model-check · preflight · GRACE lint · skill discovery/validation
+├── skills/                 # canonical skills → ~/.claude/skills and ~/.agents/skills
 ├── agents/                 # evaluator.md · team.md
 └── templates/project/      # copied into new projects by /startup
 ```
@@ -80,12 +81,13 @@ bash ~/.claude/scripts/grace-lint.sh --changed   # GRACE Lite markup on the diff
 bash ~/.claude/scripts/model-check.sh 5.5        # which model this phase requires
 python3 ~/setup/scripts/validate-skills.py --profile claude  # validate Claude skill frontmatter
 workctl doctor                                                # check cross-CLI task continuation
+setup-skill-doctor                                            # check discovery + routing in every CLI
 ```
 
-**Install is fail-closed on collisions.** If a skill already exists in `~/.claude/skills/` as a real
-directory (not a symlink into this repo), install halts instead of skipping it. A skipped skill is the
-worst failure mode there is: you edit the skill here, commit it, and the CLI keeps loading a stale copy
-from somewhere else — silently, for weeks.
+**Install is fail-closed on collisions.** It preflights both discovery roots before changing either.
+If a stale copy exists, the default run halts without partial installation. Re-run with
+`--migrate-skill-collisions` to move conflicts into a timestamped backup and link the canonical
+source; old copies are never deleted.
 
 ---
 

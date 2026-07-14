@@ -1,6 +1,6 @@
 ---
 name: planning-with-files
-description: Implements Manus-style file-based planning to organize and track progress on complex tasks. Creates task_plan.md, findings.md, and progress.md. Use when asked to plan out, break down, or organize a multi-step project, research task, or any work requiring 5+ tool calls. Supports automatic session recovery after /clear.
+description: Persistent file-based planning for complex work. Creates task_plan.md, findings.md, and progress.md. Use before substantive work when the user asks to save or write a plan and execute it, says “сохрани план и выполни”, “сначала запиши план”, or “большая задача”, requests a multi-step research/build/migration/audit likely to need 5+ tool calls, or the work must survive compaction, /clear, a provider limit, or a CLI switch.
 user-invocable: true
 allowed-tools: "Read Write Edit Bash Glob Grep"
 hooks:
@@ -21,19 +21,27 @@ hooks:
   Stop:
     - hooks:
         - type: command
-          command: "SKILL_PS1=\"${CLAUDE_SKILL_DIR}/scripts/check-complete.ps1\"; SKILL_SH=\"${CLAUDE_SKILL_DIR}/scripts/check-complete.sh\"; KNOWN_PS1=$(ls \"$HOME/.claude/skills/planning-with-files/scripts/check-complete.ps1\" \"$HOME/.claude/plugins/marketplaces/planning-with-files/scripts/check-complete.ps1\" 2>/dev/null | head -1); KNOWN_SH=$(ls \"$HOME/.claude/skills/planning-with-files/scripts/check-complete.sh\" \"$HOME/.claude/plugins/marketplaces/planning-with-files/scripts/check-complete.sh\" 2>/dev/null | head -1); TARGET_PS1=\"${SKILL_PS1:-$KNOWN_PS1}\"; TARGET_SH=\"${SKILL_SH:-$KNOWN_SH}\"; if [ -n \"$TARGET_PS1\" ] && [ -f \"$TARGET_PS1\" ]; then powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File \"$TARGET_PS1\" 2>/dev/null; elif [ -n \"$TARGET_SH\" ] && [ -f \"$TARGET_SH\" ]; then sh \"$TARGET_SH\" 2>/dev/null; fi"
+          command: "SKILL_DIR=\"${CLAUDE_SKILL_DIR:-$HOME/.agents/skills/planning-with-files}\"; SKILL_PS1=\"$SKILL_DIR/scripts/check-complete.ps1\"; SKILL_SH=\"$SKILL_DIR/scripts/check-complete.sh\"; KNOWN_PS1=$(ls \"$HOME/.claude/skills/planning-with-files/scripts/check-complete.ps1\" \"$HOME/.claude/plugins/marketplaces/planning-with-files/scripts/check-complete.ps1\" 2>/dev/null | head -1); KNOWN_SH=$(ls \"$HOME/.claude/skills/planning-with-files/scripts/check-complete.sh\" \"$HOME/.claude/plugins/marketplaces/planning-with-files/scripts/check-complete.sh\" 2>/dev/null | head -1); TARGET_PS1=\"${SKILL_PS1:-$KNOWN_PS1}\"; TARGET_SH=\"${SKILL_SH:-$KNOWN_SH}\"; if [ -n \"$TARGET_PS1\" ] && [ -f \"$TARGET_PS1\" ]; then powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File \"$TARGET_PS1\" 2>/dev/null; elif [ -n \"$TARGET_SH\" ] && [ -f \"$TARGET_SH\" ]; then sh \"$TARGET_SH\" 2>/dev/null; fi"
   PreCompact:
     - matcher: "*"
       hooks:
         - type: command
           command: "if [ -f task_plan.md ]; then echo '[planning-with-files] PreCompact: context compaction is about to occur.'; echo 'Before compaction completes: ensure progress.md captures recent actions and task_plan.md status reflects current phase.'; echo 'task_plan.md, findings.md, progress.md remain on disk and will be re-read after compaction.'; ATTEST=''; if [ -f .planning/.active_plan ]; then AP=$(tr -d '[:space:]' < .planning/.active_plan 2>/dev/null); if [ -n \"$AP\" ] && [ -f \".planning/$AP/.attestation\" ]; then ATTEST=$(tr -d '[:space:]' < \".planning/$AP/.attestation\" 2>/dev/null); fi; fi; if [ -z \"$ATTEST\" ] && [ -f .plan-attestation ]; then ATTEST=$(tr -d '[:space:]' < .plan-attestation 2>/dev/null); fi; if [ -n \"$ATTEST\" ]; then echo \"Plan-SHA256 at compaction: $ATTEST\"; fi; fi; exit 0"
 metadata:
-  version: "2.39.0"
+  version: "2.40.0"
 ---
 
 # Planning with Files
 
 Work like Manus: Use persistent markdown files as your "working memory on disk."
+
+## Runtime Portability
+
+The workflow in this document is the portable contract. Claude Code can additionally execute the
+frontmatter hooks; Codex and OpenCode may ignore those fields, so the agent must perform the same
+read-before-work and update-after-phase steps explicitly. Resolve this installed skill from the
+runtime's skill metadata when possible. In shell examples, the setup fallback is
+`~/.agents/skills/planning-with-files`, which points to the same source as Claude's skill root.
 
 ## FIRST: Restore Context (v2.2.0)
 
@@ -44,7 +52,8 @@ Work like Manus: Use persistent markdown files as your "working memory on disk."
 
 ```bash
 # Linux/macOS
-$(command -v python3 || command -v python) ${CLAUDE_PLUGIN_ROOT}/scripts/session-catchup.py "$(pwd)"
+SKILL_DIR="${CLAUDE_SKILL_DIR:-$HOME/.agents/skills/planning-with-files}"
+$(command -v python3 || command -v python) "$SKILL_DIR/scripts/session-catchup.py" "$(pwd)"
 ```
 
 ```powershell
@@ -60,12 +69,12 @@ If catchup report shows unsynced context:
 
 ## Important: Where Files Go
 
-- **Templates** are in `${CLAUDE_PLUGIN_ROOT}/templates/`
+- **Templates** are in the installed skill directory's `templates/`
 - **Your planning files** go in **your project directory**
 
 | Location | What Goes There |
 |----------|-----------------|
-| Skill directory (`${CLAUDE_PLUGIN_ROOT}/`) | Templates, scripts, reference docs |
+| Installed skill directory | Templates, scripts, reference docs |
 | Your project directory | `task_plan.md`, `findings.md`, `progress.md` |
 
 ## Quick Start
@@ -369,10 +378,11 @@ Claude Code's bare `/loop` reads `.claude/loop.md` (project) or `~/.claude/loop.
 
 ```bash
 # user-wide
-cp ${CLAUDE_PLUGIN_ROOT}/templates/loop.md ~/.claude/loop.md
+SKILL_DIR="${CLAUDE_SKILL_DIR:-$HOME/.agents/skills/planning-with-files}"
+cp "$SKILL_DIR/templates/loop.md" ~/.claude/loop.md
 
 # project-specific
-cp ${CLAUDE_PLUGIN_ROOT}/templates/loop.md .claude/loop.md
+cp "$SKILL_DIR/templates/loop.md" .claude/loop.md
 ```
 
 After install, bare `/loop <interval>` runs the planning-aware tick.

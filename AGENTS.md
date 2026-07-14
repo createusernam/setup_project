@@ -13,7 +13,9 @@
 
 ## Skills
 
-All skills in `skills/` → symlinked to `~/.claude/skills/` by `install.sh`:
+All skills in `skills/` are symlinked by `install.sh` into both `~/.claude/skills/` (Claude) and
+`~/.agents/skills/` (Codex and the shared Agent Skills convention). OpenCode scans both; the links
+must resolve to the same canonical source.
 
 | Skill | Purpose |
 |-------|---------|
@@ -57,6 +59,7 @@ All skills in `skills/` → symlinked to `~/.claude/skills/` by `install.sh`:
 Apply to every agent in every phase:
 
 - **Model routing.** Before a pipeline phase, run `bash scripts/model-check.sh <phase>` — it prints that phase's `required_model` (+ collegium roles) from `model-routing.json`. A shell hook can't detect the running model, so the halt is **agent-cooperative**: identify your own model (system prompt), and on mismatch output `MODEL MISMATCH: phase [N] requires [required], current is [detected]. Switch and re-run.` then STOP. Collegium phases (6 build; 3 design): verify implementer ≠ test-owner ≠ acceptor are different models.
+- **Route skills before tools.** Apply `docs/agent/SKILL-ROUTING.md` in every CLI. A named or clearly matching skill is mandatory. In particular, load `planning-with-files` when the user asks to save and execute a plan, calls the work a large task, the task likely needs 5+ tool calls, or it must survive a CLI/provider switch.
 - **Arithmetic → calculator tool.** All arithmetic goes through the JS-sandbox calculator tool — never mental math. Token-by-token generation is unreliable for numbers.
 - **Delete superseded code immediately.** Don't leave dead/orphaned code "just in case" — agents read existing code as few-shot examples, so dead code becomes a false template that propagates. `/code-review-expert` flags it MUST-FIX.
 - **GRACE Lite is checked, not trusted.** Every source file carries a MODULE_CONTRACT. Verify with `bash ~/.claude/scripts/grace-lint.sh --changed` before you hand work on; `--profile autonomous` adds FUNCTION_CONTRACT on exports and block-anchored logs, and is a hard gate for `/build-loop`. The rule used to live only in prose here — and prose is not an enforcement mechanism.

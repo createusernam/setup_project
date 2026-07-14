@@ -9,13 +9,15 @@ git clone https://github.com/createusernam/setup_project.git ~/setup
 bash ~/setup/install.sh
 ```
 
-That's it. `install.sh` registers the skills, exposes shared scripts, and installs `workctl` at
-`~/.local/bin/workctl`.
+That's it. `install.sh` registers one canonical skill tree for Claude, Codex, and OpenCode, installs
+their shared routing policy, exposes shared scripts, and installs `workctl` plus
+`setup-skill-doctor` in `~/.local/bin/`.
 
 Verify the cross-runtime controller:
 
 ```bash
 workctl doctor
+setup-skill-doctor
 ```
 
 ---
@@ -30,19 +32,24 @@ git clone https://github.com/createusernam/setup_project.git ~/setup
 
 #### 2. Register skills
 
-Skills live in `~/.claude/skills/`. Symlink each skill directory:
+Claude discovers `~/.claude/skills/`; Codex discovers the Agent Skills standard root
+`~/.agents/skills/`; OpenCode scans both. Link each root to the same source:
 
 ```bash
+mkdir -p ~/.claude/skills ~/.agents/skills
 for skill in ~/setup/skills/*/; do
-  ln -sf "$skill" ~/.claude/skills/"$(basename "$skill")"
+  ln -s "$skill" ~/.claude/skills/"$(basename "$skill")"
+  ln -s "$skill" ~/.agents/skills/"$(basename "$skill")"
 done
+python3 ~/setup/scripts/install-skill-routing.py --install \
+  --source ~/setup/docs/agent/SKILL-ROUTING.md --home "$HOME"
 ```
 
 Verify — in Claude Code type `/startup`. Should appear in skill list.
 
-> **How it works**: Claude Code loads skills from `~/.claude/skills/<name>/SKILL.md`.
-> There is no `skillsDirectories` setting — the only path Claude Code reads is `~/.claude/skills/`.
-> Symlinks keep skills in sync with the repo (`git pull ~/setup` → skills update automatically).
+> Symlinks keep both discovery views in sync with the repo (`git pull ~/setup` updates every CLI).
+> Do not overwrite an existing path manually. Use
+> `install.sh --migrate-skill-collisions`; it backs up stale copies before linking.
 
 #### 3. Install workctl
 
@@ -80,7 +87,8 @@ git clone https://github.com/createusernam/setup_project.git ~/setup
 bash ~/setup/install.sh
 ```
 
-`install.sh` symlinks skills to `~/.claude/skills/`. OpenCode discovers them from the same path — nothing extra needed for skills.
+`install.sh` links skills into both roots OpenCode scans; both resolve to the same source. Nothing
+else is needed for skill discovery.
 
 Add to `~/.config/opencode/opencode.json` (merge with existing). `instructions` is an
 **array of file paths** OpenCode loads — not a prose string — and the paths include the
@@ -105,18 +113,20 @@ Add to `~/.config/opencode/opencode.json` (merge with existing). `instructions` 
 
 Verify: run `opencode`, type "start a new project" — startup skill should load.
 
-> **Skills location**: Both Claude Code and OpenCode read from `~/.claude/skills/`. Skills live once, work in both CLI. No per-project skill copies needed — project CLAUDE.md references the pipeline, not individual skills.
+> **Skills location**: skills live once in `~/setup/skills/`; the runtime roots are only symlinked
+> discovery views. No per-project copies are needed.
 >
 > OpenCode also has a native `skill` tool — call it to load any skill's full instructions into context.
 
 ## Codex and cross-runtime continuation
 
-Codex does not need to discover the setup skill for continuation: `workctl` launches it with the
-explicit task ID and absolute paths to the portable task state. Confirm all locally available
-runtimes from any repository:
+Codex discovers the same setup skills through `~/.agents/skills/`. `workctl` additionally launches
+the target runtime with an explicit task ID and absolute paths to portable task state. Confirm both
+discovery and continuation from any repository:
 
 ```bash
 workctl doctor
+setup-skill-doctor
 ```
 
 If a provider limit ends the current session, switch explicitly:

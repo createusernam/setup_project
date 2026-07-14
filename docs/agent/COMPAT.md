@@ -122,10 +122,11 @@ Task("judge", model="opus", isolated=true)  →  final verdict
 
 ```bash
 git clone https://github.com/createusernam/setup_project.git ~/setup
-bash ~/setup/install.sh        # symlinks skills to ~/.claude/skills/
+bash ~/setup/install.sh        # one source → ~/.claude/skills and ~/.agents/skills
 ```
 
-OpenCode discovers skills from `~/.claude/skills/` — the same path Claude Code uses. `install.sh` handles both CLI.
+OpenCode scans both discovery roots. `install.sh` makes both resolve to the same canonical source,
+which also gives Codex native discovery through `~/.agents/skills/`.
 
 Add to `~/.config/opencode/opencode.json`. `instructions` is an **array of file paths**
 (OpenCode loads each file), not a prose string — and the paths must include the `docs/`
@@ -161,6 +162,10 @@ No `/slash` syntax. Skills are invoked by name or purpose:
 ```
 
 OpenCode's native `skill` tool loads any skill's full instructions into context. Use `skill({ name: "startup" })` or describe the task and the model maps it to the right skill.
+
+Automatic mapping is model-selected, so setup also installs the mandatory policy from
+`docs/agent/SKILL-ROUTING.md` into each runtime's always-on instructions. Diagnose missing,
+shadowed, or divergent skills with `setup-skill-doctor`.
 
 Alternatively — reference the path directly:
 ```

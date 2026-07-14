@@ -2,75 +2,118 @@
 # START_MODULE_CONTRACT
 # PURPOSE: Install setup skills and shared pipeline scripts into supported local agent runtimes.
 # SCOPE: Create fail-closed symlinks, then report optional runtime credentials and integrations.
-# DEPENDS: Bash, coreutils, the repository skills/ and scripts/ trees, optional Claude/OpenCode CLIs.
+# DEPENDS: Bash, Python 3, coreutils, repository skills/docs/scripts, optional Claude/OpenCode CLIs.
 # END_MODULE_CONTRACT
 # Setup v2 — one-command install
 # Run from anywhere: bash ~/setup/install.sh
 #
-# Install is fail-closed on skill collisions. A skill that exists in ~/.claude/skills/ as a real
-# directory SHADOWS this repo: you edit setup/skills/X, and the CLI keeps loading the stale copy.
-# That failure is silent and expensive — so this script HALTS on it instead of skipping.
+# Install is fail-closed on skill collisions in both discovery roots. Pass
+# --migrate-skill-collisions to move every collision into a timestamped backup before linking.
 
 set -euo pipefail
 
+# START_BLOCK_INSTALL
 SETUP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_DIR="$HOME/.claude"
 SKILLS_SRC="$SETUP_DIR/skills"
-SKILLS_DST="$CLAUDE_DIR/skills"
+CLAUDE_SKILLS_DST="$CLAUDE_DIR/skills"
+AGENT_SKILLS_DST="$HOME/.agents/skills"
 SCRIPTS_DST="$CLAUDE_DIR/scripts"
 BIN_DST="${WORKCTL_BIN_DIR:-$HOME/.local/bin}"
+ROUTING_SRC="$SETUP_DIR/docs/agent/SKILL-ROUTING.md"
+MIGRATE_COLLISIONS=0
+
+if [ "${1:-}" = "--migrate-skill-collisions" ] && [ "$#" -eq 1 ]; then
+  MIGRATE_COLLISIONS=1
+elif [ "$#" -ne 0 ]; then
+  echo "Usage: bash $0 [--migrate-skill-collisions]" >&2
+  exit 2
+fi
 
 echo "=== Setup v2 install ==="
 echo "Source: $SETUP_DIR"
 echo "Claude: $CLAUDE_DIR"
 echo ""
 
-# 1. Symlink skills into ~/.claude/skills/ — every skill, or none.
-echo "→ Registering skills..."
-mkdir -p "$SKILLS_DST"
+# 1. Preflight every destination before mutating anything.
+echo "→ Preflighting skill discovery and commands..."
 COLLISIONS=()
 
-for skill_dir in "$SKILLS_SRC"/*/; do
-  skill_name="$(basename "$skill_dir")"
-  target="$SKILLS_DST/$skill_name"
-
-  if [ -L "$target" ]; then
-    if [ "$(readlink -f "$target")" = "$(readlink -f "$skill_dir")" ]; then
-      echo "  ✓ $skill_name"
-    else
-      COLLISIONS+=("$skill_name|symlink points at $(readlink -f "$target"), not at this repo")
+for root_spec in "claude|$CLAUDE_SKILLS_DST" "agents|$AGENT_SKILLS_DST"; do
+  root_name="${root_spec%%|*}"
+  root_path="${root_spec#*|}"
+  for skill_dir in "$SKILLS_SRC"/*/; do
+    skill_name="$(basename "$skill_dir")"
+    target="$root_path/$skill_name"
+    if [ -L "$target" ]; then
+      if [ "$(readlink -f "$target")" != "$(readlink -f "$skill_dir")" ]; then
+        COLLISIONS+=("skill|$root_name|$target|$skill_name|symlink points at $(readlink -f "$target"), not at this repo")
+      fi
+    elif [ -e "$target" ]; then
+      COLLISIONS+=("skill|$root_name|$target|$skill_name|real path shadows setup")
     fi
-  elif [ -e "$target" ]; then
-    COLLISIONS+=("$skill_name|real directory — a stale copy that shadows $skill_dir")
-  else
-    ln -s "$skill_dir" "$target"
-    echo "  + $skill_name"
+  done
+done
+
+for command_spec in "workctl|$SETUP_DIR/scripts/workctl.py" "setup-skill-doctor|$SETUP_DIR/scripts/check-skill-discovery.py"; do
+  command_name="${command_spec%%|*}"
+  command_src="${command_spec#*|}"
+  command_dst="$BIN_DST/$command_name"
+  if [ -L "$command_dst" ]; then
+    if [ "$(readlink -f "$command_dst")" != "$(readlink -f "$command_src")" ]; then
+      COLLISIONS+=("command|bin|$command_dst|$command_name|symlink points at $(readlink -f "$command_dst"), not at this repo")
+    fi
+  elif [ -e "$command_dst" ]; then
+    COLLISIONS+=("command|bin|$command_dst|$command_name|real file shadows setup")
   fi
 done
 
 if [ ${#COLLISIONS[@]} -gt 0 ]; then
-  echo ""
-  echo "✗ HALT — ${#COLLISIONS[@]} skill(s) in $SKILLS_DST do not come from this repo:"
-  for c in "${COLLISIONS[@]}"; do
-    printf '    %-24s %s\n' "${c%%|*}" "${c#*|}"
-  done
-  cat <<EOF
+  if [ "$MIGRATE_COLLISIONS" -ne 1 ]; then
+    echo ""
+    echo "✗ HALT — ${#COLLISIONS[@]} collision(s) do not come from this repo:"
+    for collision in "${COLLISIONS[@]}"; do
+      IFS='|' read -r kind root target name reason <<< "$collision"
+      printf '    %-8s %-8s %-24s %s\n' "$kind" "$root" "$name" "$reason"
+    done
+    cat <<EOF
 
-  Why this is fatal, not a warning: the CLI loads whatever is at $SKILLS_DST.
-  While a stale copy sits there, every edit you make in $SKILLS_SRC is dead code —
-  it is committed, reviewed, and never executed.
+  Nothing was installed. Preserve and migrate all collisions explicitly with:
 
-  Resolve each one (after saving anything you still want from the stale copy):
+      bash $SETUP_DIR/install.sh --migrate-skill-collisions
 
-      rm -rf $SKILLS_DST/<skill>          # or: mv it aside
-      bash $SETUP_DIR/install.sh          # re-run — it will link it
-
-  Nothing else was installed.
+  The migration moves each conflicting path into ~/.setup-skill-backups/<timestamp>/;
+  it never deletes the old copy.
 EOF
-  exit 1
+    exit 1
+  fi
+
+  BACKUP_ROOT="$HOME/.setup-skill-backups/$(date +%Y%m%d-%H%M%S)"
+  echo "  Migrating ${#COLLISIONS[@]} collision(s) to $BACKUP_ROOT"
+  for c in "${COLLISIONS[@]}"; do
+    IFS='|' read -r kind root target name reason <<< "$c"
+    backup="$BACKUP_ROOT/$root/$name"
+    mkdir -p "$(dirname "$backup")"
+    mv "$target" "$backup"
+    echo "  ↪ $target → $backup"
+  done
 fi
 
-# 2. Expose scripts at a stable path, so skills can call them from any project directory.
+# 2. Link one canonical skill tree into every supported discovery root.
+echo ""
+echo "→ Registering skills in ~/.claude/skills and ~/.agents/skills..."
+mkdir -p "$CLAUDE_SKILLS_DST" "$AGENT_SKILLS_DST"
+for skill_dir in "$SKILLS_SRC"/*/; do
+  skill_name="$(basename "$skill_dir")"
+  for target in "$CLAUDE_SKILLS_DST/$skill_name" "$AGENT_SKILLS_DST/$skill_name"; do
+    if [ ! -L "$target" ]; then
+      ln -s "$skill_dir" "$target"
+    fi
+  done
+  echo "  ✓ $skill_name"
+done
+
+# 3. Expose scripts at a stable path, so skills can call them from any project directory.
 #    Skills reference ~/.claude/scripts/<name>.sh — independent of where this repo is cloned.
 echo ""
 echo "→ Exposing scripts at $SCRIPTS_DST..."
@@ -80,27 +123,28 @@ for script in "$SETUP_DIR"/scripts/*.sh; do
   echo "  ✓ $(basename "$script")"
 done
 
-# Expose the cross-runtime task controller as a normal CLI. Refuse to overwrite a real file or a
-# symlink owned by another installation: a shadowed controller is as dangerous as a shadowed skill.
+# Expose cross-runtime diagnostics and task continuation as normal commands.
 echo ""
-echo "→ Installing workctl at $BIN_DST/workctl..."
+echo "→ Installing workctl and setup-skill-doctor in $BIN_DST..."
 mkdir -p "$BIN_DST"
-WORKCTL_SRC="$SETUP_DIR/scripts/workctl.py"
-WORKCTL_DST="$BIN_DST/workctl"
-if [ -L "$WORKCTL_DST" ]; then
-  if [ "$(readlink -f "$WORKCTL_DST")" != "$(readlink -f "$WORKCTL_SRC")" ]; then
-    echo "✗ HALT — $WORKCTL_DST points at $(readlink -f "$WORKCTL_DST"), not this setup"
-    exit 1
+for command_spec in "workctl|$SETUP_DIR/scripts/workctl.py" "setup-skill-doctor|$SETUP_DIR/scripts/check-skill-discovery.py"; do
+  command_name="${command_spec%%|*}"
+  command_src="${command_spec#*|}"
+  command_dst="$BIN_DST/$command_name"
+  if [ ! -L "$command_dst" ]; then
+    ln -s "$command_src" "$command_dst"
   fi
-elif [ -e "$WORKCTL_DST" ]; then
-  echo "✗ HALT — $WORKCTL_DST is a real file; move it aside before installing workctl"
-  exit 1
-else
-  ln -s "$WORKCTL_SRC" "$WORKCTL_DST"
-fi
-echo "  ✓ workctl"
+  echo "  ✓ $command_name"
+done
 
-# 3. Check GH_TOKEN
+# 4. Put the same mandatory routing contract into each runtime's always-on instructions.
+echo ""
+echo "→ Installing managed cross-CLI skill-routing policy..."
+python3 "$SETUP_DIR/scripts/install-skill-routing.py" --install --source "$ROUTING_SRC" --home "$HOME"
+# END_BLOCK_INSTALL
+
+# START_BLOCK_OPTIONAL_CHECKS
+# 5. Check GH_TOKEN
 echo ""
 echo "→ Checking GH_TOKEN..."
 if grep -q "GH_TOKEN" "$CLAUDE_DIR/.env" 2>/dev/null; then
@@ -110,7 +154,7 @@ else
   echo "    echo 'GH_TOKEN=ghp_...' >> ~/.claude/.env"
 fi
 
-# 4. Check Playwright MCP
+# 6. Check Playwright MCP
 echo ""
 echo "→ Checking Playwright MCP..."
 if claude mcp list 2>/dev/null | grep -q "playwright"; then
@@ -120,7 +164,7 @@ else
   echo "    Run: claude mcp add playwright -- npx -y @playwright/mcp@latest --headless"
 fi
 
-# 5. Check OpenCode + DeepSeek (parity path — skips cleanly if you only use Claude Code)
+# 7. Check OpenCode + DeepSeek (parity path — skips cleanly if you only use Claude Code)
 echo ""
 echo "→ Checking OpenCode + DeepSeek..."
 OC_CFG="$HOME/.config/opencode/opencode.json"
@@ -129,8 +173,8 @@ if command -v opencode >/dev/null 2>&1; then
 else
   echo "  ⚠ opencode not on PATH (ignore if you only use Claude Code)"
 fi
-# Skills need nothing extra — OpenCode discovers ~/.claude/skills/ natively (verified: opencode.ai/docs/skills)
-echo "  ✓ Skills: OpenCode reads ~/.claude/skills/ natively — same symlinks as above"
+# OpenCode scans both roots. They intentionally resolve to the same canonical setup source.
+echo "  ✓ Skills: OpenCode reads ~/.claude/skills and ~/.agents/skills; both resolve to setup/skills"
 # instructions must be an ARRAY of file paths incl. the docs/ subdirs (a prose string loads nothing)
 if [ -f "$OC_CFG" ]; then
   if grep -q "docs/human/PIPELINE.md" "$OC_CFG" 2>/dev/null; then
@@ -151,11 +195,14 @@ else
   echo "  ⚠ No DeepSeek/OpenRouter key found:"
   echo "    echo 'sk-...' > ~/.opencode/openrouter-key   (or export DEEPSEEK_API_KEY / OPENROUTER_API_KEY)"
 fi
+# END_BLOCK_OPTIONAL_CHECKS
 
+# START_BLOCK_SUMMARY
 echo ""
 echo "=== Done ==="
 echo ""
-echo "Every skill in $SKILLS_SRC is now linked — what you edit is what runs."
+"$BIN_DST/setup-skill-doctor" --setup-dir "$SETUP_DIR" --home "$HOME" --quiet
+echo "Every skill in $SKILLS_SRC now has one source across Claude, Codex, and OpenCode."
 echo ""
 echo "Pipeline (docs/human/PIPELINE.md):"
 echo "  /startup → choose /methodology OR manual 9-section brief → /judge product-brief"
@@ -178,3 +225,7 @@ echo "  workctl doctor"
 echo "  workctl init <task-id> --goal \"...\""
 echo "  workctl handoff <task-id> --to codex --next-action \"...\""
 echo "  workctl continue <task-id> --runtime claude|codex|opencode"
+echo ""
+echo "Skill discovery:"
+echo "  setup-skill-doctor"
+# END_BLOCK_SUMMARY

@@ -2,6 +2,23 @@
 
 This setup runs on three runtimes. Skills and artifacts are the same — execution differs.
 
+## Continuing a task across runtimes
+
+Use `workctl` when work moves between Claude Code, Codex, and OpenCode. It keeps runtime-neutral
+state at `.workctl/tasks/<task-id>/` and launches the next CLI with an explicit
+`CONTINUE TASK <id> ONLY` instruction.
+
+```bash
+workctl init auth-refresh --goal "Refresh auth"
+workctl start auth-refresh --runtime claude
+workctl handoff auth-refresh --to codex
+workctl continue auth-refresh --runtime codex
+```
+
+When a repository contains multiple tasks, pass the task ID. An omitted ID is accepted only when
+`WORKCTL_TASK`, the current branch binding, or a single repository task makes the choice unique.
+Ambiguity and branch mismatches are hard failures. See `docs/human/WORKCTL.md` for the full guide.
+
 ## Runtime Matrix
 
 | Feature | Claude Code | OpenCode + DeepSeek | Terminal (manual) |

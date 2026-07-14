@@ -34,6 +34,7 @@ All skills in `skills/` → symlinked to `~/.claude/skills/` by `install.sh`:
 | `diagnose` | Bug diagnosis loop |
 | `triage` | Issue triage state machine |
 | `guide-pdf` | Render markdown to styled PDF |
+| `workctl` | Continue one explicit task safely across Claude Code, Codex, and OpenCode |
 | `visualization` | Human-track Mermaid/HTML at pipeline gates |
 | `grace-ontology` | GRACE annotation vocabulary for agents |
 | `youtube-transcript` | Extract YouTube subtitles |
@@ -72,3 +73,7 @@ AGENTS.md is a primary attention anchor — agents weight its CAPS/structure hea
 - Bounded ≤200 lines, curated, not append-only (global memory doctrine).
 
 Full pipeline: `docs/human/PIPELINE.md`. Model routing: `docs/agent/COMPAT.md`.
+
+For cross-runtime continuation, use `workctl` and name the task whenever more than one task may
+exist. Durable files under `.workctl/tasks/<task-id>/` outrank runtime chat history; never guess the
+active task from timestamps or recent prose. See `docs/human/WORKCTL.md`.

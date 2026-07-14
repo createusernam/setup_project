@@ -1,0 +1,4 @@
+interface:
+  display_name: "Workctl"
+  short_description: "Continue tasks safely across coding CLIs"
+  default_prompt: "Use $workctl to continue this task in another coding CLI without losing state."

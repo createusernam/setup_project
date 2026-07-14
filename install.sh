@@ -18,6 +18,7 @@ CLAUDE_DIR="$HOME/.claude"
 SKILLS_SRC="$SETUP_DIR/skills"
 SKILLS_DST="$CLAUDE_DIR/skills"
 SCRIPTS_DST="$CLAUDE_DIR/scripts"
+BIN_DST="${WORKCTL_BIN_DIR:-$HOME/.local/bin}"
 
 echo "=== Setup v2 install ==="
 echo "Source: $SETUP_DIR"
@@ -78,6 +79,26 @@ for script in "$SETUP_DIR"/scripts/*.sh; do
   ln -sfn "$script" "$SCRIPTS_DST/$(basename "$script")"
   echo "  ✓ $(basename "$script")"
 done
+
+# Expose the cross-runtime task controller as a normal CLI. Refuse to overwrite a real file or a
+# symlink owned by another installation: a shadowed controller is as dangerous as a shadowed skill.
+echo ""
+echo "→ Installing workctl at $BIN_DST/workctl..."
+mkdir -p "$BIN_DST"
+WORKCTL_SRC="$SETUP_DIR/scripts/workctl.py"
+WORKCTL_DST="$BIN_DST/workctl"
+if [ -L "$WORKCTL_DST" ]; then
+  if [ "$(readlink -f "$WORKCTL_DST")" != "$(readlink -f "$WORKCTL_SRC")" ]; then
+    echo "✗ HALT — $WORKCTL_DST points at $(readlink -f "$WORKCTL_DST"), not this setup"
+    exit 1
+  fi
+elif [ -e "$WORKCTL_DST" ]; then
+  echo "✗ HALT — $WORKCTL_DST is a real file; move it aside before installing workctl"
+  exit 1
+else
+  ln -s "$WORKCTL_SRC" "$WORKCTL_DST"
+fi
+echo "  ✓ workctl"
 
 # 3. Check GH_TOKEN
 echo ""
@@ -151,3 +172,8 @@ echo "Gates callable from any project dir:"
 echo "  bash ~/.claude/scripts/pipeline-preflight.sh <phase>   # inputs, models, human gates"
 echo "  bash ~/.claude/scripts/grace-lint.sh                   # GRACE Lite markup"
 echo "  bash ~/.claude/scripts/model-check.sh <phase>          # required model for a phase"
+echo ""
+echo "Cross-runtime task continuation:"
+echo "  workctl doctor"
+echo "  workctl init <task-id> --goal \"...\""
+echo "  workctl continue <task-id> --runtime claude|codex|opencode"

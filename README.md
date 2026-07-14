@@ -59,7 +59,7 @@ setup/
 ├── model-routing.json      # phase → model, requires, human_gate (read by preflight)
 ├── install.sh
 ├── docs/
-│   ├── human/  PIPELINE.md · SETUP.md · ARCHITECTURE-GUIDE.md
+│   ├── human/  PIPELINE.md · SETUP.md · ARCHITECTURE-GUIDE.md · WORKCTL.md
 │   └── agent/  PROMPT-FORMAT.md · COMPAT.md
 ├── scripts/                # model-check · preflight · GRACE lint · runtime-aware skill validation
 ├── skills/                 # one dir per skill — symlinked into ~/.claude/skills/
@@ -75,6 +75,7 @@ bash ~/.claude/scripts/pipeline-preflight.sh 6   # inputs present · models rout
 bash ~/.claude/scripts/grace-lint.sh --changed   # GRACE Lite markup on the diff
 bash ~/.claude/scripts/model-check.sh 5.5        # which model this phase requires
 python3 ~/setup/scripts/validate-skills.py --profile claude  # validate Claude skill frontmatter
+workctl doctor                                                # check cross-CLI task continuation
 ```
 
 **Install is fail-closed on collisions.** If a skill already exists in `~/.claude/skills/` as a real
@@ -90,6 +91,7 @@ from somewhere else — silently, for weeks.
   phase): [`docs/human/PIPELINE.md`](docs/human/PIPELINE.md)
 - **Install / troubleshooting reference**: [`docs/human/SETUP.md`](docs/human/SETUP.md)
 - **Architecture phase** (reasoning-hard design on a clean prompt): [`docs/human/ARCHITECTURE-GUIDE.md`](docs/human/ARCHITECTURE-GUIDE.md)
+- **Continue one named task across coding CLIs**: [`docs/human/WORKCTL.md`](docs/human/WORKCTL.md)
 - **Agent-facing standards** (structured prompts, cross-model compat, model routing):
   [`docs/agent/PROMPT-FORMAT.md`](docs/agent/PROMPT-FORMAT.md), [`docs/agent/COMPAT.md`](docs/agent/COMPAT.md)
 - **Global agent rules** (OpenCode/Claude Code entrypoint): [`AGENTS.md`](AGENTS.md)

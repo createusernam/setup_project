@@ -5,7 +5,18 @@ description: Continue one specific coding task safely across Claude Code, Codex,
 
 # Workctl
 
-Use `workctl` as the task-level control plane when a conversation may move between coding CLIs. The repository and `.workctl/tasks/<task-id>/` are canonical; a model's private session is only a temporary execution context.
+Use `workctl` as the task-level control plane when a conversation may move between coding CLIs. Repository phase artifacts remain canonical for specification and gates; `.workctl/tasks/<task-id>/` is canonical for task identity, current execution state, and runtime provenance. A model's private session is only temporary context.
+
+When the setup pipeline is present, do not copy or redefine root `product_brief.md`, `task_plan.md`,
+`contract.json`, or other phase outputs inside the task files. Reference their paths from
+`context.md`; if a summary conflicts with a phase artifact, the phase artifact wins and the task
+summary must be corrected. `.pipeline-state.json` owns phase/gate truth. Do not maintain
+`CONTINUITY.md` alongside a workctl-managed task.
+
+The task-local `plan.md` is only the near-term execution plan; task-local `contract.json` contains
+acceptance criteria for this named unit of work. Neither replaces the root PBS plan or build
+contract. Run `start` and `continue` from a controlling terminal because they launch a child CLI;
+do not nest them inside another interactive coding CLI.
 
 ## Non-negotiable rule
 
@@ -101,7 +112,8 @@ Before declaring the task complete:
 1. Update `progress.md` with the actual terminal state and remaining work.
 2. Record relevant verification in `checks.json`.
 3. Record decisions that another runtime would otherwise have to rediscover.
-4. Run `workctl handoff <task-id>` so the durable snapshot matches the repository.
+4. If another runtime will continue, run `workctl handoff <task-id> --to <runtime>`; do not invent a
+   target merely to mark completion.
 5. Report the explicit task ID and verification result to the user.
 
 Do not treat a successful CLI exit as proof that the task is complete.

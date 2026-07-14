@@ -48,6 +48,10 @@ Use `/researcher` only for remaining factual gaps, then run `/judge product-brie
 default and has only a documented small-change opt-out. The canonical sequence and gates live in
 [`docs/human/PIPELINE.md`](docs/human/PIPELINE.md).
 
+If the task may move between Claude Code, Codex, and OpenCode, create its explicit identity from the
+project root with `workctl init <task-id> --goal "..."`. Workctl transports the task between runtimes;
+it does not replace pipeline phases or gates.
+
 ---
 
 ## Directory structure

@@ -49,15 +49,21 @@ Every file starts with:
 // END_MODULE_CONTRACT
 ```
 
-## Continuity & memory (cross-session)
+## Continuity & memory (cross-session and cross-CLI)
 
-Long / multi-session work: keep `CONTINUITY.md` (copy from `CONTINUITY_TEMPLATE.md`) updated after each milestone — it survives `/compact`. Memory is **bounded & curated** — no unbounded session-log:
+For material work, use one named workctl task (`workctl init <task-id> --goal "..."`). Its
+`.workctl/tasks/<task-id>/` directory owns Done/Now/Next, checks, and runtime handoff. Never infer the
+task by recency when several tasks exist.
+
+`CONTINUITY.md` is a manual fallback only when workctl is unavailable. Do not maintain both for the
+same task: two current-state ledgers will drift. Memory stays **bounded & curated**:
 
 | Need | Lives in |
 |------|----------|
 | Why decisions were made | `docs/adr/` |
 | What happened per session | `CHANGELOG.md` |
-| Where we are now | `CONTINUITY.md` |
+| Pipeline phase and gates | `.pipeline-state.json` |
+| Where a named task is now | `.workctl/tasks/<task-id>/progress.md` (or fallback `CONTINUITY.md`) |
 | Known bugs | GitHub issues |
 
 ## GitHub

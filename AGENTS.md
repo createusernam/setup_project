@@ -76,4 +76,6 @@ Full pipeline: `docs/human/PIPELINE.md`. Model routing: `docs/agent/COMPAT.md`.
 
 For cross-runtime continuation, use `workctl` and name the task whenever more than one task may
 exist. Durable files under `.workctl/tasks/<task-id>/` outrank runtime chat history; never guess the
-active task from timestamps or recent prose. See `docs/human/WORKCTL.md`.
+active task from timestamps or recent prose. Root pipeline artifacts still own specification and
+gate truth; `.workctl` owns task identity and execution continuity. Do not maintain `CONTINUITY.md`
+for the same workctl-managed task. See `docs/human/WORKCTL.md`.

@@ -1,7 +1,9 @@
 # Continuity Ledger
 
 <!--
-  Copy to CONTINUITY.md for long / multi-session work. Survives /compact.
+  FALLBACK ONLY: copy to CONTINUITY.md when workctl is unavailable.
+  If `.workctl/tasks/<task-id>/` manages this task, do not create or update CONTINUITY.md.
+  This file survives /compact but does not provide task selection, leases, or runtime provenance.
   Update after each major milestone. Mark uncertainty as UNCONFIRMED. Do not guess.
   Bounded & curated — no unbounded session-log (that lives in CHANGELOG.md).
 -->

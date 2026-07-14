@@ -9,7 +9,14 @@ git clone https://github.com/createusernam/setup_project.git ~/setup
 bash ~/setup/install.sh
 ```
 
-That's it. `install.sh` does steps 1–3 below automatically.
+That's it. `install.sh` registers the skills, exposes shared scripts, and installs `workctl` at
+`~/.local/bin/workctl`.
+
+Verify the cross-runtime controller:
+
+```bash
+workctl doctor
+```
 
 ---
 
@@ -37,13 +44,27 @@ Verify — in Claude Code type `/startup`. Should appear in skill list.
 > There is no `skillsDirectories` setting — the only path Claude Code reads is `~/.claude/skills/`.
 > Symlinks keep skills in sync with the repo (`git pull ~/setup` → skills update automatically).
 
-#### 3. Playwright MCP (for /build-loop)
+#### 3. Install workctl
+
+Skip this when `install.sh` succeeded.
+
+```bash
+mkdir -p ~/.local/bin
+test ! -e ~/.local/bin/workctl
+ln -s ~/setup/scripts/workctl.py ~/.local/bin/workctl
+workctl doctor
+```
+
+If `~/.local/bin/workctl` already exists, inspect it rather than overwriting it. The main installer
+halts on this collision.
+
+#### 4. Playwright MCP (for /build-loop)
 
 ```bash
 claude mcp add playwright -- npx -y @playwright/mcp@latest --headless
 ```
 
-#### 4. GH_TOKEN
+#### 5. GH_TOKEN
 
 ```bash
 cat ~/.claude/.env | grep GH_TOKEN
@@ -88,6 +109,25 @@ Verify: run `opencode`, type "start a new project" — startup skill should load
 >
 > OpenCode also has a native `skill` tool — call it to load any skill's full instructions into context.
 
+## Codex and cross-runtime continuation
+
+Codex does not need to discover the setup skill for continuation: `workctl` launches it with the
+explicit task ID and absolute paths to the portable task state. Confirm all locally available
+runtimes from any repository:
+
+```bash
+workctl doctor
+```
+
+If a provider limit ends the current session, switch explicitly:
+
+```bash
+workctl handoff auth-refresh --to codex --next-action "Continue from the failing integration test"
+workctl continue auth-refresh --runtime codex
+```
+
+The explicit task ID is required whenever a repository may contain multiple tasks.
+
 ## Creating a new project
 
 ### Claude Code
@@ -119,6 +159,10 @@ Startup skill asks the same 4 questions, creates project, and:
 ```bash
 cd ~/my-project-name
 # AGENTS.md symlink already created by startup — OpenCode reads project config immediately
+
+# Recommended when work may span several CLIs. Run from an ordinary terminal:
+workctl init <task-id> --goal "Carry <task> through the pipeline"
+workctl start <task-id> --runtime claude  # launches the selected CLI
 ```
 
 ## Per-project first session

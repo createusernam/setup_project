@@ -1,6 +1,7 @@
 # Cross-Model / Cross-CLI Compatibility
 
-This setup runs on three runtimes. Skills and artifacts are the same — execution differs.
+This setup targets Claude Code, Codex, OpenCode + DeepSeek, and a manual terminal fallback. Durable
+artifacts are shared; skill discovery and execution differ.
 
 ## Continuing a task across runtimes
 
@@ -21,15 +22,16 @@ Ambiguity and branch mismatches are hard failures. See `docs/human/WORKCTL.md` f
 
 ## Runtime Matrix
 
-| Feature | Claude Code | OpenCode + DeepSeek | Terminal (manual) |
-|---------|------------|---------------------|-------------------|
-| Skill invocation | `/skill-name` | Mention skill name in chat | Paste SKILL.md body |
-| Agent spawning | `Task` tool | `task` tool (`subagent_type: explore\|general`) | Human orchestrates |
-| State handoff | `Task` result | `research-state.json` read at turn start | Human copies JSON |
-| PLAN-CONFIRM | inline in skill | Explicit "Confirm plan?" message | Human reads plan |
-| Parallel agents | Parallel `Task` calls | Parallel `task` tool calls (`subagent_type: explore\|general`), fresh context each | Sequential turns |
-| GRACE markup | Agent writes directly | Agent outputs, human reviews diff | Human applies |
-| Artifacts | Auto-saved by skill | Agent outputs JSON, human saves | Human saves |
+| Feature | Claude Code | Codex | OpenCode + DeepSeek | Terminal (manual) |
+|---------|------------|-------|---------------------|-------------------|
+| Skill invocation | `/skill-name` | Describe the skill purpose or use a workctl-injected prompt | Mention skill name in chat | Paste SKILL.md body |
+| Agent spawning | `Task` tool | Runtime-dependent orchestration | `task` tool (`subagent_type: explore\|general`) | Human orchestrates |
+| Intra-runtime handoff | `Task` result / files | Files | `research-state.json` / files | Human carries files |
+| Cross-CLI continuation | `.workctl/tasks/<task-id>/` | `.workctl/tasks/<task-id>/` | `.workctl/tasks/<task-id>/` | `workctl resume` prompt |
+| PLAN-CONFIRM | Inline in skill | Explicit approval in prompt | Explicit "Confirm plan?" message | Human reads plan |
+| Parallel agents | Parallel `Task` calls | Runtime-dependent | Parallel `task` calls, fresh context each | Sequential turns |
+| GRACE markup | Agent writes directly | Agent writes directly | Agent outputs, human reviews diff | Human applies |
+| Artifacts | Files written by skill | Files written by agent | Agent outputs JSON/files | Human saves |
 
 ---
 
@@ -317,6 +319,12 @@ All artifacts are plain files — compatible across all runtimes:
 | `api-contract.json` | JSON | Design-first output |
 | GRACE markup | Comments in code | Context anchors |
 | `docs/*.xml` | XML | GRACE Full |
+| `.pipeline-state.json` | JSON | Canonical phase and gate ledger |
+| `.workctl/tasks/<task-id>/` | JSON + Markdown | Named-task continuation, runtime provenance, and recovery |
+
+Pipeline artifacts outrank workctl summaries for specification truth. Workctl state outranks chat
+history for the identity and current execution state of the named task. Do not maintain a separate
+`CONTINUITY.md` for the same workctl-managed task.
 
 ---
 

@@ -228,6 +228,12 @@ State files at each transition:
   → task_plan.md → pm-review.json → contract.json → handoff.json → judge-report.json
 ```
 
+`workctl` is a cross-cutting continuation layer around this chain, not another phase. Pipeline
+artifacts remain the source of truth for requirements, plans, contracts, and gates. A named
+`.workctl/tasks/<task-id>/` directory records which task is active, its runtime history, the current
+next action, checks, decisions, and Git checkpoints; it must point to pipeline artifacts rather than
+copying or redefining them.
+
 ---
 
 ## PBS — Purpose Breakdown Structure
@@ -473,6 +479,39 @@ sign-off) are enforced *inside* the discovery skill, not by
 preflight — the manual-brief path skips discovery entirely, so preflight can't assume it ran.
 They're still recorded in the ledger for audit and cross-session resume.
 
+### Cross-runtime task continuity (`workctl`)
+
+Use `workctl` when a material task may move between Claude Code, Codex, and OpenCode. It does not
+change phase order, satisfy a gate, or replace `.pipeline-state.json`:
+
+| State | Owner | Question answered |
+|---|---|---|
+| `.pipeline-state.json` | pipeline | Which phase and human/model gates are valid? |
+| root phase artifacts (`task_plan.md`, `contract.json`, etc.) | producing skill | What is specified and accepted? |
+| `.workctl/tasks/<task-id>/` | workctl + active agent | Which named task is continuing, where, and what happens next? |
+
+Lifecycle for a task that can cross CLI boundaries:
+
+```bash
+# After /startup, from the new repository:
+workctl init auth-refresh --goal "Carry the authentication task through the pipeline"
+
+# Start in the chosen runtime:
+workctl start auth-refresh --runtime claude
+
+# Before an intentional switch, or after recovering from a provider limit:
+workctl handoff auth-refresh --to codex --next-action "Run the contract tests, then continue PBS_LEAF_2"
+workctl continue auth-refresh --runtime codex
+
+# Inspect several coexisting tasks; never let an agent guess by recency:
+workctl status
+```
+
+At every handoff, update the task's `progress.md`, `decisions.md`, and `checks.json`, and reference the
+current root pipeline artifacts from `context.md`. Do not maintain `CONTINUITY.md` in parallel: for a
+workctl-managed task, its task directory is the continuity ledger. `CONTINUITY.md` remains a manual
+fallback only for projects where workctl is unavailable.
+
 ---
 
 ## Structured Output Format
@@ -613,6 +652,7 @@ and where each requirement lives in this pipeline.
 # Claude Code:
 git clone https://github.com/createusernam/setup_project.git ~/setup
 bash ~/setup/install.sh   # symlinks skills, checks deps
+workctl doctor            # verifies Claude, Codex, and OpenCode adapters
 
 # OpenCode:
 git clone https://github.com/createusernam/setup_project.git ~/setup
@@ -673,6 +713,16 @@ Either way the skill: creates `~/<project-name>/` from `templates/project/`; ask
 `product_brief.md` metadata; creates the `AGENTS.md → CLAUDE.md` symlink (OpenCode
 compatibility); runs `git init` + `gh repo create`.
 
+If the work may cross runtimes, create its explicit continuation identity from an ordinary terminal
+before Phase -1. `start` launches the selected coding CLI, so do not run it from inside another
+interactive coding CLI:
+
+```bash
+cd ~/<project-name>
+workctl init <task-id> --goal "Carry <task> through the pipeline"
+workctl start <task-id> --runtime claude   # or codex / opencode
+```
+
 ### First work session (per project) — 👤 human-driven, with 🤖 agent skills
 
 ```
@@ -681,6 +731,9 @@ compatibility); runs `git init` + `gh repo create`.
 2. If factual gaps remain: 🤖 `/researcher`; then 🤖 `/judge product-brief`.
 3. 👤+🤖 /grill-with-docs     (with product_brief.md as primary input)
 4. Continue per the phase table below (## Когерентный флоу).
+5. Before changing CLI, exit to the controlling terminal, run
+   `workctl handoff <task-id> --to <runtime> --next-action "..."`;
+   continue with `workctl continue <task-id> --runtime <runtime>`.
 ```
 
 ### Mandatory GRACE Lite checklist — 🤖 agent, every file

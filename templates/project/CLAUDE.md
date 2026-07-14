@@ -14,7 +14,7 @@
 ```yaml
 is_frontend: false
 is_architecturally_complex: false
-grace_mode: "lite"   # lite (always) | full (if ≥2/4 criteria)
+grace_mode: "full"   # full by default; lite only for a bugfix/single small edit with reason
 ```
 
 ## Commands
@@ -30,7 +30,7 @@ test:  REPLACE
 See `~/setup/docs/human/PIPELINE.md` for full process.
 
 Key reminders:
-1. Fill `product_brief.md` before anything else
+1. Choose one Phase -1 producer: `/methodology` OR fill all 9 sections manually
 2. GRACE Lite mandatory — MODULE_CONTRACT in every file
 3. All agent outputs follow structured JSON format (see `~/setup/docs/agent/PROMPT-FORMAT.md`)
 4. Judge before shipping any feature

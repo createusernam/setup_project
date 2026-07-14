@@ -5,7 +5,7 @@ description: Create new project from setup template — copies templates, pre-fi
 
 # /startup — Create New Project
 
-Creates a new project folder from the setup template, configures GRACE Lite, and asks key setup questions.
+Creates a new project folder from the setup template, configures mandatory GRACE Lite plus default GRACE Full planning, and asks key setup questions.
 
 ## Usage
 
@@ -77,7 +77,7 @@ Generate `$PROJECT_PATH/CLAUDE.md` with answers substituted:
 See ~/setup/docs/human/PIPELINE.md
 
 ## GRACE
-GRACE Lite mandatory. See ~/setup/docs/agent/PROMPT-FORMAT.md for structured prompts.
+GRACE Lite is mandatory in source files; GRACE Full planning is on by default. See ~/setup/docs/agent/PROMPT-FORMAT.md for structured prompts.
 
 ## Commands
 - dev: <fill-in>
@@ -85,7 +85,7 @@ GRACE Lite mandatory. See ~/setup/docs/agent/PROMPT-FORMAT.md for structured pro
 - test: <fill-in>
 ```
 
-### Step 5 — fill product_brief.md metadata
+### Step 5 — initialize product_brief.md metadata
 
 Pre-fill the YAML metadata block in `product_brief.md`:
 ```yaml
@@ -119,13 +119,13 @@ gh repo create "<github-account>/$PROJECT_NAME" --private --source=. --push
 Print summary:
 ```
 ✓ Project created: ~/[project-name]
-✓ GRACE Lite: active (MODULE_CONTRACT required in all files)
+✓ GRACE Lite: mandatory; GRACE Full planning is enabled by default
 ✓ AGENTS.md → CLAUDE.md (OpenCode ready)
-✓ product_brief.md: ready to fill
-✓ Next step: fill product_brief.md → /methodology or /grill-with-docs
+✓ product_brief.md: metadata initialized
+✓ Next step: choose /methodology OR fill all 9 brief sections manually; then /judge product-brief
 
 Key files:
-  ~/[project-name]/product_brief.md        ← fill first
+  ~/[project-name]/product_brief.md        ← produced by methodology or filled manually
   ~/[project-name]/CLAUDE.md              ← project config
   ~/[project-name]/AGENTS.md              ← → CLAUDE.md symlink
   ~/[project-name]/docs/agents/domain.md  ← domain terminology
@@ -139,7 +139,7 @@ Key files:
   "data": {
     "project_path": "~/...",
     "github_url": "https://github.com/...",
-    "next_step": "fill product_brief.md → methodology or grill-with-docs"
+    "next_step": "choose methodology OR manual 9-section brief → judge product-brief"
   },
   "issues": []
 }

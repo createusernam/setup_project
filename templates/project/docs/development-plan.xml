@@ -2,7 +2,7 @@
 <!--
   GRACE Development Plan (v0.2.0 schema) — placeholder stub.
 
-  Only meaningful under GRACE Full (≥2/4 criteria — see PIPELINE.md Branch A).
+  Used under GRACE Full (default; see the documented small-change opt-out in PIPELINE.md Branch A).
   Scaffold with /grace-init, then populate with /grace-plan. The canonical full schema
   (Modules / DataFlow / ImplementationOrder / ExecutionPolicy) lives in
   skills/grace-init/assets/docs/development-plan.xml.template and is what /grace-init installs.

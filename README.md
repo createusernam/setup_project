@@ -36,6 +36,18 @@ path), then add the `instructions` + `mcp.playwright` block to
 **Any terminal LLM:** clone the repo, paste a `SKILL.md`'s content into your prompt — you are
 the orchestrator.
 
+## First project
+
+After `/startup <name>`, choose exactly one Phase -1 producer:
+
+1. run `/methodology` and let it discover and write `product_brief.md`; or
+2. fill all 9 brief sections manually.
+
+Use `/researcher` only for remaining factual gaps, then run `/judge product-brief` and
+`/grill-with-docs`. GRACE Lite is mandatory in source files; GRACE Full planning is enabled by
+default and has only a documented small-change opt-out. The canonical sequence and gates live in
+[`docs/human/PIPELINE.md`](docs/human/PIPELINE.md).
+
 ---
 
 ## Directory structure

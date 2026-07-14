@@ -17,7 +17,7 @@
 
 ---
 
-## Когерентный флоу (10 фаз)
+## Когерентный флоу (фазы и обязательные гейты)
 
 > **Human-legible version** (renders in Obsidian + agent web-chats). The ASCII below is the terminal fallback — keep both in sync.
 
@@ -39,10 +39,9 @@ flowchart TD
     FE -->|yes| P3["PHASE 3 · /design-first<br/>wireframe → APPROVE → api-contract.json"]
     FE -->|no| P4
     P3 --> P4["PHASE 4 · /contract<br/>Opus → contract.json (sha256)"]
-    P4 --> J1{"/judge · GATE: PASS"}
+    P4 --> J1{"PHASE 4b · /judge contract<br/>Opus isolated → judge-report.json<br/>GATE: PASS"}
     J1 -->|fail| P4
-    J1 -->|pass| P4b["PHASE 4b · /judge contract gate<br/>Opus (isolated) → judge-report.json"]
-    P4b --> VIZ["GATE · Visualize before tickets<br/>Architect renders plan → Mermaid<br/>(skills/visualization/SKILL.md)"]
+    J1 -->|pass| VIZ["PHASE 4c · Visualize before tickets<br/>Architect renders plan → Mermaid<br/>(skills/visualization/SKILL.md)"]
     VIZ --> P5["PHASE 5 · /to-issues<br/>GitHub issues ≤200 lines"]
     P5 --> P55["PHASE 5.5 · /scaffold<br/>Opus writes GRACE-marked skeletons<br/>contracts + blocks + log anchors + IMPL, no logic"]
     P55 --> P6["PHASE 6 · BUILD LOOP<br/>Implementer(DeepSeek) fills blocks → Test-Owner(GLM) → Acceptor(Opus)<br/>/build-loop or /tdd"]
@@ -133,7 +132,7 @@ flowchart TD
 │  GATE: APPROVE required          │
 └──────────────────────────────────┘
           │ GATE: PM APPROVE
-          ▼  [GRACE Full? ≥2/4 criteria]
+          ▼  [GRACE Full default; explicit small-change opt-out]
 ┌──────────────────────────────────┐
 │  PHASE 2b: /grace-init           │
 │  Mode: AGENT                     │
@@ -677,10 +676,9 @@ compatibility); runs `git init` + `gh repo create`.
 ### First work session (per project) — 👤 human-driven, with 🤖 agent skills
 
 ```
-1. 👤 Fill product_brief.md (sections 1-5 minimum) — OR 👤+🤖 run your discovery process
-   (Phase -1; the creator interview is a HUMAN step, not an agent one).
-   If product_brief.md has gaps after that: 🤖 /researcher.
-2. 🤖 /judge product-brief   (validate before proceeding)
+1. Choose ONE Phase -1 producer: 👤+🤖 `/methodology` OR 👤 fill all 9 brief sections manually.
+   The creator interview is a HUMAN step, not generated content.
+2. If factual gaps remain: 🤖 `/researcher`; then 🤖 `/judge product-brief`.
 3. 👤+🤖 /grill-with-docs     (with product_brief.md as primary input)
 4. Continue per the phase table below (## Когерентный флоу).
 ```
@@ -699,9 +697,10 @@ Every file you (the agent) create or modify must have a MODULE_CONTRACT header:
 For Python use `# `, for SQL use `-- `. **Non-negotiable** — without this, agent context
 degrades rapidly on multi-file tasks.
 
-### GRACE Full (when needed) — 🤖 agent, 👤 gate on the ≥2/4 decision
+### GRACE Full (default) — 🤖 agent, 👤 explicit opt-out for a bugfix/single small edit
 
-If ≥2 of 4 criteria are true (see "Ветки решений" → Branch A below):
+The project ledger enables GRACE Full by default. Disable it only for a bugfix or one small edit
+and record the reason. For the normal path:
 ```bash
 # After /planning-with-files, before /contract:
 /grace-init     # creates docs/knowledge-graph.xml

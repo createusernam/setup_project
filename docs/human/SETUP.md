@@ -124,13 +124,13 @@ cd ~/my-project-name
 ## Per-project first session
 
 ```bash
-# 1. If product_brief.md has gaps:
-/researcher
+# 1. Choose ONE Phase -1 producer:
+#    a) /methodology  — discovers and writes the brief; do not pre-fill its content
+#    b) manual brief  — fill all 9 sections of product_brief.md
 
-# 2. Fill product_brief.md (sections 1-5)
-# Open: ~/my-project/product_brief.md
+# 2. If the resulting brief still has factual gaps, run /researcher and update it.
 
-# 3. Validate with judge:
+# 3. Validate the completed brief:
 /judge product-brief
 
 # 4. Start discovery:
@@ -167,9 +167,10 @@ Follow `~/setup/docs/agent/PROMPT-FORMAT.md`. Minimum viable:
 <critical_reminder>[Repeat key constraint]</critical_reminder>
 ```
 
-## GRACE Full (when needed)
+## GRACE Full (default)
 
-If ≥2 of 4 criteria are true (see PIPELINE.md Branch A):
+The project ledger enables GRACE Full by default. Disable it only for a bugfix or one small edit,
+and record the reason in `.pipeline-state.json`. For the normal path:
 
 ```bash
 # After /planning-with-files, before /contract:

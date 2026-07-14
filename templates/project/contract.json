@@ -25,5 +25,5 @@
   "criteria": [],
   "out_of_scope": [],
   "judge_required": true,
-  "grace_mode": "lite"
+  "grace_mode": "full"
 }

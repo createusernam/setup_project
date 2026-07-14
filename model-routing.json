@@ -80,10 +80,10 @@
     },
     "6": {
       "skill": "build-loop, tdd",
-      "required_model": "deepseek|glm",
+      "required_model": "deepseek-v4|deepseek|glm",
       "implementer": "deepseek-v4|deepseek",
-      "test_owner": "glm|deepseek — MUST be different from implementer",
-      "acceptor": "opus — isolated context",
+      "test_owner": "glm|deepseek",
+      "acceptor": "opus",
       "note": "Collegium enforced: implementer ≠ test-owner ≠ acceptor. The implementer fills NOT_IMPLEMENTED blocks in the /scaffold skeleton; it must not alter contracts, block names or log anchors (those are what the evaluator grades). Greenfield without a scaffold = the implementer invents the boundaries — expect drift.",
       "requires": ["contract.json"],
       "human_gate": "contract_locked"

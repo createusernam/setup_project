@@ -156,7 +156,7 @@ So for hard architecture, **strip the harness to near-zero and construct the Bel
 
 ## When to leave the agent (this is not every task)
 
-Same spirit as the GRACE-Full ≥2/4 gate — the clean room is for reasoning-hard architecture, not CRUD.
+Same spirit as the GRACE-Full small-change opt-out — the clean room is for reasoning-hard architecture, not CRUD.
 
 | Stay in the agent (`/planning-with-files` inline) | Move to a clean-room prompt (this guide) |
 |---|---|
@@ -167,7 +167,8 @@ Same spirit as the GRACE-Full ≥2/4 gate — the clean room is for reasoning-ha
 
 If ≥2 of the right-column conditions hold → run the Architect phase on a stripped prompt, then re-enter.
 
-> Note: this ≥2/4 (architecture-hardness) is a DIFFERENT test from the GRACE-Full ≥2/4 (modules≥5 / multi-session / long-context / multi-agent) in PIPELINE Branch A. You can be architecture-hard without triggering GRACE-Full, and vice-versa. Evaluate them separately.
+> Note: this ≥2/4 test measures architecture hardness only. GRACE Full is independently on by
+> default; its only opt-out is a documented bugfix/single-small-edit case in PIPELINE Branch A.
 
 ---
 
@@ -228,7 +229,9 @@ Re-enter PIPELINE.md — paste artifacts back as the state file the agent reads
   ▼
 PHASE 2-PM gate (PM agent, isolated, ≠ architect model)  → GATE: APPROVE
   ▼
-/judge plan  → GATE: PASS   → Visualize-before-tickets → /to-issues
+PHASE 2-PM `/pm-review` is the plan gate (do not add a second un-routed judge-plan gate)
+  → GRACE plan/contract → PHASE 4b `/judge contract`
+  → Visualize-before-tickets → /to-issues
 ```
 
 In practice: run the Architect phase in AI Studio **with GRACE markup**, straight through AI Studio's GitHub integration, then light-model fixes downstream. GRACE is the passport — the markup travels between the clean room and the agent, so re-entry is a paste, not a re-derivation.

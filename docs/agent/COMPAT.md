@@ -276,8 +276,11 @@ write them as XML-like sections with named anchors, not as growing JSON arrays. 
 whose `worker_findings` has swollen to 30k tokens is the exact failure mode both findings warn about:
 maximally overwrite-resistant, and unreadable by the model that has to synthesize it.
 
-Do **not** mirror an artifact into both formats to get both properties. Two copies of one state is a
-drift bug waiting to happen — pick the format from the table by what the artifact is *for*.
+Do **not** mirror a canonical domain artifact into both formats merely to get both properties. Two
+independent copies of one state are a drift bug. The explicit exception is
+`/planning-with-files`: its Markdown files are the human views and the adjacent JSON files are
+schema-checked control mirrors updated atomically by that skill. They are one versioned artifact
+pair, not competing sources of domain truth.
 
 ---
 

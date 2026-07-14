@@ -19,6 +19,7 @@ All skills in `skills/` → symlinked to `~/.claude/skills/` by `install.sh`:
 |-------|---------|
 | `startup` | Create new project from template |
 | `researcher` | Multi-agent research flow |
+| `research-to-guide` | Turn validated research into an evidence-faithful user guide |
 | `grill-with-docs` | Stress-test plan against domain model + docs |
 | `planning-with-files` | PBS task decomposition |
 | `pm-review` | PM gate (Phase 2-PM): plan vs brief before build |

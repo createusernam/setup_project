@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# START_MODULE_CONTRACT
+# PURPOSE: Restart a build-loop run from its attested start commit while archiving prior iterations.
+# SCOPE: Stash current work, archive loop state, reset to the start commit, and increment restart metadata.
+# DEPENDS: Bash, git, Python 3, and an initialized .build-loop directory.
+# END_MODULE_CONTRACT
 # Restart-from-scratch: roll back to start commit, archive iterations.
 # Called when the evaluator's verdict is "restart" and the agent decides to act on it.
 

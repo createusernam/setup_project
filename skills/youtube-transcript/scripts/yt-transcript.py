@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+# START_MODULE_CONTRACT
+# PURPOSE: Retrieve a YouTube transcript through three ordered fallback methods.
+# SCOPE: Resolve video IDs, try transcript API/timedtext/yt-dlp, and write or print normalized text.
+# DEPENDS: Python standard library; optional youtube-transcript-api and yt-dlp.
+# END_MODULE_CONTRACT
 """
 Extract transcript from a YouTube video using 3 fallback methods.
 
@@ -25,6 +30,7 @@ import xml.etree.ElementTree as ET
 import argparse
 
 
+# START_BLOCK_INPUT_RESOLUTION
 def resolve_video_id(raw: str) -> str:
     """Extract video ID from URL or return raw if it is already an ID."""
     patterns = [
@@ -36,8 +42,10 @@ def resolve_video_id(raw: str) -> str:
         if m:
             return m.group(1)
     raise ValueError(f"Cannot extract video ID from: {raw}")
+# END_BLOCK_INPUT_RESOLUTION
 
 
+# START_BLOCK_TRANSCRIPT_API
 def method_1_transcript_api(video_id: str, languages: list[str], cookies_file: str = None) -> str | None:
     """Use youtube-transcript-api Python package."""
     try:
@@ -105,8 +113,10 @@ def method_1_transcript_api(video_id: str, languages: list[str], cookies_file: s
         return None
 
     return None
+# END_BLOCK_TRANSCRIPT_API
 
 
+# START_BLOCK_TIMEDTEXT_API
 def method_2_timedtext_api(video_id: str, languages: list[str]) -> str | None:
     """Fetch transcript directly from YouTube's timedtext XML API by scraping the page for track URLs."""
     headers = {
@@ -226,8 +236,10 @@ def method_2_timedtext_api(video_id: str, languages: list[str]) -> str | None:
     except Exception as e:
         print(f"[Method 2] Failed: {type(e).__name__}: {e}")
         return None
+# END_BLOCK_TIMEDTEXT_API
 
 
+# START_BLOCK_YTDLP_FALLBACK
 def method_3_ytdlp(video_id: str, lang: str) -> str | None:
     """Use yt-dlp as a subprocess to download subtitles."""
     import subprocess
@@ -288,8 +300,10 @@ def method_3_ytdlp(video_id: str, lang: str) -> str | None:
     except Exception as e:
         print(f"[Method 3] Failed: {type(e).__name__}: {e}")
         return None
+# END_BLOCK_YTDLP_FALLBACK
 
 
+# START_BLOCK_CLI
 def main():
     parser = argparse.ArgumentParser(description="Extract YouTube video transcript")
     parser.add_argument("video", help="YouTube video ID or URL")
@@ -348,3 +362,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+# END_BLOCK_CLI

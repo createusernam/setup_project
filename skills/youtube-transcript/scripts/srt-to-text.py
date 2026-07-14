@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+# START_MODULE_CONTRACT
+# PURPOSE: Convert an SRT subtitle file into deduplicated plain text.
+# SCOPE: Remove sequence numbers, timestamps, and HTML tags, then write the target text file.
+# DEPENDS: Python standard library and a readable SRT input.
+# END_MODULE_CONTRACT
 """Convert SRT subtitle file to plain text (strip timestamps and sequence numbers)."""
 import sys
 import re

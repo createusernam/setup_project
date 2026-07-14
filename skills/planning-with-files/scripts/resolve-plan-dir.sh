@@ -1,4 +1,9 @@
 #!/bin/sh
+# START_MODULE_CONTRACT
+# PURPOSE: Resolve the active isolated planning directory using deterministic precedence.
+# SCOPE: Check PLAN_ID, the active pointer, and newest plan directory; print zero or one path.
+# DEPENDS: POSIX shell and an optional .planning directory.
+# END_MODULE_CONTRACT
 # planning-with-files: resolve active plan directory.
 #
 # Resolution order:

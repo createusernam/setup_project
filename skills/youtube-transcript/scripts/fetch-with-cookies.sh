@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# START_MODULE_CONTRACT
+# PURPOSE: Fetch YouTube subtitle tracks with account cookies and convert them to readable text.
+# SCOPE: Download subtitle-only json3 tracks, filter duplicates, and invoke the bundled converter.
+# DEPENDS: Bash, yt-dlp, a Netscape cookies file, and json3-to-text.py.
+# END_MODULE_CONTRACT
 # THE RELIABLE METHOD when YouTube shows "Sign in to confirm you're not a bot"
 # or youtube-transcript-api raises RequestBlocked/IpBlocked.
 #

@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# START_MODULE_CONTRACT
+# PURPOSE: Fail closed when a pipeline phase lacks models, attested inputs, or human approval.
+# SCOPE: Validate one phase against model-routing.json and a project's .pipeline-state.json ledger.
+# DEPENDS: Bash, Python 3, model-routing.json, and the target project's ledger/artifacts.
+# END_MODULE_CONTRACT
 # pipeline-preflight.sh — gate before a pipeline phase. Validates that the phase can run
 # WITHOUT a human having to intervene for a preventable reason:
 #   1. the models the phase routes to are declared available (env manifest in the ledger)

@@ -1,4 +1,9 @@
 #!/bin/sh
+# START_MODULE_CONTRACT
+# PURPOSE: Display or update the active planning-with-files session pointer.
+# SCOPE: Validate a requested plan directory and maintain .planning/.active_plan.
+# DEPENDS: POSIX shell and a project-local .planning directory.
+# END_MODULE_CONTRACT
 # planning-with-files: set or display the active plan pointer.
 #
 # Usage:

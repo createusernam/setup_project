@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+# START_MODULE_CONTRACT
+# PURPOSE: Report required and optional Python dependencies for youtube-transcript.
+# SCOPE: Import-check known packages and return nonzero only when a required dependency is missing.
+# DEPENDS: Python standard library and the optional packages being inspected.
+# END_MODULE_CONTRACT
 """Check that required dependencies for youtube-transcript skill are installed."""
 import sys
 import subprocess

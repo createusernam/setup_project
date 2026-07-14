@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+# START_MODULE_CONTRACT
+# PURPOSE: Recover planning-relevant context written after the last planning-file update.
+# SCOPE: Discover Claude, Codex, or OpenCode sessions, parse tool activity, and print a catch-up report.
+# DEPENDS: Python standard library; optional orjson; optional OpenCode SQLite database.
+# END_MODULE_CONTRACT
 """
 Session Catchup Script for planning-with-files
 
@@ -23,6 +28,7 @@ PLANNING_FILES = ['task_plan.md', 'progress.md', 'findings.md']
 MIN_SESSION_BYTES = 5000
 
 
+# START_BLOCK_SESSION_DISCOVERY
 def json_loads(line: str) -> Optional[Dict[str, Any]]:
     """Prefer optional orjson while keeping the hook dependency-free."""
     try:
@@ -179,8 +185,10 @@ def get_session_candidates(project_path: str) -> Tuple[str, Iterable[Path]]:
     if claude_project_dir.exists():
         return 'claude', get_sessions_sorted(claude_project_dir)
     return 'claude', []
+# END_BLOCK_SESSION_DISCOVERY
 
 
+# START_BLOCK_OPENCODE_CATCHUP
 PLANNING_LIKE_SQL = ('%task_plan.md', '%findings.md', '%progress.md')
 
 
@@ -360,8 +368,10 @@ def opencode_catchup(project_path: str) -> None:
     print("2. Read: task_plan.md, progress.md, findings.md")
     print("3. Update planning files based on above context")
     print("4. Continue with task")
+# END_BLOCK_OPENCODE_CATCHUP
 
 
+# START_BLOCK_SESSION_PARSING
 def parse_session_messages(session_file: Path) -> List[Dict[str, Any]]:
     """Parse all messages from a session file, preserving order."""
     messages = []
@@ -554,8 +564,10 @@ def extract_messages_after(messages: List[Dict[str, Any]], after_line: int) -> L
                 })
 
     return result
+# END_BLOCK_SESSION_PARSING
 
 
+# START_BLOCK_CLI
 def main():
     project_path = sys.argv[1] if len(sys.argv) > 1 else os.getcwd()
 
@@ -625,3 +637,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+# END_BLOCK_CLI

@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# START_MODULE_CONTRACT
+# PURPOSE: Initialize and validate the on-disk state required by the build-loop orchestrator.
+# SCOPE: Prepare loop directories, snapshot the start commit, and verify contract attestation.
+# DEPENDS: Bash, git, sha256sum or shasum, contract.json, and build-loop state files.
+# END_MODULE_CONTRACT
 # /build-loop orchestrator. Intended to be invoked from inside the SKILL.md workflow,
 # not directly by the user. Sets up state directories, snapshots the start commit,
 # validates contract attestation. Iteration spawning happens in the host agent via

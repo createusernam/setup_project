@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+# START_MODULE_CONTRACT
+# PURPOSE: Export YouTube browser cookies into a Netscape-compatible file for authenticated retrieval.
+# SCOPE: Select a supported local browser, filter youtube.com cookies, and write the requested output.
+# DEPENDS: Python standard library and browser-cookie3.
+# END_MODULE_CONTRACT
 """
 Extract YouTube cookies from a browser for yt-dlp / youtube-transcript-api auth.
 

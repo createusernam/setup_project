@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+# START_MODULE_CONTRACT
+# PURPOSE: Convert YouTube json3 subtitle events into deduplicated readable text.
+# SCOPE: Extract caption fragments, optionally preserve lines, and write or print reflowed prose.
+# DEPENDS: Python standard library and a yt-dlp json3 subtitle file.
+# END_MODULE_CONTRACT
 """
 Convert a yt-dlp `json3` subtitle file into clean, readable prose.
 

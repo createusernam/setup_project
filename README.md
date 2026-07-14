@@ -61,7 +61,7 @@ setup/
 ├── docs/
 │   ├── human/  PIPELINE.md · SETUP.md · ARCHITECTURE-GUIDE.md
 │   └── agent/  PROMPT-FORMAT.md · COMPAT.md
-├── scripts/                # model-check.sh · pipeline-preflight.sh · grace-lint.sh
+├── scripts/                # model-check · preflight · GRACE lint · runtime-aware skill validation
 ├── skills/                 # one dir per skill — symlinked into ~/.claude/skills/
 ├── agents/                 # evaluator.md · team.md
 └── templates/project/      # copied into new projects by /startup
@@ -74,6 +74,7 @@ the gates from any project directory:
 bash ~/.claude/scripts/pipeline-preflight.sh 6   # inputs present · models routed · human gate signed
 bash ~/.claude/scripts/grace-lint.sh --changed   # GRACE Lite markup on the diff
 bash ~/.claude/scripts/model-check.sh 5.5        # which model this phase requires
+python3 ~/setup/scripts/validate-skills.py --profile claude  # validate Claude skill frontmatter
 ```
 
 **Install is fail-closed on collisions.** If a skill already exists in `~/.claude/skills/` as a real

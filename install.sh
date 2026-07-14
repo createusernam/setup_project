@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# START_MODULE_CONTRACT
+# PURPOSE: Install setup skills and shared pipeline scripts into supported local agent runtimes.
+# SCOPE: Create fail-closed symlinks, then report optional runtime credentials and integrations.
+# DEPENDS: Bash, coreutils, the repository skills/ and scripts/ trees, optional Claude/OpenCode CLIs.
+# END_MODULE_CONTRACT
 # Setup v2 — one-command install
 # Run from anywhere: bash ~/setup/install.sh
 #

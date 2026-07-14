@@ -1,4 +1,9 @@
 #!/bin/sh
+# START_MODULE_CONTRACT
+# PURPOSE: Create, inspect, or clear a SHA-256 attestation for the active task plan.
+# SCOPE: Resolve the active plan and maintain its adjacent attestation without modifying plan content.
+# DEPENDS: POSIX shell, sha256sum or shasum, and resolve-plan-dir.sh when available.
+# END_MODULE_CONTRACT
 # planning-with-files: lock the current task_plan.md content with a SHA-256 attestation.
 #
 # Use after you finalise (or intentionally edit) a plan. The hooks then refuse

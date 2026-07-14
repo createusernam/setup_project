@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# START_MODULE_CONTRACT
+# PURPOSE: Enforce GRACE Lite or autonomous markup contracts on repository source files.
+# SCOPE: Select source files, validate module/block/function/log annotations, and report a verdict.
+# DEPENDS: Bash, Python 3, git for --changed mode, and the GRACE rules in docs/human/PIPELINE.md.
+# END_MODULE_CONTRACT
 # grace-lint.sh — enforce GRACE Lite markup (docs/human/PIPELINE.md §"GRACE Lite — обязательные правила").
 #
 # GRACE Lite is declared mandatory in every project. Until this script existed, nothing checked it:

@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# START_MODULE_CONTRACT
+# PURPOSE: Summarize completion state for phases in a planning-with-files task plan.
+# SCOPE: Count complete, in-progress, and pending phases and always report through stdout.
+# DEPENDS: Bash, grep, and a task_plan.md-compatible file.
+# END_MODULE_CONTRACT
 # Check if all phases in task_plan.md are complete
 # Always exits 0 — uses stdout for status reporting
 # Used by Stop hook to report task completion status

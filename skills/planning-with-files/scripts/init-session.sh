@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# START_MODULE_CONTRACT
+# PURPOSE: Initialize legacy or isolated planning-with-files sessions from bundled templates.
+# SCOPE: Parse session options, create Markdown/JSON planning artifacts, and set the active plan pointer.
+# DEPENDS: Bash, coreutils, and the skill templates directory.
+# END_MODULE_CONTRACT
 # Initialize planning files for a new session.
 #
 # Usage:
@@ -15,6 +20,7 @@
 
 set -e
 
+# START_BLOCK_SESSION_OPTIONS
 TEMPLATE="default"
 PROJECT_NAME=""
 USE_PLAN_DIR=0
@@ -88,7 +94,9 @@ short_uuid() {
     # Last-ditch: seconds timestamp as 8 hex chars
     printf '%08x' "$(date +%s)" | cut -c1-8
 }
+# END_BLOCK_SESSION_OPTIONS
 
+# START_BLOCK_ARTIFACT_TEMPLATES
 write_default_task_plan() {
     cat > "$1" << 'EOF'
 # Task Plan: [Brief Description]
@@ -209,7 +217,9 @@ write_analytics_progress() {
 |-------|------------|
 EOF
 }
+# END_BLOCK_ARTIFACT_TEMPLATES
 
+# START_BLOCK_SESSION_CREATION
 create_files_in() {
     local target_dir="$1"
     local plan_path="$target_dir/task_plan.md"
@@ -282,3 +292,4 @@ else
     echo "Planning files initialized!"
     echo "Files: task_plan.md, findings.md, progress.md"
 fi
+# END_BLOCK_SESSION_CREATION

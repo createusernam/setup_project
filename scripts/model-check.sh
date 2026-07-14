@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# START_MODULE_CONTRACT
+# PURPOSE: Surface the configured model and collegium roles for a pipeline phase.
+# SCOPE: Read model-routing.json and print agent-verifiable routing requirements without claiming OS enforcement.
+# DEPENDS: Bash, Python 3, and model-routing.json.
+# END_MODULE_CONTRACT
 # model-check.sh — surface the required model for a pipeline phase from model-routing.json.
 #
 # Usage:  bash scripts/model-check.sh <phase>      # e.g. -1, 0, 2, 2-PM, 4, 6

@@ -1,6 +1,6 @@
 ---
 name: design-first
-description: Wireframe-first frontend design flow: generate wireframe → human approval HARD STOP → derive API contract → save. Invoke when user says "design", "wireframe", "UI first", "design this screen", or starts frontend work.
+description: "Wireframe-first frontend design flow: generate wireframe → human approval HARD STOP → derive API contract → save. Invoke when user says 'design', 'wireframe', 'UI first', 'design this screen', or starts frontend work."
 ---
 
 # /design-first — Wireframe → API Contract → Design Gate

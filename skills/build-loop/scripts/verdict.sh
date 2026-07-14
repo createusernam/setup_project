@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# START_MODULE_CONTRACT
+# PURPOSE: Compute the weighted build-loop score and select its next verdict.
+# SCOPE: Combine one critique with contract thresholds and prior iteration history; emit JSON only.
+# DEPENDS: Bash, Python 3, contract.json, and initialized .build-loop iteration files.
+# END_MODULE_CONTRACT
 # Compute weighted score from critique.json and determine verdict against contract.json thresholds.
 # Usage: verdict.sh <iteration-number>
 #

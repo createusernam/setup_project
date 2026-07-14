@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# START_MODULE_CONTRACT
+# PURPOSE: Provide a reusable human-in-the-loop diagnostic command template.
+# SCOPE: Run a bounded diagnostic loop and surface evidence for human confirmation.
+# DEPENDS: Bash and the project-specific commands substituted into this template.
+# END_MODULE_CONTRACT
 # Human-in-the-loop reproduction loop.
 # Copy this file, edit the steps below, and run it.
 # The agent runs the script; the user follows prompts in their terminal.

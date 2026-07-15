@@ -3,7 +3,7 @@
 ## Key files
 
 - `README.md` — entry point, install instructions for Claude Code / OpenCode / terminal
-- `docs/human/SETUP.md` — manual install steps, GRACE setup, troubleshooting
+- `docs/human/SETUP.md` — install, runtime syntax, project bootstrap and configuration
 - `docs/human/PIPELINE.md` — canonical pipeline process (Phase -1 to Phase 7)
 - `docs/agent/COMPAT.md` — cross-runtime compatibility and provider-neutral capability bindings
 - `docs/agent/PROMPT-FORMAT.md` — structured prompt standard (PCAM, Belief State, metamodel check)
@@ -46,19 +46,16 @@ must resolve to the same canonical source.
 
 `templates/project/` — copied to new projects by `/startup`.
 
-## Per-project init (OpenCode)
+## Per-project init
 
-```
-1. /startup my-project-name       # creates ~/my-project/
-2. cd ~/my-project
-3. ln -sf CLAUDE.md AGENTS.md     # OpenCode reads AGENTS.md
-```
+Use `startup` in the active runtime, then work from the created project. It creates the project
+configuration and the `AGENTS.md → CLAUDE.md` link; do not replace that link manually.
 
 ## Global agent rules
 
 Apply to every agent in every phase:
 
-- **Model routing.** `model-routing.json` declares provider-neutral capability profiles and role independence; each project maps profiles to concrete runtime/model IDs in `model-bindings.json`. Before a phase, run `bash scripts/model-check.sh <phase> <project>`. Confirm the running identity matches the resolved binding and STOP on mismatch. A shell cannot detect the generating model. Collegium phases also require the configured roles to resolve to different model IDs.
+- **Model routing.** `model-routing.json` declares provider-neutral capability profiles and role independence; each project maps profiles to concrete runtime/model IDs in `model-bindings.json`. Before a phase, run `bash ~/.claude/scripts/model-check.sh <phase> <project>`. Confirm the running identity matches the resolved binding and STOP on mismatch. A shell cannot detect the generating model. Collegium phases also require the configured roles to resolve to different model IDs.
 - **Route skills before tools.** Apply `docs/agent/SKILL-ROUTING.md` in every CLI. A named or clearly matching skill is mandatory. In particular, load `planning-with-files` when the user asks to save and execute a plan, calls the work a large task, the task likely needs 5+ tool calls, or it must survive a CLI/provider switch.
 - **Arithmetic → calculator tool.** All arithmetic goes through the JS-sandbox calculator tool — never mental math. Token-by-token generation is unreliable for numbers.
 - **Delete superseded code immediately.** Don't leave dead/orphaned code "just in case" — agents read existing code as few-shot examples, so dead code becomes a false template that propagates. `/code-review-expert` flags it MUST-FIX.

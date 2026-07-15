@@ -43,8 +43,24 @@ The reusable brief template is `../../templates/project/product_brief.md`. Priva
 organization-specific discovery processes may fill it, but their terminology must not leak into
 phases 0–7.
 
+If a discovery process creates a public `business_model.md`, retain it as supporting business
+context for `/grill-with-docs` and architecture. It is optional to this neutral pipeline contract;
+the mandatory, machine-gated entry remains the brief and evidence handoff.
+
 Full downstream delivery starts only when the semantic machine requirements are satisfied. An alpha
 decision is a valid outcome, but it is not permission to enter a delivery route.
+
+## File ownership
+
+| File or state | Owner | How it changes |
+|---|---|---|
+| `product_brief.md`, `evidence-handoff.json`, `model-bindings.json` | human/project owner | Edit deliberately; validate against the adjacent schema where provided. |
+| `.pipeline-state.json` | `setup-pipeline` | Use `init`, `set-tier`, `set-phase`, `attest`, and `sign`; do not hand-edit hashes or signatures. |
+| phase artifacts such as plans, contracts, reviews, design and build evidence | producing skill | Run the phase, review its result, then attest the exact files. |
+| `pipeline-machine.json`, `model-routing.json`, their schemas and generated machine view | setup maintainer | Change only as a versioned setup-contract update; never edit a project copy to bypass a gate. |
+
+`CONTINUITY.md` is fallback-only. A workctl-managed task instead owns its continuity under
+`.workctl/tasks/<task-id>/`; it does not own phase or gate truth.
 
 ## Risk tiers
 
@@ -301,7 +317,7 @@ setup-pipeline sign viz_before_tickets --by "name-or-account"
 
 | Phase | Invoke | Register or sign after success |
 |---|---|---|
-| -1 | selected discovery process; private installs may use `methodology` | `product_brief.md`, `evidence-handoff.json` |
+| -1 | selected discovery process; private installs may use `methodology` | `product_brief.md`, `evidence-handoff.json`, and `business_model.md` if that process produced it |
 | 0 | `researcher` only when material factual gaps remain | research state plus changed brief/evidence |
 | 1 | `grill-with-docs` | `CONTEXT.md`, relevant ADRs |
 | 2 | `planning-with-files` | `task_plan.md` and its JSON mirror |

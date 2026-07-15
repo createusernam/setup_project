@@ -112,6 +112,17 @@ source; old copies are never deleted.
   [`docs/agent/PROMPT-FORMAT.md`](docs/agent/PROMPT-FORMAT.md), [`docs/agent/COMPAT.md`](docs/agent/COMPAT.md)
 - **Global agent rules** (OpenCode/Claude Code entrypoint): [`AGENTS.md`](AGENTS.md)
 
+| I need to… | Start here |
+|---|---|
+| install, select a CLI, create/adopt a project, or configure a model | [`SETUP.md`](docs/human/SETUP.md) |
+| select a risk tier, run/resume a phase, pass a gate, or register evidence | [`PIPELINE.md`](docs/human/PIPELINE.md) |
+| hand an architecture decision back into the pipeline | [`ARCHITECTURE-GUIDE.md`](docs/human/ARCHITECTURE-GUIDE.md) |
+| continue one named task in another coding CLI | [`WORKCTL.md`](docs/human/WORKCTL.md) |
+| change a machine-facing contract or learn allowed config values | [`COMPAT.md`](docs/agent/COMPAT.md) and the adjacent JSON schema |
+
+`SETUP.md` owns installation and project configuration. `PIPELINE.md` owns phase operation and
+gate state; do not look for a second operator runbook.
+
 ## Attribution
 
 The `grace-*` skills are adapted from [osovv/grace-marketplace](https://github.com/osovv/grace-marketplace)

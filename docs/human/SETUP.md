@@ -205,65 +205,15 @@ Only project-local files are edited here. `model-routing.json` and `pipeline-mac
 setup-maintainer contracts: select from their declared values rather than changing them to bypass a
 gate. `COMPAT.md` gives the allowed `runtime`, `model_id`, and `enabled` values.
 
-## Per-project first session
+## Setup ends; pipeline begins
 
-```bash
-# 1. Fill all 9 neutral sections of product_brief.md using your preferred discovery process
-#    or directly with stakeholders; maintain evidence-handoff.json.
+At this point the installation, runtime syntax, project bootstrap and model configuration are ready.
+Do not run the first phase from this guide: the shared operator loop, required artifacts, GRACE
+mode, attestation and resume procedure are owned by [`PIPELINE.md`](PIPELINE.md).
 
-# 2. If the resulting brief still has factual gaps, run /researcher and update it.
-
-# 3. Validate the completed brief:
-/judge product-brief
-
-# 4. Start discovery:
-/grill-with-docs
-
-# 5. Continue per ~/setup/docs/human/PIPELINE.md; it contains the commands for each phase and resume.
-```
-
-## Mandatory GRACE Lite checklist
-
-Every file you create or modify must have:
-
-```
-// FILE: path/to/file.ext  
-// START_MODULE_CONTRACT
-//   PURPOSE: [one sentence what this module does]
-//   SCOPE: [what operations are included]
-//   DEPENDS: [M-xxx IDs or "none"]
-// END_MODULE_CONTRACT
-```
-
-For Python: use `# ` prefix. For SQL: use `-- `. Adapt to language.
-
-**Non-negotiable.** Without this, agent context degrades rapidly on multi-file tasks.
-
-## Prompt format (for agents you write)
-
-Follow `~/setup/docs/agent/PROMPT-FORMAT.md`. Minimum viable:
-
-```xml
-<role>You are [role]. [N years experience]. [domain].</role>
-<task>[One clear goal]</task>
-<output_format>{ "status": "...", "data": {}, "hypotheses": [], "next_action": "" }</output_format>
-<critical_reminder>[Repeat key constraint]</critical_reminder>
-```
-
-## GRACE Full (default)
-
-The project ledger enables GRACE Full by default. Disable it only for a bugfix or one small edit,
-and record the reason in `.pipeline-state.json`. For the normal path:
-
-```bash
-# After /planning-with-files, before /contract:
-/grace-init     # creates docs/knowledge-graph.xml
-/grace-plan     # creates docs/development-plan.xml, docs/verification-plan.xml
-```
-
-Then deepen coverage with `/tdd` + `/judge` before large execution waves.
-
-Then continue with `/contract` referencing the plan.
+For agent-authored prompts, use the portable contract in
+[`../agent/PROMPT-FORMAT.md`](../agent/PROMPT-FORMAT.md). Source-file GRACE Lite and GRACE Full
+planning are pipeline verification concerns, not additional install steps.
 
 ## Troubleshooting
 

@@ -12,10 +12,12 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import re
 from typing import Any
 
 
 KNOWN_RUNTIMES = {"claude", "codex", "opencode", "api", "manual", "self-hosted"}
+SHA256 = re.compile(r"^[a-f0-9]{64}$")
 
 
 def sha256(path: Path) -> str:
@@ -65,6 +67,34 @@ def resolve_binding(bindings: dict[str, Any], profile: str) -> tuple[str, str] |
     return runtime, model_id
 
 
+def ledger_errors(ledger: Any) -> list[str]:
+    """Reject malformed ledger fields that can otherwise weaken an evaluated transition."""
+    if not isinstance(ledger, dict):
+        return ["ledger: .pipeline-state.json must contain a JSON object"]
+    errors: list[str] = []
+    if "version" in ledger and ledger["version"] != "2":
+        errors.append("ledger: version must be '2'")
+    if not isinstance(ledger.get("policy"), dict):
+        errors.append("ledger: policy must be an object")
+    if not isinstance(ledger.get("artifacts", {}), dict):
+        errors.append("ledger: artifacts must be an object")
+    if not isinstance(ledger.get("human_gates", {}), dict):
+        errors.append("ledger: human_gates must be an object")
+    bindings_file = ledger.get("model_bindings_file", "model-bindings.json")
+    if not isinstance(bindings_file, str) or not bindings_file or Path(bindings_file).is_absolute() or ".." in Path(bindings_file).parts:
+        errors.append("ledger: model_bindings_file must be a non-empty project-relative path")
+    records = ledger.get("artifacts", {})
+    if isinstance(records, dict):
+        for name, record in records.items():
+            if not isinstance(record, dict):
+                errors.append(f"ledger: artifact record {name!r} must be an object")
+                continue
+            digest = record.get("sha256")
+            if digest is not None and (not isinstance(digest, str) or not SHA256.fullmatch(digest)):
+                errors.append(f"ledger: artifact {name!r} sha256 must be null or a lowercase SHA-256 digest")
+    return errors
+
+
 def evaluate(root: Path, project: Path, phase: str) -> tuple[list[str], list[str], dict[str, Any]]:
     machine = json.loads((root / "pipeline-machine.json").read_text(encoding="utf-8"))
     routing = json.loads((root / "model-routing.json").read_text(encoding="utf-8"))
@@ -78,9 +108,12 @@ def evaluate(root: Path, project: Path, phase: str) -> tuple[list[str], list[str
             return [f"no ledger at {ledger_path}"], [], transition
         ledger: dict[str, Any] = {"model_bindings_file": "model-bindings.json", "artifacts": {}, "human_gates": {}, "policy": {"risk_tier": machine["risk_policy"]["default"], "skipped_gates": []}}
     else:
-        ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+        try:
+            ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as error:
+            return [f"ledger: cannot read {ledger_path}: {error}"], [], transition
 
-    failures: list[str] = []
+    failures: list[str] = ledger_errors(ledger)
     warnings: list[str] = []
     policy = ledger.get("policy", {})
     tier = policy.get("risk_tier")
@@ -91,7 +124,8 @@ def evaluate(root: Path, project: Path, phase: str) -> tuple[list[str], list[str
         failures.append(f"policy: phase {phase} is not on the {tier} route")
 
     route = routing.get("phases", {}).get(phase, {})
-    binding_path = project / ledger.get("model_bindings_file", "model-bindings.json")
+    configured_binding_path = ledger.get("model_bindings_file", "model-bindings.json")
+    binding_path = project / configured_binding_path if isinstance(configured_binding_path, str) else project / "model-bindings.json"
     bindings: dict[str, Any] = {}
     if not binding_path.is_file():
         failures.append(f"model: binding file missing at {binding_path}")

@@ -55,7 +55,7 @@ decision is a valid outcome, but it is not permission to enter a delivery route.
 | File or state | Owner | How it changes |
 |---|---|---|
 | `product_brief.md`, `evidence-handoff.json`, `model-bindings.json` | human/project owner | Edit deliberately; validate against the adjacent schema where provided. |
-| `.pipeline-state.json` | `setup-pipeline` | Use `init`, `set-tier`, `set-phase`, `attest`, and `sign`; do not hand-edit hashes or signatures. |
+| `.pipeline-state.json` | `setup-pipeline` | Use `init`, `set-tier`, `set-phase`, `attest`, and `sign`; do not hand-edit hashes or signatures. Its adjacent `pipeline-state.schema.json` defines the ledger shape. |
 | phase artifacts such as plans, contracts, reviews, design and build evidence | producing skill | Run the phase, review its result, then attest the exact files. |
 | `pipeline-machine.json`, `model-routing.json`, their schemas and generated machine view | setup maintainer | Change only as a versioned setup-contract update; never edit a project copy to bypass a gate. |
 

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pipeline-state.schema.json",
+  "title": "Setup project pipeline ledger",
+  "type": "object",
+  "required": ["version", "phase", "policy", "artifacts", "human_gates", "model_bindings_file"],
+  "properties": {
+    "version": {"const": "2"},
+    "phase": {"type": "string", "minLength": 1},
+    "policy": {
+      "type": "object",
+      "required": ["risk_tier", "skipped_gates"],
+      "properties": {
+        "risk_tier": {"enum": ["T0", "T1", "T2", "T3", "T4"]},
+        "skipped_gates": {"type": "array"}
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["sha256", "status", "invalidated_by"],
+        "properties": {
+          "sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+          "status": {"enum": ["draft", "ready", "approved", "complete", "invalidated"]},
+          "invalidated_by": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "human_gates": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["by", "at"],
+        "properties": {
+          "by": {"type": ["string", "null"]},
+          "at": {"type": ["string", "null"], "format": "date-time"}
+        }
+      }
+    },
+    "model_bindings_file": {"type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+\\.json$"}
+  }
+}

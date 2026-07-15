@@ -1,4 +1,5 @@
 {
+  "$schema": "./pipeline-state.schema.json",
   "version": "2",
   "phase": "-1",
   "policy": {

@@ -111,6 +111,11 @@ def main() -> None:
         write(project, "model-bindings.json", bindings)
         failures, _, _ = module.evaluate(ROOT, project, "6")
         assert any("review_test" in item and "unbound or disabled" in item for item in failures), failures
+
+        ledger["model_bindings_file"] = "../outside.json"
+        write(project, ".pipeline-state.json", ledger)
+        failures, _, _ = module.evaluate(ROOT, project, "6")
+        assert any("model_bindings_file" in item and "project-relative" in item for item in failures), failures
     print("PASS pipeline semantic preflight tests")
 
 

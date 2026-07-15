@@ -5,21 +5,6 @@ A cross-model development harness: a canonical pipeline (Phase -1 → 7) that ta
 GRACE markup, product-brief-driven design, and independent machine, model, reviewer, and human gates.
 Works with Claude Code, Codex, OpenCode, or any terminal/API LLM as the orchestrator.
 
-**Core philosophy**: LLMs don't read docs — they follow trajectories set by structured context.
-This setup encodes that into every artifact and prompt.
-
-Three consequences, load-bearing throughout:
-
-- **The graph comes first, then contracts, then code.** Skip the explicit graph and the model builds
-  its own from fragments, freezes it in KV-cache, and defends it. GRACE Full is on by default.
-- **The handoff to a cheap model is code, not a spec.** `/scaffold` (Phase 5.5) writes marked-up
-  skeletons — contracts, named blocks, log anchors, `IMPL:` directives, no logic. A spec costs about
-  what the code costs to write, and a small model imitates code far more faithfully than prose.
-- **Rules that aren't checked don't exist.** GRACE Lite is enforced by `scripts/grace-lint.sh`, not by
-  asking nicely; `verify.method: trace` grades the execution trajectory, not just return values.
-
----
-
 ## Install
 
 The installer is supported on Linux and Windows through WSL2. Native Windows and macOS are not
@@ -43,18 +28,10 @@ the orchestrator.
 
 ## First project
 
-After `/startup <name>`, fill the neutral nine-section `product_brief.md` using your preferred
-discovery process or directly with stakeholders. Keep evidence status in `evidence-handoff.json`;
-the public pipeline does not require a particular discovery method.
-
-Use `/researcher` only for remaining factual gaps, then run `/judge product-brief` and
-`/grill-with-docs`. GRACE Lite is mandatory in source files; GRACE Full planning is enabled by
-default and has only a documented small-change opt-out. The canonical sequence and gates live in
-[`docs/human/PIPELINE.md`](docs/human/PIPELINE.md).
-
-If the task may move between Claude Code, Codex, and OpenCode, create its explicit identity from the
-project root with `workctl init <task-id> --goal "..."`. Workctl transports the task between runtimes;
-it does not replace pipeline phases or gates.
+After `/startup <name>`, configure `model-bindings.json` and continue with the operator loop in
+[`docs/human/PIPELINE.md`](docs/human/PIPELINE.md). If a task may move between coding CLIs, create
+its explicit identity with `workctl init <task-id> --goal "..."`; workctl does not replace pipeline
+phases or gates.
 
 ---
 
@@ -101,16 +78,6 @@ source; old copies are never deleted.
 ---
 
 ## Where to go next
-
-- **Install, choose a runtime, create or adopt a project**:
-  [`docs/human/SETUP.md`](docs/human/SETUP.md)
-- **Run or resume a pipeline phase** (risk tier, preflight, artifact registration, gates):
-  [`docs/human/PIPELINE.md`](docs/human/PIPELINE.md)
-- **Architecture handoff** (inputs, portable formats, quality checks, re-entry): [`docs/human/ARCHITECTURE-GUIDE.md`](docs/human/ARCHITECTURE-GUIDE.md)
-- **Continue one named task across coding CLIs**: [`docs/human/WORKCTL.md`](docs/human/WORKCTL.md)
-- **Agent-facing standards** (structured prompts, cross-model compat, model routing):
-  [`docs/agent/PROMPT-FORMAT.md`](docs/agent/PROMPT-FORMAT.md), [`docs/agent/COMPAT.md`](docs/agent/COMPAT.md)
-- **Global agent rules** (OpenCode/Claude Code entrypoint): [`AGENTS.md`](AGENTS.md)
 
 | I need to… | Start here |
 |---|---|

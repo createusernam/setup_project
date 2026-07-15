@@ -1,6 +1,6 @@
 ---
 name: judge
-description: LLM-as-Judge artifact evaluation with isolated evaluator context. Supports product-brief, contract, plan, feature, design types. Invoke when user says "judge this", "evaluate", "validate artifact", "check quality", or after completing any phase output.
+description: LLM-as-Judge artifact evaluation with isolated evaluator context. Supports product-brief, contract, feature, and design types. Invoke when user says "judge this", "evaluate", "validate artifact", "check quality", or after completing any phase output. Plan approval belongs exclusively to pm-review.
 ---
 
 # /judge — LLM-as-Judge Artifact Evaluation
@@ -16,9 +16,11 @@ Evaluates key artifacts against criteria using an isolated evaluator context. Th
 Artifact types:
 - `product-brief` — evaluates `product_brief.md`
 - `contract` — evaluates `contract.json` completeness and quality
-- `plan` — evaluates `task_plan.md` coverage
 - `feature` — evaluates completed feature against `contract.json` criteria
 - `design` — evaluates wireframe against `design-contract.json`
+
+`plan` is intentionally not a generic judge type. `/pm-review` is the sole Phase 2 plan gate and
+writes `pm-review.json`; do not create a second verdict for the same transition.
 
 ## Isolation principle
 
@@ -61,13 +63,14 @@ Your job: find gaps, not validate effort.
 #### product-brief
 
 Criteria (score each 0.0–1.0):
-- `pb-problem-clarity`: Core problem/tension is clearly stated in user's language
+- `pb-problem-clarity`: Current problem and desired outcome are clear in user/stakeholder language
 - `pb-scope-concrete`: Scope is testable, not aspirational
 - `pb-user-journey-complete`: User journey has ≥3 concrete steps
 - `pb-language-authentic`: Uses user's language, not theory terms
-- `pb-transformer-concrete`: Transformer is a specific operation, not vague "help"
-- `pb-criteria-testable`: §9 criteria are observable/testable
-- `pb-pipeline-ready`: Pipeline mapping is complete and consistent
+- `pb-proposal-concrete`: Proposed capabilities and boundaries are concrete, not vague "help"
+- `pb-evidence-honest`: Facts, assumptions and open questions retain their evidence status
+- `pb-criteria-testable`: §8 criteria are observable/testable
+- `pb-pipeline-ready`: §9 handoff and evidence-handoff references are complete and consistent
 
 **PASS threshold**: all must_pass criteria ≥ 0.7
 
@@ -78,12 +81,14 @@ Criteria:
 - `c-user-flow-complete`: primary_path has ≥3 steps, each Playwright-replayable
 - `c-integrations-filled`: data_flow and endpoints are concrete
 - `c-criteria-count`: ≥10 criteria
-- `c-must-pass-coverage`: must_pass=true covers NTO and core functionality
+- `c-must-pass-coverage`: must_pass=true covers the core product outcome and primary transformation
 - `c-no-manual-must-pass`: no must_pass criterion with verify.method = "manual"
 - `c-attested`: sha256 attestation present
-- `c-plan-visualized`: a bird's-eye plan view (Mermaid per `skills/visualization/SKILL.md`) exists for user_flow / module graph — human can review intent before tickets
 
 **PASS threshold**: all must_pass ≥ 0.8
+
+Visualization is the next transition after contract PASS. It is evaluated by the human
+`viz_before_tickets` gate, not by the contract rubric.
 
 #### feature
 

@@ -39,10 +39,9 @@ the orchestrator.
 
 ## First project
 
-After `/startup <name>`, choose exactly one Phase -1 producer:
-
-1. run `/methodology` and let it discover and write `product_brief.md`; or
-2. fill all 9 brief sections manually.
+After `/startup <name>`, fill the neutral nine-section `product_brief.md` using your preferred
+discovery process or directly with stakeholders. Keep evidence status in `evidence-handoff.json`;
+the public pipeline does not require a particular discovery method.
 
 Use `/researcher` only for remaining factual gaps, then run `/judge product-brief` and
 `/grill-with-docs`. GRACE Lite is mandatory in source files; GRACE Full planning is enabled by
@@ -61,7 +60,8 @@ it does not replace pipeline phases or gates.
 setup/
 ├── README.md              # this file — what it is + how to find things
 ├── AGENTS.md               # global agent rules (OpenCode entrypoint)
-├── model-routing.json      # phase → model, requires, human_gate (read by preflight)
+├── pipeline-machine.json   # phase → semantic transition, risk policy, invalidation
+├── model-routing.json      # phase → model/collegium only
 ├── install.sh
 ├── docs/
 │   ├── human/  PIPELINE.md · SETUP.md · ARCHITECTURE-GUIDE.md · WORKCTL.md
@@ -76,7 +76,7 @@ setup/
 the gates from any project directory:
 
 ```bash
-bash ~/.claude/scripts/pipeline-preflight.sh 6   # inputs present · models routed · human gate signed
+bash ~/.claude/scripts/pipeline-preflight.sh 6   # risk policy · semantic outcomes · attestations · models · human gate
 bash ~/.claude/scripts/grace-lint.sh --changed   # GRACE Lite markup on the diff
 bash ~/.claude/scripts/model-check.sh 5.5        # which model this phase requires
 python3 ~/setup/scripts/validate-skills.py --profile claude  # validate Claude skill frontmatter
@@ -96,7 +96,7 @@ source; old copies are never deleted.
 - **Human workflow, step by step** (install → new project → first session → each pipeline
   phase): [`docs/human/PIPELINE.md`](docs/human/PIPELINE.md)
 - **Install / troubleshooting reference**: [`docs/human/SETUP.md`](docs/human/SETUP.md)
-- **Architecture phase** (reasoning-hard design on a clean prompt): [`docs/human/ARCHITECTURE-GUIDE.md`](docs/human/ARCHITECTURE-GUIDE.md)
+- **Architecture handoff** (inputs, portable formats, quality checks, re-entry): [`docs/human/ARCHITECTURE-GUIDE.md`](docs/human/ARCHITECTURE-GUIDE.md)
 - **Continue one named task across coding CLIs**: [`docs/human/WORKCTL.md`](docs/human/WORKCTL.md)
 - **Agent-facing standards** (structured prompts, cross-model compat, model routing):
   [`docs/agent/PROMPT-FORMAT.md`](docs/agent/PROMPT-FORMAT.md), [`docs/agent/COMPAT.md`](docs/agent/COMPAT.md)

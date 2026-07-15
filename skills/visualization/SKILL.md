@@ -1,6 +1,6 @@
 ---
 name: visualization
-description: Render the human-track views at pipeline gates — the Mermaid plan diagram the human approves before tickets are cut (viz_before_tickets), module/dependency flowcharts, and the SUPERVISION.md index. Notation is chosen by concern (разрез → масштаб → нотация), never tool-first. Separate from the agent GRACE track — the two never render into each other. Use at the gate between /judge and /to-issues, or when user says "visualize the plan", "draw the architecture", "mermaid diagram", "show me what will be built", or invokes /visualization.
+description: Render the human-track views at pipeline gates — the Mermaid plan diagram the human approves before tickets are cut (viz_before_tickets), module/dependency flowcharts, and the SUPERVISION.md index. Choose concern, then scale, then notation; never start from the tool. Separate from the agent GRACE track. Use between /judge and /to-issues or when the user asks to visualize a plan or architecture.
 user-invocable: true
 metadata:
   version: "1.1.0"
@@ -13,34 +13,34 @@ Where the **human** sees what the AI is about to do, at the gates of `docs/human
 
 ## Why (the risk this closes)
 
-> «Максимальный риск не в его ошибках, а в том, что мы просто не все требования предъявляем. ИИ как "мастер додумывания" добавляет самостоятельно компоненты решения, но всегда есть вероятность, что его "наиболее вероятно" лишь вероятно, но не правильно.» — quote file
-
-So the human must **see the AI's intent before commitment**. «Читать [спеки и код] самих — бесперспективно, нужны визуализации класса bird's-eye view.» Mermaid is that bird's-eye control over AI decisions.
+A plan can be internally consistent while omitting a requirement or adding an assumption. A compact
+visual gives the human a reviewable view of scope, structure and dependencies before work is turned
+into tickets. Mermaid is the default portable format, not a mandatory design method.
 
 ---
 
 ## Three rules
 
-### Rule 1 — Notation is the LAST question (`разрез → масштаб → нотация`)
+### Rule 1 — Choose concern and scale before notation
 
-From `sistemy-celi-dinamika-guide-v2.md`. **Never start from the tool** ("we have Doxygen / BPMN / flowchart" → draw whatever it draws) — that is «нотация вперёд смысла», the classic failure: you describe what's convenient to draw, not what needs understanding. Start from the human's decision:
+Start with the decision the view must support, then choose its scale, and only then select notation:
 
-1. **Разрез (cut)** — whose concern, what decision? → `structural | behavioral | functional | data | goal`.
-2. **Масштаб (scale)** — what altitude? black / gray / white box. **One diagram = one altitude** (правило одной высоты — mixing scales makes box-size lie about system size).
-3. **Нотация** — only now pick the language (Mermaid type) that encodes the chosen cut+scale.
+1. **Concern** — whose question and what decision? → `structural | behavioral | functional | data | goal`.
+2. **Scale** — what altitude? black / gray / white box. **One diagram = one altitude**; mixing scales makes box size misrepresent system size.
+3. **Notation** — only now pick the diagram language that encodes the chosen concern and scale.
 
-### Rule 2 — The Architect draws, and before tickets
+### Rule 2 — The plan owner supplies the view before tickets
 
-- **Who:** the model that wrote the spec/plan (Architect), **not** the executor. «У меня делает Архитектор, агент-исполнитель уже 100% автоматический» — the executor's own docs are agent-tuned and unreadable by humans (that's the GRACE track).
-- **When:** «Визуализация плана. **До тикетов.**» The view lands at the gate **before** work is committed to issues/build.
-- **How (agent instruction pattern):** «сделать отдельным файлом модель сущности/связи в формате mermaid/md» — the agent emits each view as its own stably-named `*.md` next to the state file.
+- **Who:** the person or agent responsible for the plan owns the view; a separate reviewer approves it.
+- **When:** the view lands before work is committed to issues/build.
+- **How:** save each view in a stably named Markdown file next to the state artifact.
 
 ### Rule 3 — Format by audience
 
 | Format | Audience | Where viewed | Use |
 |---|---|---|---|
 | **JSON** | agent | state files | `contract.json`, `handoff.json` — keep agent-native, don't prettify |
-| **Mermaid-in-Markdown** | human | **Obsidian** (renders `mermaid` fences natively) | **PRIMARY** gate format. «Obsidian хорошо подходит для присмотра за агентами» |
+| **Mermaid-in-Markdown** | human | any compatible Markdown renderer | primary portable gate format |
 | **HTML** | human | **normal browser** | rich standalone review only. HTML is richer for viz and loads Mermaid via `<script src=".../mermaid@11/…min.js">` — in a browser the CDN works fine (**not** a claude.ai Artifact → no CSP block, no SVG pre-render). Colors inherit from `design-contract.json` `design_tokens.values.*` when present at project root, so Mermaid diagrams use the project's accent and near-black text. |
 
 Switch: **≤2 diagrams → Markdown; ≥3 or needs interactivity → HTML.**
@@ -53,8 +53,8 @@ The concrete deliverable — for each human decision point in `docs/human/PIPELI
 
 | Gate | Human's concern | Cut | Scale | Notation |
 |---|---|---|---|---|
-| **-1 Discovery / PM** (`product_brief.md`) | whose interest, what value system | goal | context | `mindmap` (goal tree); **+ CLD if value-loop dynamics matter** (see gap below) |
-| **2 + 2-PM** (`task_plan.md` / PBS) | does arch trace to the user journey; ≥3 options scored | structural + behavioral | modules | `mindmap` (PBS) + `journey` (CJM) + `flowchart` (arch layers, dependency edges) |
+| **-1 Discovery / PM** (`product_brief.md`) | are outcomes, users, scope and evidence status clear | goal | context | `mindmap` (goal tree); optional CLD when feedback dynamics matter |
+| **2 + 2-PM** (`task_plan.md` / PBS) | does architecture trace to journeys/criteria; are risks visible | structural + behavioral | modules | `mindmap` (PBS) + `journey` (CJM) + `flowchart` (modules, dependency edges) |
 | **3 Design HARD STOP** (wireframe) | does the UI match intent | structural + behavioral | components | wireframe (not Mermaid) + `stateDiagram-v2` (flows) |
 | **4 + judge** (`contract.json` user_flow) | is "done" defined correctly | behavioral | scenario | `stateDiagram-v2` (step→expect = guarded transition, matches Playwright replay) + `journey` |
 | **4b→5 "viz before tickets"** *(new gate)* | **what will the AI build, before issues** | structural + behavioral | modules | `flowchart` (module/dependency) + `kanban`/`flowchart` (issue breakdown, "blocked-by") |
@@ -64,7 +64,7 @@ The concrete deliverable — for each human decision point in `docs/human/PIPELI
 
 ## The palette — reach past the usual 2-3
 
-«Агенты сами применяют лишь 2-3 диаграммы из 26.» The 26 types grouped **by cut**, so the Architect picks the one that answers the concern:
+Mermaid offers several diagram types. Choose the smallest type that directly answers the review concern:
 
 | Cut | Answers | Mermaid types |
 |---|---|---|
@@ -81,16 +81,17 @@ Bonus mappings to setup skills: `ishikawa-beta` (fishbone) → `/diagnose` cause
 
 ## The systems-dynamics gap (goal / dynamics cut)
 
-Feedback loops and causal structure (`sistemy-celi-dinamika` ch. 7–10: обратные связи, архетипы, стоки-потоки) — **no native Mermaid type encodes causal-loop polarity** (the `+`/`−` on edges, reinforcing vs balancing loops). Fallback: **Graphviz DOT with signed edges**, or an inline-SVG convention.
-
-**Justified only** at the discovery/goal gate where value-system dynamics are the actual concern — here `edinyy-podhod-3-metodologii.pdf` is the optional consult for the value-system view. **Do not force** systems-dynamics notation onto gates whose concern is structural or behavioral.
+Mermaid has no native type for causal-loop polarity (`+`/`−` edges and reinforcing/balancing
+loops). When those dynamics materially affect a decision, use Graphviz DOT with signed edges or a
+documented inline-SVG convention. Do not use causal-loop notation for an ordinary structural or
+behavioral review.
 
 ---
 
 ## Obsidian supervision (no plugin)
 
 - Each gate writes a **stably-named `*.md`** (not only inline JSON) with a ` ```mermaid ` block.
-- One **`SUPERVISION.md`** index per project links them — «проект контролируется… с помощью специально создаваемых для человека артефактов».
+- One **`SUPERVISION.md`** index per project links the human-review artifacts.
 - A **`.pipeline-state.json`** convention (current phase · last gate · open questions) lets Obsidian show "where the agent is" at a glance.
 
 ---
@@ -115,7 +116,7 @@ If `design-contract.json` is absent, fall back to the house defaults
 
 | ❌ | ✅ |
 |---|---|
-| Tool-first ("we have tool X — draw whatever it emits") | Concern-first: разрез → масштаб → нотация |
+| Tool-first ("we have tool X — draw whatever it emits") | Concern first, then scale, then notation |
 | Notation chosen before the stakeholder's question | Name the decision, then derive the view |
 | Two scales on one diagram (service next to a single function) | One altitude per diagram |
 | Executor draws the human view | Architect draws it; executor stays on the GRACE track |

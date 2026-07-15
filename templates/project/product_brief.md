@@ -1,310 +1,198 @@
 # Product Brief: [Product Name]
 
 <!--
-Transmitter document — output of the product discovery phase.
-Pipeline entry point. Methodology-agnostic: fill using any discovery process.
-
-Mapping to contract.json: section 9.
-Size limit: ≤200 lines (MODULE_CONTRACT rule).
+Portable handoff from product discovery to planning and delivery.
+Methodology-agnostic: fill this with any discovery process or directly with stakeholders.
+Keep claims aligned with evidence-handoff.json; do not present assumptions as validated facts.
+Recommended size: no more than 200 lines.
 -->
-
----
 
 ## Metadata
 
 ```yaml
 product_name: ""
-created: ""               # ISO 8601
-creator: ""
-product_type: ""          # product | service | program | community
-delivery_format: ""       # digital | physical | service | hybrid
-value_logic: ""           # chain | workshop | network
+created: ""                 # ISO 8601
+owner: ""                   # accountable person or team
+product_type: ""            # software | service | physical | hybrid | other
+delivery_format: ""         # web | mobile | API | offline | service | hybrid | other
 is_frontend: false
 is_backend: false
-problem_depth: ""         # surface | behavioral | identity
-status: draft             # draft | pm-approved | pipeline-ready
+validation_stage: discovery # discovery | alpha | live
+decision: alpha             # stop | alpha | delivery
+status: draft               # draft | reviewed | pipeline-ready
 ```
 
----
+## 1. Outcome and Scope
 
-## 1. Creator's Intent
+**Proposed product:** [one sentence: what may be built and for whom]
 
-*Why this is being built and what "done" means for the creator.*
+**Desired user outcome:** [the observable change for the intended user]
 
-**Building:** [one sentence — what product, for whom]
+**Owner or business outcome:** [why the accountable person or organization is pursuing it]
 
-**Creator's success criteria:**
-| Criterion | How measured |
-|-----------|-------------|
-| [result 1] | [metric] |
-| [result 2] | [...] |
+**In scope:**
 
-**Explicit non-goals** (scope boundary):
-- [what this product will NOT do, and why]
+- [capability, workflow, user group, or boundary included]
 
----
+**Not in scope:**
 
-## 2. Core Problem
+- [explicit exclusion and why it is excluded]
 
-*The problem the product resolves. Use the client's language, not theory.*
+## 2. Users, Problem, and Evidence
 
-**Segment:** [who they are — described by activity, context, experience level]
+**Primary users:** [people or systems that directly use the product]
 
-| Aspect | Description |
-|--------|-------------|
-| Current state (what they do now) | [...] |
-| Desired state (what they want) | [...] |
-| Activating situation (when the tension surfaces) | [...] |
+**Other stakeholders:** [buyers, approvers, operators, affected parties, or external systems]
 
-**False dichotomy** (what pulls in opposite directions):
+| Question | Current understanding | Evidence status/reference |
+|---|---|---|
+| What happens today? | [...] | [fact/hypothesis + ref] |
+| What outcome is difficult to achieve? | [...] | [...] |
+| Who experiences the problem and when? | [...] | [...] |
+| How important or frequent is it? | [...] | [...] |
+| What alternatives are used today? | [...] | [...] |
 
-The client acts as if they must choose between:
-- Option A: `"[assumption required for current state]"`
-- Option B: `"[incompatible assumption required for desired state]"`
+**Key assumptions:**
 
-Incompatibility: [why holding both simultaneously feels impossible — one sentence]
+- [assumption that still needs testing]
 
-**Resolution** (what the product makes possible, in client language):
-> "[Both options] are two ways to [express the same underlying thing]."
-> *One sentence: what the client could say after the product works.*
+**Open questions:**
 
-**Problem depth:** surface / behavioral / identity  
-Rationale: [what in the research indicates this level, not deeper/shallower]
+- [question that could change scope, priority, or solution]
 
----
+Detailed claim status, evidence ceilings, and falsifiers belong in `evidence-handoff.json`.
 
-## 3. Product
+## 3. Proposed Product
 
-*What the product does, without discovery methodology terms.*
+Describe the proposal without prescribing implementation architecture.
 
-**Name and type:** [...]
+**Value proposition:** [what useful outcome the product enables and for whom]
 
-**What happens for the client** (2–3 sentences, client perspective):
-> [What the client does and what changes for them]
+**Core capabilities:**
 
-**Product mechanism:**
-| Field | Value |
-|-------|-------|
-| Core operation | [what the product concretely does] |
-| Entry point | [where the tension is engaged first] |
-| Resolution path | [how the product moves client from false dichotomy to resolution] |
+| Capability | User or system outcome | Priority |
+|---|---|---|
+| [...] | [...] | must / should / could |
 
-**Client's contribution:**
-Client must: [what the client brings / does for the product to work]  
-Without this: [what fails — critical for onboarding design]
+**User contribution or prerequisites:** [what users must provide, know, or do]
 
----
+**Known limitations:** [where the proposal is not expected to work]
 
-## 4. Conditions of Exchange
-
-*How the exchange is structured.*
-
-| Parameter | Value |
-|-----------|-------|
-| Format | [online/offline, sync/async, group/individual] |
-| Duration | [...] |
-| Price / formula | [...] |
-| Client entry point | [how client arrives] |
-
-**Creator's capabilities** (why this creator, not another):
-- [capability 1 — as operation, not abstract skill]
-- [capability 2]
-
----
-
-## 5. System Architecture
-
-*Technical and operational picture. Source for integrations in contract.json.*
-
-### 5.1 Product System
+## 4. Operating Model
 
 | Aspect | Description |
-|--------|-------------|
-| Type | digital / physical / service / hybrid |
-| Key components | [what must be built / configured] |
-| Data storage | [where and what is stored] |
-| Integrations | [external systems] |
+|---|---|
+| Delivery channel | [web, mobile, API, in-person, hybrid, etc.] |
+| Owner/operator | [who runs and supports it] |
+| Access and eligibility | [who can use it and under what conditions] |
+| Commercial model | [free, paid, internal, unknown, not applicable] |
+| Support or service needs | [human/operational dependencies] |
 
-### 5.2 Data Flow
+## 5. System Context
 
-```
-[Source] → [Processing] → [Storage] → [Delivery to client]
+This section records boundaries and constraints for architecture work; it does not select an
+architecture.
+
+| Aspect | Description |
+|---|---|
+| Existing systems | [systems/components the product must coexist with] |
+| External integrations | [APIs, providers, devices, partner processes] |
+| Data involved | [data classes, sources, owners, retention constraints] |
+| Identity and access | [actors, authentication, authorization] |
+| Operational constraints | [availability, latency, volume, environments, support] |
+
+High-level flow, if known:
+
+```text
+[Actor/source] → [product boundary] → [external system or outcome]
 ```
 
-### 5.3 Client in the Exchange
+Unknown architecture choices stay marked as open questions for planning.
 
-| Aspect | Description |
-|--------|-------------|
-| Tools used | [interfaces / platforms] |
-| What client brings | [data / context / materials] |
-| What client leaves with | [results / artifacts / states] |
-| Friction points | [where client may drop off] |
+## 6. Constraints and Risks
 
----
-
-## 6. External Context
-
-*What influences the exchange from outside.*
-
-### 6.1 Client's Environment
-
-| Question | Answer |
-|----------|--------|
-| What in their environment creates the tension? | [...] |
-| What changes in their environment after the exchange? | [...] |
-| What could neutralize the result? | [...] |
-
-If problem_depth = identity: client's environment requires explicit modeling in design.
-
-### 6.2 Market Context
-
-| Aspect | Description |
-|--------|-------------|
-| Current alternatives | [what clients do instead] |
-| Differentiator | [not a feature — the mechanism competitors don't use] |
-| Unserved niche | [what tension the market leaves unresolved] |
-
-### 6.3 Regulatory / Legal
-
-[Licenses, GDPR/152-FZ, professional restrictions, etc. If none — "No material constraints."]
-
----
+| Type | Constraint or risk | Required response / owner |
+|---|---|---|
+| Legal/privacy/security | [...] | [...] |
+| Safety or irreversible impact | [...] | [...] |
+| Accessibility/inclusion | [...] | [...] |
+| Technical/operational | [...] | [...] |
+| Organizational/commercial | [...] | [...] |
 
 ## 7. User Journey
 
-*Source for user_flow in contract.json. Steps should be observable and testable.*
+Steps must be observable enough to plan and verify.
 
-### 7.1 JTBD
+**User job or goal:** [what the user is trying to accomplish, in plain language]
 
-```
-"[Job To Be Done — what the client hires the product to do, in their words]"
-```
+### 7.1 Primary Path
 
-### 7.2 Primary Path
+| Step | Actor action or trigger | Product/system response | Expected result |
+|---|---|---|---|
+| 1 | [...] | [...] | [...] |
+| N | [...] | [...] | [observable outcome] |
 
-| Step | Client action | Expected result |
-|------|--------------|-----------------|
-| 1 | [first contact] | [what they see / get] |
-| 2 | [...] | [...] |
-| N | [resolution moment — client experiences the false dichotomy dissolve] | [concrete artifact / state] |
+### 7.2 Edge and Failure Cases
 
-Key principle: step N must correspond to the resolution statement from section 2.
+| Condition | Expected behavior | Recovery or fallback |
+|---|---|---|
+| [invalid input, dependency failure, interruption, no permission, etc.] | [...] | [...] |
 
-### 7.3 Edge Cases
+### 7.3 Decision Points
 
-| Condition | Expected behavior |
-|-----------|------------------|
-| [what goes wrong] | [what product does] |
-| [client not ready for their contribution] | [how onboarding handles it] |
-| [client reverts to old state] | [what retains / what product does] |
-
-### 7.4 Decision Points
-
-[Where client may stop and what in the product keeps movement forward]
-
----
+| Decision | Who/what decides | Information needed | Possible outcomes |
+|---|---|---|---|
+| [...] | [...] | [...] | [...] |
 
 ## 8. Success Criteria
 
-*Source for criteria[] in contract.json. Must be measurable. Min 10, max 30.*
+Use stable IDs. Criteria should describe outcomes or externally observable behavior; detailed test
+commands and weights are added later in `contract.json`.
 
-### 8.1 Client (resolution achieved)
+### 8.1 User Outcomes
 
-- [ ] **[c1-resolution]** Client can [specific action] they couldn't before — `must_pass: true`
-- [ ] **[c2-language]** Client articulates the resolution in their own words without prompting — `must_pass: true`
-- [ ] **[c3-retention]** [Action repeats after N days / uses]
-- [ ] **[c4-...]** [...]
+- [ ] **[c1-user-outcome]** [measurable user outcome] — `must_pass: true`
 
-### 8.2 Product (mechanism works)
+### 8.2 Product and System Outcomes
 
-- [ ] **[c5-core]** [Core function works] — `must_pass: true`
-- [ ] **[c6-edge]** [Edge case handled]
-- [ ] **[c7-data]** [Data persists / processes correctly]
+- [ ] **[c2-core-behavior]** [core behavior and expected result] — `must_pass: true`
+- [ ] **[c3-reliability]** [failure/recovery expectation]
 
-### 8.3 Creator (exchange succeeded)
+### 8.3 Owner or Operational Outcomes
 
-- [ ] **[c8-creator-1]** [Success criterion from section 1]
-- [ ] **[c9-creator-2]** [...]
+- [ ] **[c4-owner-outcome]** [business, operational, support, or governance outcome]
 
 ### 8.4 Out of Scope
 
-```json
-"out_of_scope": [
-  "[Deep systemic problems beyond this product's mechanism]",
-  "[Client's environment — modeled as context, not addressed]",
-  "[Adjacent tensions in the segment — require separate product]"
-]
-```
+- [item intentionally excluded from this delivery]
 
----
+## 9. Pipeline Handoff
 
-## 9. Pipeline Mapping
+Minimum handoff:
 
-*How this document connects to the setup pipeline.*
+- `product_brief.md` — this document;
+- `evidence-handoff.json` — claim status, assumptions, falsifiers, open questions, decision and stage;
+- supporting research links, if any.
 
-### Next step
+Downstream mapping:
 
-```
-Pass this file as context to /grill-with-docs:
+| Brief section | Consumer |
+|---|---|
+| §1 scope and outcomes | `task_plan.md`, `contract.json.scope` |
+| §2 evidence and assumptions | `/researcher`, `/grill-with-docs`, risk review |
+| §3 capabilities | planning and contract criteria |
+| §5 system context | architecture handoff and `contract.json.integrations` |
+| §6 constraints and risks | ADRs, risk review, rollout plan |
+| §7 journey | `contract.json.user_flow`, `/pm-review` |
+| §8 criteria/out of scope | `contract.json.criteria[]`, `/pm-review` |
 
-"Here is the product brief for [name].
-Run a grilling session: verify terminology, clarify domain,
-find contradictions, produce CONTEXT.md and ADRs.
-Problem depth: [surface/behavioral/identity].
-Resolution mechanism: [one sentence from section 3]."
-```
+Next steps:
 
-### Mapping table
+1. Resolve material factual gaps with `/researcher` if needed.
+2. Run `/grill-with-docs` to align terminology and record decisions in `CONTEXT.md`/ADRs.
+3. Create `task_plan.md`; architecture work consumes this brief through
+   `docs/human/ARCHITECTURE-GUIDE.md`.
+4. Run `/pm-review`, then the contract and build gates selected by the risk tier.
 
-| Section | Pipeline artifact | Destination |
-|---------|------------------|-------------|
-| 1. Creator's intent — scope | `contract.json.scope` | `/contract` |
-| 2. Resolution | `user_flow.jtbd` | `/contract` |
-| 7.2 Primary path | `user_flow.primary_path` | `/contract` |
-| 7.3 Edge cases | `user_flow.error_paths` | `/contract` |
-| 5.2 Data flow | `integrations.data_flow` | `/contract` |
-| 5.1 Components | `integrations.backend_endpoints` | `/contract` |
-| 8.1–8.3 Criteria | `criteria[]` | `/contract` |
-| 8.4 Out of scope | `out_of_scope[]` | `/contract` |
-| 2–3 (problem + product) | `CONTEXT.md` domain glossary | `/grill-with-docs` |
-| 6 External context | `docs/adr/` external dependency decisions | `/grill-with-docs` |
-| Metadata is_frontend / is_backend | contract flags | `/contract` Branch B |
-
-### contract.json skeleton
-
-```json
-{
-  "version": "2",
-  "scope": "[from section 1 — creator's intent]",
-  "created": "[ISO 8601]",
-  "is_frontend": false,
-  "is_backend": false,
-  "is_architecturally_complex": false,
-  "linked_issue": null,
-  "linked_plan": "task_plan.md",
-  "user_flow": {
-    "jtbd": "[from section 2 — resolution]",
-    "primary_path": [],
-    "error_paths": []
-  },
-  "integrations": {
-    "data_flow": "[from section 5.2]",
-    "frontend_calls": [],
-    "backend_endpoints": [],
-    "schema_changes": [],
-    "external_services": []
-  },
-  "criteria": [],
-  "out_of_scope": []
-}
-```
-
----
-
-## Notes and Open Questions
-
-*Unconfirmed, unclear items to resolve in /grill-with-docs.*
-
-- [ ] `UNCONFIRMED:` [open question 1]
-- [ ] `UNCONFIRMED:` [open question 2]
-- [ ] [What needs research before /contract]
+Do not use `status: pipeline-ready` or `decision: delivery` to imply evidence that is not present in
+`evidence-handoff.json`.

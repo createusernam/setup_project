@@ -5,7 +5,9 @@ description: "Run the GRACE architectural planning phase. Use when you have requ
 
 Run the GRACE architectural planning phase.
 
-> **Reasoning surface (Phase 2b):** for reasoning-hard architecture, the human may first run the Architect phase on a **clean prompt** outside the agent (AI Studio / API / self-host) and paste the resulting module breakdown / GRACE artifacts in here — the agent harness system prompt taxes raw reasoning (`docs/agent/PROMPT-FORMAT.md` L5). Decision + human runbook + copy-paste prompt: `docs/human/ARCHITECTURE-GUIDE.md` (Branch D in `docs/human/PIPELINE.md`). For simpler architectures, reason inline here as usual.
+> **Architecture handoff (Phase 2b):** use `docs/human/ARCHITECTURE-GUIDE.md` for the required
+> inputs, decisions, output fields and re-entry checklist. The user may choose any architecture
+> method, tool or reasoning surface; this skill owns the GRACE artifact formats.
 
 ## Prerequisites
 - `docs/requirements.xml` must exist and have at least one UseCase

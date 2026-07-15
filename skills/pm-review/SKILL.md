@@ -1,6 +1,6 @@
 ---
 name: pm-review
-description: PM gate (Phase 2-PM) — an isolated product-manager review of task_plan.md against product_brief.md before any code. Verifies the architecture traces to the user journey and success criteria, edge cases have tasks, and ≥3 options were scored. Emits pm-review.json; APPROVE required to proceed to Phase 3/4. Use after /planning-with-files, or when the user says "PM review", "pm gate", "review the plan", or a plan needs sign-off before build.
+description: PM gate (Phase 2-PM) — an isolated product-manager review of task_plan.md against product_brief.md before any code. Verifies journey and criteria traceability, edge-case coverage, decision rationale, risk handling, and scope. Emits pm-review.json; APPROVE required to proceed to Phase 3/4.
 user-invocable: true
 allowed-tools: "Read Write Glob Grep Bash"
 metadata:
@@ -52,17 +52,18 @@ or a specific REVISE list the planner can act on.
    with no layer (a promise with no plan).
 2. **Layer → criterion.** Every phase maps to at least one measurable success criterion in
    product_brief.md §8. A phase that satisfies no criterion is unbudgeted work.
-3. **Edge cases have tasks.** Every row in product_brief.md §7.3 (Edge Cases) has a corresponding
+3. **Edge cases have tasks.** Every row in product_brief.md §7.2 (Edge and Failure Cases) has a corresponding
    task. Missing edge-case handling is the #1 silent gap.
-4. **Superposition.** The plan shows ≥3 architectural options were scored before one was chosen
-   (task_plan.md "Decisions Made" / findings). One option with no alternatives = premature collapse.
+4. **Decisions and risks are explicit.** Consequential architecture decisions have a rationale,
+   material trade-offs when alternatives existed, and tasks for relevant risks/open assumptions.
+   The gate does not prescribe how the architecture was produced.
 5. **Scope bounded.** product_brief.md §8.4 (Out of Scope) is respected — no task drifts into it.
 </guide>
 <checklist>
 - [ ] Every arch layer → a user-journey step (product_brief §7)     [no orphan layers, no orphan steps]
 - [ ] Every phase → ≥1 measurable success criterion (product_brief §8)
-- [ ] Every edge case (product_brief §7.3) has a task
-- [ ] ≥3 architectural options were scored before selection (superposition)
+- [ ] Every edge/failure case (product_brief §7.2) has a task
+- [ ] Consequential decisions have rationale; material risks and assumptions have owners/tasks
 - [ ] No task drifts into Out of Scope (product_brief §8.4)
 - [ ] GRACE Full decision recorded if ≥2/4 criteria met (PIPELINE Branch A)
 </checklist>
@@ -76,11 +77,11 @@ or a specific REVISE list the planner can act on.
     "arch_traces_to_journey": true,
     "layers_map_to_criteria": true,
     "edge_cases_have_tasks": true,
-    "options_scored_ge_3": true,
+    "decisions_and_risks_explicit": true,
     "scope_bounded": true
   },
   "issues": [
-    { "check": "edge_cases_have_tasks", "detail": "product_brief §7.3 'client reverts to old state' has no task", "fix": "add a retention task to phase 3" }
+    { "check": "edge_cases_have_tasks", "detail": "product_brief §7.2 dependency outage has no task", "fix": "add failure handling and recovery verification to the relevant phase" }
   ],
   "approved_at": "[ISO 8601 if APPROVE, else null]"
 }

@@ -4,3 +4,4 @@
 judge-reports/
 traces/
 *:Zone.Identifier
+__pycache__/

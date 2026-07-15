@@ -122,10 +122,10 @@ Print summary:
 ✓ GRACE Lite: mandatory; GRACE Full planning is enabled by default
 ✓ AGENTS.md → CLAUDE.md (OpenCode ready)
 ✓ product_brief.md: metadata initialized
-✓ Next step: choose /methodology OR fill all 9 brief sections manually; then /judge product-brief
+✓ Next step: fill the neutral 9-section brief using your discovery process; then /judge product-brief
 
 Key files:
-  ~/[project-name]/product_brief.md        ← produced by methodology or filled manually
+  ~/[project-name]/product_brief.md        ← portable discovery-to-delivery handoff
   ~/[project-name]/CLAUDE.md              ← project config
   ~/[project-name]/AGENTS.md              ← → CLAUDE.md symlink
   ~/[project-name]/docs/agents/domain.md  ← domain terminology
@@ -139,7 +139,7 @@ Key files:
   "data": {
     "project_path": "~/...",
     "github_url": "https://github.com/...",
-    "next_step": "choose methodology OR manual 9-section brief → judge product-brief"
+    "next_step": "complete neutral 9-section brief → judge product-brief"
   },
   "issues": []
 }

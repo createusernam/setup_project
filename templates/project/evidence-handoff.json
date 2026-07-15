@@ -1,0 +1,22 @@
+{
+  "version": "1",
+  "validation_stage": "discovery",
+  "decision": "alpha",
+  "claims": [
+    {
+      "id": "replace-me",
+      "status": "hypothesis",
+      "evidence_refs": [],
+      "falsifier": "replace-me"
+    }
+  ],
+  "open_questions": [],
+  "assumptions": [],
+  "cheapest_next_experiment": {
+    "hypothesis": "replace-me",
+    "prototype": "replace-me",
+    "observable_result": "replace-me",
+    "promotion_rule": "replace-me",
+    "kill_rule": "replace-me"
+  }
+}

@@ -2,7 +2,8 @@
 
 Every agent call ends with a handoff. The next agent reads this file before starting.
 
-**Why**: LLM natively thinks in state transitions (Belief State in residual stream). Handoff = Belief State transfer between agents. Without it, each agent starts blind.
+**Why**: a durable handoff lets the next agent resume from explicit facts, decisions, uncertainty,
+checks, and file references instead of reconstructing them from chat history.
 
 ---
 

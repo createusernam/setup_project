@@ -280,13 +280,12 @@ When the task has hard boundaries, add after `<guide>`:
 
 ```json
 "data": {
-  "problem_validated": false,
-  "core_tension": "...",
-  "false_dichotomy": { "a": "...", "b": "...", "incompatibility": "..." },
-  "resolution": "...",
-  "problem_depth": "surface | behavioral | identity",
-  "evidence": [],
-  "language": { "exact_quotes": [], "key_metaphors": [] }
+  "question": "...",
+  "findings": [],
+  "evidence": [{ "ref": "...", "supports": "...", "limitations": "..." }],
+  "assumptions": [],
+  "open_questions": [],
+  "confidence": "low | medium | high"
 }
 ```
 

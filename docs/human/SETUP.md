@@ -178,9 +178,8 @@ workctl start <task-id> --runtime claude  # launches the selected CLI
 ## Per-project first session
 
 ```bash
-# 1. Choose ONE Phase -1 producer:
-#    a) /methodology  — discovers and writes the brief; do not pre-fill its content
-#    b) manual brief  — fill all 9 sections of product_brief.md
+# 1. Fill all 9 neutral sections of product_brief.md using your preferred discovery process
+#    or directly with stakeholders; maintain evidence-handoff.json.
 
 # 2. If the resulting brief still has factual gaps, run /researcher and update it.
 
@@ -250,6 +249,6 @@ Then continue with `/contract` referencing the plan.
 → Ensure data_requirements table in Phase 1 output is complete
 → Run Phase 3 with explicit wireframe data_requirements as context
 
-**Problem feels vague after /researcher**
-→ Run Phase 2 again with more user quotes
-→ If problem_depth = identity: need identity-level evidence, not just practical pain
+**Problem or outcome still feels vague after /researcher**
+→ Return to `product_brief.md` §2 and label facts, assumptions, and open questions explicitly
+→ Collect evidence appropriate to the decision and keep unresolved claims out of delivery scope

@@ -1,82 +1,69 @@
 {
   "_description": "Model routing rules for setup pipeline. Agents MUST read this before each phase, verify their current model matches the required model, and halt with instructions to the operator if mismatched.",
   "_enforcement": "Run 'bash scripts/model-check.sh <phase>' to print a phase's required model (and collegium roles). A shell script/hook CANNOT detect the running model, so enforcement is agent-cooperative: the agent identifies its own model (from its system prompt) and, on mismatch with required_model, outputs 'MODEL MISMATCH: phase [N] requires [model], current is [detected]' and STOPs. For collegium phases (3, 6) also verify the roles are different models. There is deliberately no blocking hook — one without model detection would be theatre.",
-  "_state_ledger_note": "'requires' (input artifacts) and 'human_gate' (a human sign-off required before the phase) are consumed by scripts/pipeline-preflight.sh, which validates them against the project's .pipeline-state.json ledger. The describability probe (§0.0), the creator_interview gate (Steps 0-1), the Step 2.5 work-graph interview and the discovery_signoff gate (Step 2.5 -> 3) are all enforced INSIDE the methodology skill — not here — because the manual-brief path (no /methodology) skips methodology entirely. §0.0 can halt the whole phase before Step 1 runs.",
+  "_state_ledger_note": "This file owns model and collegium routing only. pipeline-machine.json is the sole source of artifact, semantic verdict, risk-policy, invalidation, and human-gate transition requirements consumed by scripts/pipeline-preflight.sh.",
   "phases": {
     "-1": {
       "skill": "methodology",
       "required_model": "opus|sonnet",
       "fallback": "any — methodology is model-agnostic within Opus/Sonnet tier",
-      "note": "Collegium rule (Step 4): designer ≠ reviewer MUST be different models. Steps 0, 0.0, 1 and 2.5 are live human interviews, not generation — the agent asks and waits.",
-      "requires": []
+      "note": "Collegium rule (Step 4): designer ≠ reviewer MUST be different models. Steps 0, 0.0, 1 and 2.5 are live human interviews, not generation — the agent asks and waits."
     },
     "0": {
       "skill": "researcher",
       "required_model": "opus|sonnet",
       "workers": "deepseek-flash|flash",
-      "note": "Orchestrator/synthesis = Opus/Sonnet; parallel desk research workers = Flash",
-      "requires": ["product_brief.md"]
+      "note": "Orchestrator/synthesis = Opus/Sonnet; parallel desk research workers = Flash"
     },
     "1": {
       "skill": "grill-with-docs",
       "required_model": "opus|sonnet",
-      "note": "Reasoning-heavy document analysis",
-      "requires": ["product_brief.md"]
+      "note": "Reasoning-heavy document analysis"
     },
     "2": {
       "skill": "planning-with-files",
       "required_model": "opus|sonnet",
-      "note": "PBS decomposition requires strong reasoning",
-      "requires": ["product_brief.md"]
+      "note": "PBS decomposition requires strong reasoning"
     },
     "2-PM": {
       "skill": "pm-review",
       "required_model": "opus",
-      "note": "Isolated context gate — must NOT be same model as planner",
-      "requires": ["task_plan.md", "product_brief.md"]
+      "note": "Isolated context gate — must NOT be same model as planner"
     },
     "2b": {
       "skill": "grace-init, grace-plan",
       "required_model": "opus",
-      "note": "GRACE architecture requires Opus reasoning depth",
-      "requires": ["task_plan.md"]
+      "note": "GRACE architecture requires Opus reasoning depth"
     },
     "3": {
       "skill": "design-first",
       "required_model": "sonnet|opus",
-      "note": "Wireframes = Sonnet; Approval gate = Opus (different models)",
-      "requires": ["task_plan.md"]
+      "note": "Wireframes = Sonnet; Approval gate = Opus (different models)"
     },
     "4": {
       "skill": "contract",
       "required_model": "opus",
-      "note": "Contract negotiation requires Opus authority",
-      "requires": ["task_plan.md"]
+      "note": "Contract negotiation requires Opus authority"
     },
     "4b": {
       "skill": "judge",
       "required_model": "opus",
-      "note": "Isolated evaluator context — must NOT share context with contract writer",
-      "requires": ["contract.json"]
+      "note": "Isolated evaluator context — must NOT share context with contract writer"
     },
     "4c": {
       "skill": "visualization",
       "required_model": "opus",
-      "note": "Architect renders plan as Mermaid before issues. Human-supervision gate.",
-      "requires": ["contract.json"]
+      "note": "Architect renders plan as Mermaid before issues. Human-supervision gate."
     },
     "5": {
       "skill": "to-issues",
       "required_model": "sonnet|opus",
-      "note": "Issue slicing is cost-effective on Sonnet",
-      "requires": ["contract.json", "task_plan.md"],
-      "human_gate": "viz_before_tickets"
+      "note": "Issue slicing is cost-effective on Sonnet"
     },
     "5.5": {
       "skill": "scaffold",
       "required_model": "opus",
-      "note": "Strong model writes the GRACE-marked skeleton (contracts, blocks, log anchors, IMPL directives, mocks) — NO business logic. The skeleton is the implementer's few-shot: code, not a spec. This is the last phase on the expensive tier; from here the token spend moves down to the implementer. Skip for bugfixes.",
-      "requires": ["contract.json", "task_plan.md"]
+      "note": "Strong model writes the GRACE-marked skeleton (contracts, blocks, log anchors, IMPL directives, mocks) — NO business logic. The skeleton is the implementer's few-shot: code, not a spec. This is the last phase on the expensive tier; from here the token spend moves down to the implementer. Skip for bugfixes."
     },
     "6": {
       "skill": "build-loop, tdd",
@@ -84,15 +71,12 @@
       "implementer": "deepseek-v4|deepseek",
       "test_owner": "glm|deepseek",
       "acceptor": "opus",
-      "note": "Collegium enforced: implementer ≠ test-owner ≠ acceptor. The implementer fills NOT_IMPLEMENTED blocks in the /scaffold skeleton; it must not alter contracts, block names or log anchors (those are what the evaluator grades). Greenfield without a scaffold = the implementer invents the boundaries — expect drift.",
-      "requires": ["contract.json"],
-      "human_gate": "contract_locked"
+      "note": "Collegium enforced: implementer ≠ test-owner ≠ acceptor. The implementer fills NOT_IMPLEMENTED blocks in the /scaffold skeleton; it must not alter contracts, block names or log anchors (those are what the evaluator grades). Greenfield without a scaffold = the implementer invents the boundaries — expect drift."
     },
     "7": {
       "skill": "judge feature, code-review-expert",
       "required_model": "opus|sonnet",
-      "note": "Judge (isolated Opus) → code-review-expert → ship. Combined verification + review phase.",
-      "requires": []
+      "note": "Judge (isolated Opus) → code-review-expert → ship. Combined verification + review phase."
     }
   },
   "_operator_note": "To switch models: edit ~/.config/opencode/opencode.json model field, or use OpenCode's model selector. After switch, agent re-reads this file on next phase invocation."

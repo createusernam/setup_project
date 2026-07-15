@@ -1,21 +1,34 @@
 {
-  "version": "1",
+  "version": "2",
   "phase": "-1",
+  "policy": {
+    "risk_tier": "T3",
+    "selection": {
+      "reversibility": "low",
+      "blast_radius": "cross-module",
+      "uncertainty": "high",
+      "boundary_count": 3,
+      "cost_of_error": "high"
+    },
+    "skipped_gates": []
+  },
   "gates_passed": [],
   "artifacts": {
-    "product_brief.md": { "sha256": null, "status": "draft" }
+    "product_brief.md": {"sha256": null, "status": "draft", "invalidated_by": null},
+    "evidence-handoff.json": {"sha256": null, "status": "draft", "invalidated_by": null}
   },
   "human_gates": {
-    "creator_interview": { "by": null, "at": null },
-    "discovery_signoff": { "by": null, "at": null },
-    "viz_before_tickets": { "by": null, "at": null },
-    "contract_locked": { "by": null, "at": null }
+    "stakeholder_input_confirmed": {"by": null, "at": null},
+    "discovery_signoff": {"by": null, "at": null},
+    "viz_before_tickets": {"by": null, "at": null},
+    "contract_locked": {"by": null, "at": null},
+    "human_acceptance": {"by": null, "at": null}
   },
   "models_required": [],
   "models_available": ["opus", "sonnet"],
-  "grace_full": { "enabled": true, "reason": null },
+  "grace_full": {"enabled": true, "reason": null},
   "open_questions": [],
   "updated_at": null,
-  "_note": "models_available is the declared env manifest — list the models actually reachable in this environment (e.g. opus, sonnet, deepseek-v4, glm, deepseek-flash). pipeline-preflight.sh fails a phase whose routed model is not listed. Each skill updates artifacts{}/gates_passed/phase on completion; a new session reads this file to resume. human_gates.creator_interview and human_gates.discovery_signoff are enforced inside the discovery skill (Phase -1), recorded here for audit and resume.",
-  "_grace_full_note": "GRACE Full (docs/*.xml — graph, development plan, verification plan) is ON by default: the graph is the entry to development, not a layer on top of it. Set enabled:false ONLY for a bugfix or a single small edit, and state the reason — otherwise the next session cannot tell whether the graph is absent by decision or by neglect, and will start rebuilding one in its head. See PIPELINE.md §Branch A."
+  "_note": "pipeline-machine.json owns transition truth. Set risk_tier from reversibility, blast radius, uncertainty, boundary count, and cost of error. Every skipped gate needs a reason and human approval. Artifact hashes and semantic verdicts are checked before each transition; invalidated artifacts fail closed. Append harness telemetry with scripts/pipeline-event.py.",
+  "_grace_full_note": "GRACE Full is on for T3/T4. A T0-T2 route or explicit skip still needs policy.skipped_gates evidence when a normally applicable phase is omitted."
 }

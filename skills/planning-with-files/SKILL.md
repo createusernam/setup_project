@@ -105,7 +105,7 @@ When this skill runs as **Phase 2** of the setup pipeline (`docs/human/PIPELINE.
 brief down to ≤200-line leaves.
 
 ```
-GOAL_ROOT   ← product_brief.md §1 (creator's intent) — one sentence = this plan's "## Goal"
+GOAL_ROOT   ← product_brief.md §1 (desired outcome and scope) — one sentence = this plan's "## Goal"
   ├── GOAL_1: architectural layer (depth)          ← e.g. auth / data layer
   │     ├── PBS_LEAF_1a  ≤200 lines / ≤2000 tokens  → one /to-issues ticket, one build task
   │     └── PBS_LEAF_1b  ≤150 lines (its tests)

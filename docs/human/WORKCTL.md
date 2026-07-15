@@ -1,80 +1,86 @@
-# Workctl: одна задача, несколько coding CLI
+# Workctl: One Task Across Multiple Coding CLIs
 
-`workctl` позволяет начать задачу в Claude Code, продолжить её в Codex, а после исчерпания лимита — передать в OpenCode. Он переносит не чат, а рабочее состояние: цель, решения, прогресс, проверки, Git-снимки и точный ID задачи.
+`workctl` lets a task start in Claude Code, continue in Codex, and later move to OpenCode. It does
+not transfer chat history. It transfers durable task state: identity, goal, constraints, decisions,
+progress, checks, Git snapshots, and the exact next action.
 
-## Зачем это нужно
+## Why it exists
 
-История сессии принадлежит конкретному CLI и модели. Репозиторий может содержать несколько параллельных задач, поэтому команда «продолжай работу» небезопасна: новый агент не знает, какую именно работу считать текущей.
-
-`workctl` решает это явным адресом задачи:
+Session history belongs to one CLI and model. A repository may contain several active tasks, so a
+generic instruction such as “continue the work” is ambiguous. `workctl` gives each task an explicit
+address:
 
 ```text
 .workctl/tasks/auth-refresh/
-├── state.json       # ID, ветка, ревизия и целостность состояния
-├── context.md       # что нужно сделать и какие есть ограничения
-├── contract.json    # критерии готовности, ограничения и исключения
-├── plan.md          # текущая фаза и исполнимые шаги
-├── decisions.md     # принятые и отвергнутые решения
-├── progress.md      # сделано, делается, следующий шаг, блокеры
-├── checks.json      # выполненные проверки и результаты
-├── handoff.md       # короткая передача следующему агенту
-├── resume.md        # сгенерированный точный промпт продолжения
-└── runs/            # Git-снимки, логи и промпты запусков
+├── state.json       # task ID, branch, revision, integrity
+├── context.md       # goal, constraints, links to pipeline artifacts
+├── contract.json    # task-level completion criteria and exclusions
+├── plan.md          # current execution phase and steps
+├── decisions.md     # accepted and rejected decisions
+├── progress.md      # done, now, next, blockers
+├── checks.json      # checks and actual results
+├── handoff.md       # concise transfer to the next runtime
+├── resume.md        # generated continuation prompt
+└── runs/            # Git snapshots, logs, and launch prompts
 ```
 
-Так состояние остаётся рядом с кодом и не зависит от доступности конкретного провайдера.
+State stays beside the code and does not depend on one provider remaining available.
 
-## Место в pipeline
+## Relationship to the pipeline
 
-`workctl` не является новой фазой и не заменяет skills или gates. Владение разделено так:
+`workctl` is not a pipeline phase and does not replace skills or gates:
 
-- `.pipeline-state.json` отвечает за текущую фазу и пройденные gates;
-- корневые `product_brief.md`, `task_plan.md`, `contract.json` и другие фазовые артефакты определяют,
-  что именно принято и должно быть построено;
-- `.workctl/tasks/<task-id>/` отвечает за идентичность конкретной задачи, Done/Now/Next, проверки,
-  решения, Git-снимки и историю runtime.
+- `.pipeline-state.json` owns the current phase and gate state;
+- root artifacts such as `product_brief.md`, `task_plan.md`, and `contract.json` define approved
+  intent and completion requirements;
+- `.workctl/tasks/<task-id>/` owns one task's identity, Done/Now/Next, decisions, checks, Git
+  snapshots, and runtime history.
 
-В `context.md` задачи указывайте пути к актуальным фазовым артефактам, не копируйте их содержание в
-параллельную спецификацию. Task-local `plan.md` описывает только ближайшее исполнение, а
-`contract.json` — критерии конкретной задачи; они не заменяют корневые PBS-план и build contract.
-При расхождении главным остаётся фазовый артефакт, а task summary нужно обновить. Для workctl-задачи
-не ведите одновременно `CONTINUITY.md`: это второй конкурирующий ledger.
+Link to current pipeline artifacts from task `context.md`; do not copy them into a competing spec.
+Task-local `plan.md` covers near-term execution, and task-local `contract.json` covers that task's
+criteria. If they conflict with a root phase artifact, the phase artifact wins and the task summary
+must be updated.
 
-## Быстрый старт
+Do not maintain `CONTINUITY.md` for the same task. It would become a second current-state ledger.
+
+## Quick start
 
 ```bash
 bash ~/setup/install.sh
 cd ~/work/my-project
 workctl doctor
-workctl init auth-refresh --goal "Обновить поток авторизации"
+workctl init auth-refresh --goal "Update the authentication flow"
 workctl start auth-refresh --runtime claude
 ```
 
-Перед первой реализацией заполните `context.md` ссылками на pipeline-артефакты и уточните task-level
-критерии в `contract.json`. Во время работы обновляйте `plan.md`, `decisions.md`, `progress.md` и
-`checks.json`. Это память следующего агента, а не формальный отчёт.
+Before implementation, add links to pipeline artifacts in `context.md` and refine task-level
+criteria in `contract.json`. During work, keep `plan.md`, `decisions.md`, `progress.md`, and
+`checks.json` current. These files are operational memory for the next agent, not ceremonial reports.
 
-`workctl start` и `workctl continue` запускают дочерний CLI. Выполняйте их из обычного терминала, а
-не из уже открытого интерактивного Claude, Codex или OpenCode.
+`workctl start` and `workctl continue` launch child CLIs. Run them from a normal terminal, not from
+inside an existing interactive Claude, Codex, or OpenCode session.
 
-Если лимит Claude закончился:
+When a provider limit is reached:
 
 ```bash
 workctl handoff auth-refresh --to codex
 workctl continue auth-refresh --runtime codex
 ```
 
-Позже ту же задачу можно передать в OpenCode:
+The same task may later move again:
 
 ```bash
+workctl handoff auth-refresh --to opencode
 workctl continue auth-refresh --runtime opencode
 ```
 
-Каждый агент получает промпт вида `CONTINUE TASK auth-refresh ONLY`, абсолютные пути к материалам и требование сначала прочитать их. Запуск сохраняет Git-снимок до и после работы в `runs/`, а результат и причину выхода — в истории `state.json`.
+The receiving runtime gets an explicit `CONTINUE TASK auth-refresh ONLY` prompt, absolute paths to
+task material, and an instruction to read state before acting. Each launch records pre/post Git
+snapshots and exit information under `runs/` and `state.json`.
 
-## Если в папке несколько задач
+## Selecting among multiple tasks
 
-Используйте ID явно:
+Use the task ID explicitly:
 
 ```bash
 workctl status
@@ -82,69 +88,95 @@ workctl continue auth-refresh --runtime codex
 workctl continue billing-webhooks --runtime opencode
 ```
 
-Без ID выбор разрешён только тогда, когда он однозначен:
+Without an ID, selection is allowed only when unambiguous:
 
-1. задана переменная `WORKCTL_TASK`;
-2. текущей Git-ветке соответствует ровно одна задача;
-3. в репозитории существует ровно одна задача.
+1. `WORKCTL_TASK` is set;
+2. exactly one task is bound to the current Git branch; or
+3. the repository contains exactly one task.
 
-При двух кандидатах `workctl` останавливается. Он не выбирает самую свежую задачу и не хранит общий указатель «активная»: такой указатель конфликтовал бы между терминалами.
+With multiple candidates, `workctl` stops. It does not choose the most recently modified task and
+does not keep one global “active task” pointer that could conflict across terminals.
 
-Для короткой команды в одном терминале можно задать:
+For repeated commands in one terminal:
 
 ```bash
 export WORKCTL_TASK=auth-refresh
 workctl continue --runtime codex
 ```
 
-## Ветки и параллельная работа
+## Branches and parallel work
 
-При `init` задача привязывается к текущей Git-ветке. Если вы переключились на другую ветку, запуск блокируется, чтобы агент не записал изменения не туда.
+`init` binds a task to the current Git branch. Launch is blocked after switching branches so an
+agent cannot write task changes into the wrong branch.
 
-Если перенос на текущую ветку намеренный:
+If moving the task to the current branch is intentional:
 
 ```bash
 workctl bind auth-refresh
 ```
 
-Одновременно задачу контролирует один процесс. После аварии CLI `--takeover` снимает старую аренду, но применять его следует только после проверки процесса:
+One process controls a task at a time. After a crashed CLI, `--takeover` can remove a stale lease,
+but first inspect the recorded process:
 
 ```bash
 workctl status auth-refresh --json
 workctl continue auth-refresh --runtime codex --takeover
 ```
 
-Для настоящей параллельной реализации лучше использовать отдельные задачи и ветки (или worktree), а не два агента в одной задаче.
+For real parallel implementation, use separate tasks and branches or worktrees. Do not run two
+agents against one task state.
 
-## Полезные команды
+## Useful commands
 
 ```bash
-workctl status                         # список задач и безопасный способ выбора
-workctl status auth-refresh --json     # состояние для скрипта или диагностики
-workctl handoff auth-refresh --to codex # обновить handoff.md и resume.md
-workctl resume auth-refresh            # вывести промпт без запуска CLI
-workctl runs auth-refresh              # история запусков
-workctl doctor                         # доступность Claude, Codex и OpenCode
+workctl status                           # list tasks and safe selection information
+workctl status auth-refresh --json       # machine-readable status
+workctl handoff auth-refresh --to codex  # update handoff.md and resume.md
+workctl resume auth-refresh              # print the continuation prompt without launching
+workctl runs auth-refresh                # show launch history
+workctl doctor                           # check Claude, Codex, and OpenCode availability
 workctl continue auth-refresh --runtime codex --print-command
 ```
 
-Конфигурация runtime-команд находится в `.workctl/config.json`. Для OpenCode там можно закрепить `provider/model` и имя агента; для остальных runtime — модель и параметры запуска.
+Runtime commands live in `.workctl/config.json`. OpenCode configuration may pin a provider/model and
+agent name; other runtimes may pin a model and launch flags.
 
-## Что переносится, а что нет
+## What transfers
 
-Переносятся цель, ограничения, решения, состояние кода, результаты проверок, история запусков и следующий шаг. Не переносятся скрытый контекст модели, её внутренний план и полная история чата. Поэтому качество продолжения зависит от актуальности task-файлов и указанных в `context.md` pipeline-артефактов.
+Transferred:
 
-`workctl` не переключает провайдера автоматически после интерактивного запуска: разные CLI не дают надёжного общего сигнала «лимит исчерпан». Явная команда `continue ... --runtime ...` оставляет смену модели видимой и управляемой. В неинтерактивном режиме утилита распознаёт распространённые сообщения о rate limit, но это диагностическая классификация, а не автоматическая передача полномочий другому провайдеру.
+- task identity and goal;
+- constraints and artifact links;
+- accepted/rejected decisions;
+- code/Git state;
+- checks and actual results;
+- known uncertainty, risks, and blockers;
+- exact next action and runtime history.
 
-## Протокол хорошей передачи
+Not transferred:
 
-Перед выходом из CLI агент должен оставить следующему:
+- hidden model context;
+- an internal reasoning trace;
+- full chat history.
 
-- конкретное текущее состояние, а не «почти готово»;
-- следующий исполнимый шаг;
-- изменённые файлы и незакоммиченные изменения;
-- команды проверок с реальными результатами;
-- решения и причины, которые нельзя восстановить только из кода;
-- известные риски и блокеры.
+Continuation quality therefore depends on current task files and correct links to pipeline
+artifacts.
 
-После этого выполните `workctl handoff <task-id> --to <runtime>`. Новый CLI начинает с чтения состояния и проверки рабочей копии, а не с догадок по одному промпту.
+`workctl` does not automatically switch providers after an interactive launch. Coding CLIs do not
+expose one reliable cross-runtime signal for “provider limit reached.” An explicit
+`continue ... --runtime ...` keeps authority transfer visible. In non-interactive mode, common
+rate-limit messages may be classified diagnostically; this is not automatic delegation.
+
+## Good handoff protocol
+
+Before leaving a runtime, record:
+
+- concrete current state rather than “almost done”;
+- the next executable action;
+- modified and uncommitted files;
+- verification commands and actual results;
+- decisions that cannot be recovered from code alone;
+- known uncertainty, risks, and blockers.
+
+Then run `workctl handoff <task-id> --to <runtime>`. The next runtime begins by reading task state
+and checking the working tree, not by guessing from a one-line prompt.

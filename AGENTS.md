@@ -8,8 +8,8 @@
 - `docs/agent/COMPAT.md` — cross-model/CLI compatibility: Claude Code, OpenCode+DeepSeek, terminal
 - `docs/agent/PROMPT-FORMAT.md` — structured prompt standard (PCAM, Belief State, metamodel check)
 - `skills/grace-ontology/SKILL.md` — GRACE annotation vocabulary (agent-facing)
-- `skills/visualization/SKILL.md` — human-track views (Mermaid/HTML) at pipeline gates; notation via разрез→масштаб→нотация
-- `docs/human/ARCHITECTURE-GUIDE.md` — Architect-phase surface: run reasoning-hard architecture on a bare, self-authored system prompt (AI Studio / API / self-host), re-enter the pipeline with GRACE artifacts. Human runbook + copy-paste prompt inside
+- `skills/visualization/SKILL.md` — human-track views (Mermaid/HTML) at pipeline gates; concern → scale → notation
+- `docs/human/ARCHITECTURE-GUIDE.md` — neutral architecture handoff: required inputs, portable outputs, quality checks, and pipeline re-entry; architecture method/tool is the user's choice
 
 ## Skills
 

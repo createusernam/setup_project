@@ -1,0 +1,123 @@
+{
+  "version": "1.0",
+  "description": "Executable transition contract for the setup pipeline. Prose explains transitions; this file authorizes them.",
+  "risk_policy": {
+    "default": "T3",
+    "tiers": {
+      "T0": {"label": "mechanical", "criteria": "typo, config, or deterministic edit; reversible; one boundary", "required_phases": ["7"]},
+      "T1": {"label": "bounded_bugfix", "criteria": "reproduced defect with bounded blast radius", "required_phases": ["7"]},
+      "T2": {"label": "small_reversible_feature", "criteria": "small reversible feature across at most two boundaries", "required_phases": ["0", "1", "2", "4", "4b", "4c", "5", "6", "7"]},
+      "T3": {"label": "cross_module_or_high_risk", "criteria": "cross-module change, high uncertainty, or costly rework", "required_phases": ["-1", "0", "1", "2", "2-PM", "2b", "3", "4", "4b", "4c", "5", "5.5", "6", "7"]},
+      "T4": {"label": "safety_regulatory_irreversible", "criteria": "safety, regulatory, security, privacy, or irreversible impact", "required_phases": ["-1", "0", "1", "2", "2-PM", "2b", "3", "4", "4b", "4c", "5", "5.5", "6", "7"]}
+    },
+    "selection_factors": ["reversibility", "blast_radius", "uncertainty", "boundary_count", "cost_of_error"],
+    "skip_contract": "Every omitted normally applicable gate must be listed in ledger.policy.skipped_gates with phase, reason, approved_by, and approved_at."
+  },
+  "transitions": {
+    "-1": {"skill": "methodology", "tiers": ["T3", "T4"], "requires": []},
+    "0": {
+      "skill": "researcher", "tiers": ["T2", "T3", "T4"],
+      "requires": [
+        {"artifact": "product_brief.md", "attested": true},
+        {"artifact": "evidence-handoff.json", "attested": true, "json_pointer": "/decision", "equals": "delivery"}
+      ]
+    },
+    "1": {
+      "skill": "grill-with-docs", "tiers": ["T2", "T3", "T4"],
+      "requires": [
+        {"artifact": "product_brief.md", "attested": true},
+        {"artifact": "evidence-handoff.json", "attested": true, "json_pointer": "/decision", "equals": "delivery"}
+      ]
+    },
+    "2": {
+      "skill": "planning-with-files", "tiers": ["T2", "T3", "T4"],
+      "requires": [
+        {"artifact": "product_brief.md", "attested": true},
+        {"artifact": "evidence-handoff.json", "attested": true, "json_pointer": "/validation_stage", "in": ["alpha", "live"]}
+      ]
+    },
+    "2-PM": {
+      "skill": "pm-review", "tiers": ["T3", "T4"],
+      "requires": [
+        {"artifact": "task_plan.md", "attested": true},
+        {"artifact": "product_brief.md", "attested": true}
+      ]
+    },
+    "2b": {
+      "skill": "grace-init, grace-plan", "tiers": ["T3", "T4"],
+      "requires": [
+        {"artifact": "task_plan.md", "attested": true},
+        {"artifact": "pm-review.json", "attested": true, "json_pointer": "/status", "equals": "APPROVE"}
+      ]
+    },
+    "3": {
+      "skill": "design-first", "tiers": ["T3", "T4"],
+      "requires": [
+        {"artifact": "task_plan.md", "attested": true},
+        {"artifact": "pm-review.json", "attested": true, "json_pointer": "/status", "equals": "APPROVE"}
+      ]
+    },
+    "4": {
+      "skill": "contract", "tiers": ["T2", "T3", "T4"],
+      "requires": [
+        {"artifact": "task_plan.md", "attested": true},
+        {"artifact": "evidence-handoff.json", "attested": true, "json_pointer": "/decision", "equals": "delivery"},
+        {"artifact": "pm-review.json", "attested": true, "json_pointer": "/status", "equals": "APPROVE", "tiers": ["T3", "T4"]},
+        {"artifact": "docs/knowledge-graph.xml", "attested": true, "tiers": ["T3", "T4"]},
+        {"artifact": "risk-review.json", "attested": true, "json_pointer": "/verdict", "equals": "PASS", "tiers": ["T4"]}
+      ]
+    },
+    "4b": {
+      "skill": "judge contract", "tiers": ["T2", "T3", "T4"],
+      "requires": [{"artifact": "contract.json", "attested": true}]
+    },
+    "4c": {
+      "skill": "visualization", "tiers": ["T2", "T3", "T4"],
+      "requires": [
+        {"artifact": "contract.json", "attested": true},
+        {"artifact": "judge-report.json", "attested": true, "json_pointer": "/data/verdict", "equals": "PASS"}
+      ]
+    },
+    "5": {
+      "skill": "to-issues", "tiers": ["T2", "T3", "T4"],
+      "requires": [
+        {"artifact": "contract.json", "attested": true},
+        {"artifact": "task_plan.md", "attested": true},
+        {"artifact": "judge-report.json", "attested": true, "json_pointer": "/data/verdict", "equals": "PASS"}
+      ],
+      "human_gate": "viz_before_tickets"
+    },
+    "5.5": {
+      "skill": "scaffold", "tiers": ["T3", "T4"],
+      "requires": [
+        {"artifact": "contract.json", "attested": true},
+        {"artifact": "task_plan.md", "attested": true},
+        {"artifact": "issues-manifest.json", "attested": true, "json_pointer": "/status", "equals": "approved"},
+        {"artifact": "docs/knowledge-graph.xml", "attested": true}
+      ]
+    },
+    "6": {
+      "skill": "build-loop, tdd", "tiers": ["T2", "T3", "T4"],
+      "requires": [
+        {"artifact": "contract.json", "attested": true},
+        {"artifact": "scaffold-manifest.json", "attested": true, "json_pointer": "/status", "equals": "ready", "tiers": ["T3", "T4"]}
+      ],
+      "human_gate": "contract_locked"
+    },
+    "7": {
+      "skill": "judge feature, code-review-expert", "tiers": ["T0", "T1", "T2", "T3", "T4"],
+      "requires": [
+        {"artifact": "build-evidence.json", "attested": true, "json_pointer": "/status", "equals": "complete"},
+        {"artifact": "rollout-plan.json", "attested": true, "json_pointer": "/rollback/defined", "equals": true, "tiers": ["T4"]}
+      ],
+      "human_gate": "human_acceptance"
+    }
+  },
+  "invalidations": {
+    "product_brief.md": ["task_plan.md", "pm-review.json", "docs/knowledge-graph.xml", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "build-evidence.json"],
+    "task_plan.md": ["pm-review.json", "docs/knowledge-graph.xml", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "build-evidence.json"],
+    "contract.json": ["judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "build-evidence.json"],
+    "SUPERVISION.md": ["issues-manifest.json", "scaffold-manifest.json", "build-evidence.json"]
+  },
+  "verification_layers": ["state_validity", "trajectory_validity", "outcome_validity", "non_regression", "production_evidence"]
+}

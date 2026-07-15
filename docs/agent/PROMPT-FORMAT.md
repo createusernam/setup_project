@@ -44,10 +44,10 @@ Decompose from root goal to leaves. Each leaf ≤200 lines / ≤2000 tokens.
 ```
 GOAL_ROOT: "Users can track their periods reliably offline"
   └─ GOAL_1: "Data persists without network"
-       └─ TASK_1a: "Implement Dexie.js sync (≤200 lines, DeepSeek V4)"
-       └─ TASK_1b: "Write sync tests (≤150 lines, GLM)"
+       └─ TASK_1a: "Implement Dexie.js sync (≤200 lines, implementation_general profile)"
+       └─ TASK_1b: "Write sync tests (≤150 lines, review_test profile)"
   └─ GOAL_2: "Import from other apps works"
-       └─ TASK_2a: "Parse CSV format (≤120 lines, DeepSeek V4)"
+       └─ TASK_2a: "Parse CSV format (≤120 lines, implementation_general profile)"
 ```
 
 **Why ≤200 lines per task?** SFT training data is "torn book pages" — the model has seen each page but not the book. Large tasks cause strategic blindness past ~800 lines. Small tasks with goal alignment = the model connects pages via purpose, not position.

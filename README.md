@@ -3,7 +3,7 @@
 A cross-model development harness: a canonical pipeline (Phase -1 → 7) that takes a
 `product_brief.md` from idea to shipped code through structured, verifiable state files —
 GRACE markup, product-brief-driven design, and LLM-as-judge verification at every gate.
-Works with Claude Code, OpenCode + DeepSeek, or any terminal LLM as the orchestrator.
+Works with Claude Code, Codex, OpenCode, or any terminal/API LLM as the orchestrator.
 
 **Core philosophy**: LLMs don't read docs — they follow trajectories set by structured context.
 This setup encodes that into every artifact and prompt.
@@ -61,7 +61,7 @@ setup/
 ├── README.md              # this file — what it is + how to find things
 ├── AGENTS.md               # global agent rules (OpenCode entrypoint)
 ├── pipeline-machine.json   # phase → semantic transition, risk policy, invalidation
-├── model-routing.json      # phase → model/collegium only
+├── model-routing.json      # phase → capability profiles and collegium policy
 ├── install.sh
 ├── docs/
 │   ├── human/  PIPELINE.md · SETUP.md · ARCHITECTURE-GUIDE.md · WORKCTL.md
@@ -78,11 +78,14 @@ the gates from any project directory:
 ```bash
 bash ~/.claude/scripts/pipeline-preflight.sh 6   # risk policy · semantic outcomes · attestations · models · human gate
 bash ~/.claude/scripts/grace-lint.sh --changed   # GRACE Lite markup on the diff
-bash ~/.claude/scripts/model-check.sh 5.5        # which model this phase requires
+bash ~/.claude/scripts/model-check.sh 5.5 .      # resolve the project's configured model binding
 python3 ~/setup/scripts/validate-skills.py --profile claude  # validate Claude skill frontmatter
 workctl doctor                                                # check cross-CLI task continuation
 setup-skill-doctor                                            # check discovery + routing in every CLI
 ```
+
+Model routing is provider-neutral: phases require capability profiles, while each project maps
+those profiles to concrete runtime/model IDs in `model-bindings.json`.
 
 **Install is fail-closed on collisions.** It preflights both discovery roots before changing either.
 If a stale copy exists, the default run halts without partial installation. Re-run with

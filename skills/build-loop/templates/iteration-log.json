@@ -8,8 +8,10 @@
   "iterations": [
     {
       "n": 1,
-      "generator_model": "deepseek-v4",
-      "evaluator_model": "opus",
+      "generator_profile": "implementation_general",
+      "generator_model_id": "provider/implementation-model",
+      "evaluator_profile": "review_acceptance",
+      "evaluator_model_id": "provider/acceptance-model",
       "weighted_score": 0.78,
       "verdict": "continue",
       "blocking_criteria": ["c2-flow-amount-negative"],

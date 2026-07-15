@@ -197,7 +197,7 @@ Categories and weighting (defaults; override per project):
 | `accessibility` | Public UI | 2 |
 | `i18n` | RU UI (Trium/Lumiorama/Lua) | 1 |
 
-Per Anthropic Opus 4.6+ note: weight design+originality higher than functionality (model already nails functionality).
+Adjust category weights to the product's actual risk; do not assume one model generation's strengths.
 
 ### 5. Write contract.json and lock
 
@@ -314,17 +314,16 @@ This is the load-bearing rule: **no integration spec + no user flow → no auton
 - **`/grace-plan`** — produces `verification-plan.xml`. Its `<CriticalFlows>` and log markers are what `verify.method: trace` criteria grade against (see §Verify methods). If GRACE Full ran, every flow marked `must_remain_observable` should have a `trace` criterion here — otherwise the observability requirement is unenforced.
 - **`/scaffold`** — writes the module skeletons with the GRACE Lite anchors (`START_BLOCK_*`, `[Module][function][BLOCK]` logs) that `trace` criteria reference. Write the contract first: the scaffold is generated *from* it.
 
-## Portable invocation (OpenCode, DeepSeek, etc.)
+## Portable invocation
 
 The contract.json **artifact** is portable. Any model on any CLI that can read JSON can grade against it. What's NOT portable:
 
-| Component | Claude Code | OpenCode | DeepSeek-as-model | Fallback |
-|-----------|-------------|----------|-------------------|----------|
-| `Skill` invocation `/contract` | native | needs `AGENTS.md` reference | needs prompt manually | paste the SKILL.md body into the chat |
-| `Agent` tool (sub-agents) | native | `task` tool similar | not native | sequential turns in single session with explicit `[ROLE: generator]` / `[ROLE: evaluator]` framing and `/clear` between roles |
-| Playwright MCP | `claude mcp add playwright -- npx -y @playwright/mcp@latest` | `~/.config/opencode/mcp.json` block (see below) | inherits from host CLI | identical MCP server, stdio transport |
-| `contract.json` | read with Read tool | identical | identical | portable, language-agnostic |
-| `.contract-attestation` | sha256 check | identical | identical | portable |
+| Component | Agent-native runtime | General coding runtime | Fallback |
+|-----------|----------------------|------------------------|----------|
+| Skill invocation | native | installed skill/reference | load SKILL.md explicitly |
+| Separate contexts | agent primitive | runtime subagent primitive | sequential roles with explicit context reset |
+| Playwright MCP | MCP client | MCP client | run equivalent checks manually |
+| `contract.json` and attestation | files | files | portable |
 
 OpenCode MCP config (`~/.config/opencode/opencode.json` or project `.opencode/opencode.json`):
 
@@ -341,9 +340,8 @@ OpenCode MCP config (`~/.config/opencode/opencode.json` or project `.opencode/op
 }
 ```
 
-For DeepSeek-Coder used as model backend inside Claude Code or OpenCode: nothing changes — the CLI handles tools and Playwright MCP, the model just produces text.
-
-For DeepSeek invoked standalone (no CLI): use contract.json as system prompt, run Playwright manually via `npx playwright test` against a generated spec file. Lose the generator/evaluator separation; humans take that role.
+Without a coding CLI, use `contract.json` as evaluation input and run browser checks manually. The
+human must provide generator/evaluator separation.
 
 ## Anti-patterns
 

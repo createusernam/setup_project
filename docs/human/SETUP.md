@@ -99,8 +99,8 @@ Add to `~/.config/opencode/opencode.json` (merge with existing). `instructions` 
     "~/setup/docs/human/PIPELINE.md",
     "~/setup/docs/agent/COMPAT.md"
   ],
-  "model": "deepseek/deepseek-v4-pro",
-  "small_model": "deepseek/deepseek-v4-flash",
+  "model": "provider/model-id",
+  "small_model": "provider/fast-model-id",
   "mcp": {
     "playwright": {
       "type": "local",

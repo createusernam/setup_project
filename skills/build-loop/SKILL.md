@@ -18,7 +18,7 @@ Three rules from the talk that this skill enforces:
 
 1. **Evaluator never sees generator's reasoning or traces.** Sycophancy contagion otherwise.
 2. **Evaluator launches the live app**, not reads diffs. Playwright/Chrome MCP clicks, types, screenshots, measures.
-3. **Restart > patch on hard failures.** With Opus 4.6+, throw-away-and-start-over is a willing behavior the generator alone never exhibits.
+3. **Restart > patch on hard failures.** Use the contract's restart threshold instead of accumulating low-progress patches.
 
 ## Where this fits
 
@@ -53,7 +53,7 @@ Validate before any iteration starts. Halt with a clear message if any check fai
 8. Dev server command runs cleanly: contract.json.verify_commands.dev_server
 9. Git working tree is clean (no uncommitted changes — restart-from-scratch needs a rollback point)
 10. Routed models available: run `bash ~/.claude/scripts/pipeline-preflight.sh 6` — implementer/
-    test-owner/acceptor models are in the project ledger's models_available and are distinct.
+    implementation/test/acceptance profiles are bound in `model-bindings.json` and distinct where required.
     (Closes the "cycle stalls on a missing model" gap.)
 11. GRACE Lite markup is clean on the code the loop will edit:
     `bash ~/.claude/scripts/grace-lint.sh --profile autonomous` exits 0.
@@ -207,7 +207,7 @@ to the generator's handoff.
 Verdict rules (in order):
 
 1. **pass** — `weighted_score ≥ 1.0 - epsilon` AND no `must_pass` failures AND no `criteria_floor` violations → cycle ends successfully
-2. **restart** — `n > restart_threshold.no_progress_iterations` AND weighted score has not improved in that window → roll back to `start_commit`, increment restart counter, reset to iteration 1. Per Anthropic: this is a willing behavior in Opus 4.6+ that the generator alone never does. **Take it.**
+2. **restart** — `n > restart_threshold.no_progress_iterations` AND weighted score has not improved in that window → roll back to `start_commit`, increment restart counter, reset to iteration 1.
 3. **abort** — total restart count ≥ 2, or `n ≥ max_iterations` even after restart — halt and hand back to user
 4. **continue** — otherwise, loop to step 2a with `n+1`
 
@@ -338,21 +338,18 @@ The evaluator makes this call, not the generator. Encoded in critique.json's `re
 | Use for bugfixes | Use `/diagnose` + `/tdd` instead |
 | Skip the integration/user_flow check "to save time" | The whole purpose of the gate is to prevent silent hallucination of API contracts during autonomous runs |
 
-## Portable invocation (OpenCode, DeepSeek, etc.)
+## Portable invocation
 
 The artifacts (`contract.json`, `design-contract.json`, `iteration-log.json`, `critique.json`) are portable across any CLI/model. Playwright MCP is portable (MCP standard via stdio). What's CLI-specific:
 
-| Component | Claude Code | OpenCode | DeepSeek as model | Fallback |
-|-----------|-------------|----------|-------------------|----------|
-| `Skill` `/build-loop` | native | reference via `AGENTS.md` (symlinked from CLAUDE.md) | inherits from host CLI | paste SKILL.md body into chat |
-| `Agent` tool (separate-context sub-agents) | native | `task` tool — similar semantics | not native | **sequential turns in single session with explicit `[ROLE: generator]` / `[ROLE: evaluator]` framing and explicit `/clear` between roles**; lose true context isolation but keep the protocol |
-| Playwright MCP | `claude mcp add playwright -- npx -y @playwright/mcp@latest` | `~/.config/opencode/opencode.json` (see above) | inherits from host CLI | identical MCP server everywhere |
-| `git stash` / `git reset` for restart | shell | shell | shell | portable |
-| `iteration-log.json` updates | Bash | Bash | Bash | portable |
+| Component | Agent-native runtime | General coding runtime | Fallback |
+|-----------|----------------------|------------------------|----------|
+| Skill invocation | native | installed skill/reference | load SKILL.md explicitly |
+| Separate generator/evaluator contexts | agent primitive | runtime subagent primitive | sequential roles with explicit context reset |
+| Playwright MCP | MCP client | MCP client | run equivalent browser checks manually |
+| Git restart and iteration state | shell/files | shell/files | portable |
 
-**DeepSeek-Coder used as model backend** inside Claude Code or OpenCode: nothing changes — the CLI handles tools, Playwright MCP runs identical, the model just produces text. The contract gate and iteration loop work identically.
-
-**Single-CLI fallback for OpenCode / DeepSeek without a separate-agent primitive:**
+**Single-runtime fallback without a separate-agent primitive:**
 
 Instead of two `Agent` invocations, the cycle becomes one session that you manually role-frame:
 

@@ -100,22 +100,23 @@ Per-worker: max N queries, max depth = M pages. Budget is set in Phase 0 plan an
 
 See `docs/agent/COMPAT.md` for full cross-model guide.
 
-**Claude Code**: phases run as parallel Task calls. Model routing: Flash workers, Sonnet synthesis, Opus orchestrator.
+**Agent-native runtime**: phases may run as parallel agent calls. Resolve orchestration through
+`reasoning_balanced`, workers through `research_worker`, and validation through `review_acceptance`.
 
-**OpenCode**: parallel workers via `Task` tool (general-purpose subagents). Orchestrator/synthesis runs in main context; workers launch as parallel Task calls. Model routing is configured per-agent in OpenCode's agent config (not in the prompt) — map `flash` / `sonnet` / `opus` tiers to the corresponding agent profiles in your OpenCode setup. Worker agents should be configured with fast/cheap models; orchestrator agent with the strongest model.
+**General coding runtime**: parallel workers use the runtime's subagent primitive. Orchestrator and
+worker model IDs come from runtime settings and project `model-bindings.json`, not this prompt.
 
-**OpenCode model mapping** (add to `~/.config/opencode/opencode.json`):
+**Example runtime mapping** (replace with user-configured provider/model IDs):
 
 ```jsonc
 {
-  "model": "deepseek/deepseek-v4-pro",        // orchestrator, synthesis, judge (Phases 0,2,3,4)
-  "small_model": "deepseek/deepseek-v4-flash", // workers (Phase 1), Screener, Probe
-  // Phase 4 cross-architecture judge (optional, for multi-family panel):
-  // Add Claude/GLM via OpenRouter provider and reference in judge agent config
+  "model": "provider/reasoning-model-id",
+  "small_model": "provider/research-worker-model-id"
 }
 ```
 
-Worker model assignment: OpenCode subagents launched via `Task` tool inherit the `small_model` by default — no extra config needed for Flash-tier routing. Orchestrator and judge run in the main context on `model`.
+Keep runtime settings consistent with `model-bindings.json`; worker and acceptance roles may require
+separate per-call or runtime overrides.
 
 **Terminal**: human orchestrates. Each phase = separate LLM call. Copy JSON between calls.
 
@@ -140,7 +141,7 @@ Whichever you pick: pass the belief-state in the prompt, don't inherit a huge co
 
 **Goal**: clarify the research intent before any decomposition. Raw research questions arrive as incomplete, internally contradictory narratives. A brief clarifying dialogue surfaces hidden context and tests mutual understanding.
 
-**Model**: Claude Sonnet / Opus (conversational)
+**Capability profile**: `reasoning_balanced`
 
 **When to run**: always when the research question comes from a human (not from another agent/skill). Skip for programmatic calls where the question is already structured.
 
@@ -161,7 +162,7 @@ Output: update `research-state.json.intake` with clarified intent, scope boundar
 
 **Goal**: clean the research question before decomposing it. Distortions in the question propagate into all downstream findings.
 
-**Model**: Claude Sonnet / Opus (linguistic analysis)
+**Capability profile**: `reasoning_balanced`
 
 **When to run**: always, before Phase 0. Adds ≤2 minutes, saves hours of research in wrong direction.
 
@@ -234,7 +235,7 @@ clarified_question = original_question. Don't invent distortions.
 
 **Goal**: break research question into N focused sub-questions, one per worker.
 
-**Model**: Claude Opus / Sonnet (orchestrator tier)
+**Capability profile**: `reasoning_balanced`
 
 **Prompt template:**
 
@@ -281,7 +282,7 @@ Select highest scoring.
         "scope": "...",
         "out_of_scope": ["what this worker explicitly does NOT research"],
         "worker_type": "domain | user | technical | competitive",
-        "model_tier": "flash | sonnet | opus",
+        "capability_profile": "research_worker | reasoning_balanced",
         "depends_on": [],
         "expected_output": "...",
         "retrieval_budget": {"max_queries": 10, "max_depth": 5}
@@ -308,7 +309,7 @@ Sub-questions must be non-overlapping and each independently researchable. Each 
 
 **Goal**: validate decomposition angles with a quick, cheap scan before committing to full research. This is a cheap insurance policy — catches missing angles and dead ends before launching expensive workers.
 
-**Model**: DeepSeek Flash (cheapest tier)
+**Capability profile**: `research_worker`
 
 **What it does**:
 1. Run 1–2 surface-level searches per proposed angle
@@ -329,7 +330,9 @@ Each worker receives:
 - Current `research-state.json`
 - Their worker type prompt (below)
 
-**Model routing**: Flash/cheap models (DeepSeek Flash, GLM) for desk research; Sonnet for synthesis-heavy angles. Not all workers need the strongest model — match model tier to angle complexity. Cheap models need more structured sub-questions with explicit research paths; expensive models can handle open-ended exploration.
+**Model routing**: use `research_worker` for bounded desk research and `reasoning_balanced` for
+synthesis-heavy angles. Match capability to complexity; weaker/cheaper bindings need narrower,
+more explicit sub-questions.
 
 ### Functional split (optional, for deep research)
 
@@ -454,7 +457,7 @@ Flag every contradiction with existing state. Output valid JSON only.
 
 Before synthesis, identify contradictions and collusion across workers. Orchestrator role.
 
-**Model**: Claude Sonnet
+**Capability profile**: `reasoning_balanced`
 
 **Multi-stage consensus** (for ≥5 workers):
 1. Raw findings → initial clustering by topic
@@ -465,7 +468,7 @@ Before synthesis, identify contradictions and collusion across workers. Orchestr
 
 ### Collusion detection
 
-When all workers agree on a finding, the consensus step must explicitly ask: *"Could this be a shared blind spot? Are all workers from the same model family? Is there a known counterposition?"* Same-architecture models converge on shared blind spots and silently agree to ignore errors. Multi-vendor triangulation (e.g., GLM+GPT review DeepSeek output) catches what single-model review misses. Flag unanimously-agreed findings as `collusion_risk: medium` if all workers share the same model architecture.
+When all workers agree on a finding, the consensus step must explicitly ask: *"Could this be a shared blind spot? Are all workers from the same model family? Is there a known counterposition?"* Same-architecture models can converge on shared errors. Triangulation across distinct configured model families can reveal them. Flag unanimously-agreed findings as `collusion_risk: medium` if all workers share one model architecture.
 
 ```xml
 <role>
@@ -503,7 +506,7 @@ If `ready_for_synthesis: false` → identify which worker needs another pass. Lo
 
 ## Phase 3 — Orchestrator: Synthesis (Superposition → Collapse)
 
-**Model**: Claude Sonnet / Opus
+**Capability profile**: `reasoning_balanced`
 
 This is the Coconut moment: hold all findings in superposition, then collapse to the most evidence-supported synthesis. Do NOT collapse prematurely.
 
@@ -594,7 +597,7 @@ Sections 4 and 6 are lightweight in from-scratch research and load-bearing in ad
 
 ## Optional — Ranking for a decision (after synthesis, before validation)
 
-**Model**: Claude Sonnet / Opus
+**Capability profile**: `reasoning_balanced`
 
 **Apply when**: the output is a *set of options* someone must choose among (market/niche options, delivery models, tech choices, strategies) AND there is a decision-maker with real constraints.
 **Skip when**: the research answers a factual or causal question ("why did X fail", "how does Y work") — there is nothing to rank.
@@ -628,7 +631,8 @@ State gains `baseline`, `gap_map`, and `edit_plan` fields.
 
 ## Phase 4 — Judge: Validation
 
-Isolated evaluator context. Requires a **cross-architecture model panel** (minimum 2 different model families — e.g., Claude Sonnet + GLM + DeepSeek). Single-model judging misses architecture-specific blind spots. Same-architecture models silently collude on errors.
+Isolated evaluator context. For high-stakes research, bind a panel of at least two distinct model
+families/IDs; concrete selections come from user configuration. Single-family review can share blind spots.
 
 The judge evaluates on two independent axes:
 - **Verification** (process): did we follow the method? Are findings properly sourced and contradictions handled?

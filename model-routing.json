@@ -1,83 +1,91 @@
 {
-  "_description": "Model routing rules for setup pipeline. Agents MUST read this before each phase, verify their current model matches the required model, and halt with instructions to the operator if mismatched.",
-  "_enforcement": "Run 'bash scripts/model-check.sh <phase>' to print a phase's required model (and collegium roles). A shell script/hook CANNOT detect the running model, so enforcement is agent-cooperative: the agent identifies its own model (from its system prompt) and, on mismatch with required_model, outputs 'MODEL MISMATCH: phase [N] requires [model], current is [detected]' and STOPs. For collegium phases (3, 6) also verify the roles are different models. There is deliberately no blocking hook — one without model detection would be theatre.",
-  "_state_ledger_note": "This file owns model and collegium routing only. pipeline-machine.json is the sole source of artifact, semantic verdict, risk-policy, invalidation, and human-gate transition requirements consumed by scripts/pipeline-preflight.sh.",
+  "version": "2",
+  "_description": "Provider-neutral capability routing for pipeline phases. Concrete runtime/model IDs are selected separately in each project's model-bindings.json.",
+  "_enforcement": "Run 'bash scripts/model-check.sh <phase> [project_dir]'. The script resolves capability profiles through model-bindings.json. The running agent must confirm its actual model matches the resolved binding; a shell cannot detect the generating model.",
+  "_state_ledger_note": "This file owns model capability and role-independence policy only. pipeline-machine.json owns transition semantics. model-bindings.json owns provider/runtime/model selection.",
+  "profiles": {
+    "reasoning_high": {
+      "purpose": "Architecture, contracts, difficult decomposition, and high-consequence synthesis",
+      "capabilities": ["strong-reasoning", "long-context", "structured-artifacts"]
+    },
+    "reasoning_balanced": {
+      "purpose": "General orchestration, document analysis, issue slicing, and visualization",
+      "capabilities": ["reasoning", "structured-artifacts"]
+    },
+    "research_worker": {
+      "purpose": "Focused evidence acquisition on bounded sub-questions",
+      "capabilities": ["fast-research", "source-discipline"]
+    },
+    "implementation_general": {
+      "purpose": "Backend, data, API, and general code implementation",
+      "capabilities": ["code-generation", "tool-use", "test-feedback"]
+    },
+    "implementation_ui": {
+      "purpose": "Frontend and interaction implementation",
+      "capabilities": ["ui-code-generation", "long-context", "tool-use"]
+    },
+    "review_test": {
+      "purpose": "Independent test ownership and implementation challenge",
+      "capabilities": ["test-design", "code-review", "tool-use"]
+    },
+    "review_acceptance": {
+      "purpose": "Independent artifact judgment and final acceptance",
+      "capabilities": ["strong-reasoning", "evaluation", "isolated-context"]
+    }
+  },
   "phases": {
     "-1": {
-      "skill": "methodology",
-      "required_model": "opus|sonnet",
-      "fallback": "any — methodology is model-agnostic within Opus/Sonnet tier",
-      "note": "Collegium rule (Step 4): designer ≠ reviewer MUST be different models. Steps 0, 0.0, 1 and 2.5 are live human interviews, not generation — the agent asks and waits."
+      "skill": "discovery process",
+      "profile": "reasoning_balanced",
+      "note": "The selected private or public discovery process may define additional independent roles. Human interviews remain human input."
     },
     "0": {
       "skill": "researcher",
-      "required_model": "opus|sonnet",
-      "workers": "deepseek-flash|flash",
-      "note": "Orchestrator/synthesis = Opus/Sonnet; parallel desk research workers = Flash"
+      "profile": "reasoning_balanced",
+      "roles": {"worker": "research_worker"},
+      "note": "Orchestration/synthesis and focused research workers use separately configurable profiles."
     },
-    "1": {
-      "skill": "grill-with-docs",
-      "required_model": "opus|sonnet",
-      "note": "Reasoning-heavy document analysis"
-    },
-    "2": {
-      "skill": "planning-with-files",
-      "required_model": "opus|sonnet",
-      "note": "PBS decomposition requires strong reasoning"
-    },
+    "1": {"skill": "grill-with-docs", "profile": "reasoning_balanced"},
+    "2": {"skill": "planning-with-files", "profile": "reasoning_high"},
     "2-PM": {
       "skill": "pm-review",
-      "required_model": "opus",
-      "note": "Isolated context gate — must NOT be same model as planner"
+      "profile": "review_acceptance",
+      "note": "Use an isolated context that did not author the plan."
     },
-    "2b": {
-      "skill": "grace-init, grace-plan",
-      "required_model": "opus",
-      "note": "GRACE architecture requires Opus reasoning depth"
-    },
+    "2b": {"skill": "grace-init, grace-plan", "profile": "reasoning_high"},
     "3": {
       "skill": "design-first",
-      "required_model": "sonnet|opus",
-      "note": "Wireframes = Sonnet; Approval gate = Opus (different models)"
+      "roles": {"designer": "implementation_ui", "acceptor": "review_acceptance"},
+      "distinct_roles": [["designer", "acceptor"]]
     },
-    "4": {
-      "skill": "contract",
-      "required_model": "opus",
-      "note": "Contract negotiation requires Opus authority"
-    },
+    "4": {"skill": "contract", "profile": "reasoning_high"},
     "4b": {
       "skill": "judge",
-      "required_model": "opus",
-      "note": "Isolated evaluator context — must NOT share context with contract writer"
+      "profile": "review_acceptance",
+      "note": "The evaluator context must be isolated from the contract writer."
     },
-    "4c": {
-      "skill": "visualization",
-      "required_model": "opus",
-      "note": "Architect renders plan as Mermaid before issues. Human-supervision gate."
-    },
-    "5": {
-      "skill": "to-issues",
-      "required_model": "sonnet|opus",
-      "note": "Issue slicing is cost-effective on Sonnet"
-    },
+    "4c": {"skill": "visualization", "profile": "reasoning_balanced"},
+    "5": {"skill": "to-issues", "profile": "reasoning_balanced"},
     "5.5": {
       "skill": "scaffold",
-      "required_model": "opus",
-      "note": "Strong model writes the GRACE-marked skeleton (contracts, blocks, log anchors, IMPL directives, mocks) — NO business logic. The skeleton is the implementer's few-shot: code, not a spec. This is the last phase on the expensive tier; from here the token spend moves down to the implementer. Skip for bugfixes."
+      "profile": "reasoning_high",
+      "note": "Produces code-native boundaries and no business logic."
     },
     "6": {
       "skill": "build-loop, tdd",
-      "required_model": "deepseek-v4|deepseek|glm",
-      "implementer": "deepseek-v4|deepseek",
-      "test_owner": "glm|deepseek",
-      "acceptor": "opus",
-      "note": "Collegium enforced: implementer ≠ test-owner ≠ acceptor. The implementer fills NOT_IMPLEMENTED blocks in the /scaffold skeleton; it must not alter contracts, block names or log anchors (those are what the evaluator grades). Greenfield without a scaffold = the implementer invents the boundaries — expect drift."
+      "roles": {
+        "implementer": "implementation_general",
+        "test_owner": "review_test",
+        "acceptor": "review_acceptance"
+      },
+      "distinct_roles": [["implementer", "test_owner", "acceptor"]],
+      "note": "All collegium roles resolve to different concrete model IDs."
     },
     "7": {
       "skill": "judge feature, code-review-expert",
-      "required_model": "opus|sonnet",
-      "note": "Judge (isolated Opus) → code-review-expert → ship. Combined verification + review phase."
+      "profile": "review_acceptance",
+      "note": "Feature evaluation uses an isolated context; code review may use a separately bound reviewer when desired."
     }
   },
-  "_operator_note": "To switch models: edit ~/.config/opencode/opencode.json model field, or use OpenCode's model selector. After switch, agent re-reads this file on next phase invocation."
+  "_operator_note": "Edit the project's model-bindings.json to change providers, runtimes, or model generations. Do not edit phase routing merely to rename a model."
 }

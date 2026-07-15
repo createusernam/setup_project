@@ -50,4 +50,19 @@ for path in human_docs:
         non_english.append(str(path.relative_to(ROOT)))
 assert not non_english, "public human docs must be English: " + ", ".join(non_english)
 
+model_policy_targets = [
+    ROOT / "model-routing.json",
+    ROOT / "agents" / "team.md",
+    ROOT / "docs" / "agent" / "COMPAT.md",
+    ROOT / "templates" / "project" / "model-bindings.json",
+]
+concrete_model_names = ("op" + "us", "son" + "net", "deep" + "seek", "g" + "lm", "gem" + "ini", "g" + "rok")
+model_hits = []
+for path in model_policy_targets:
+    text = path.read_text(encoding="utf-8").lower()
+    for name in concrete_model_names:
+        if name in text:
+            model_hits.append(f"{path.relative_to(ROOT)}: {name}")
+assert not model_hits, "concrete model name leaked into public routing policy: " + ", ".join(model_hits)
+
 print("PASS public vocabulary and English human-doc boundary")

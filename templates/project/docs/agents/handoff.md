@@ -15,7 +15,9 @@ checks, and file references instead of reconstructing them from chat history.
   "timestamp": "ISO timestamp",
 
   "agent_role": "orchestrator | researcher | backend-implementer | frontend-implementer | test-owner | judge",
-  "model_used": "claude-opus | deepseek-v4 | glm-5.2 | deepseek-flash | claude-sonnet",
+  "capability_profile": "implementation_general",
+  "runtime": "configured-runtime",
+  "model_id": "provider/model-id",
 
   "task_ref": "issue #N or PBS_LEAF_id",
   "goal_achieved": true,
@@ -63,7 +65,9 @@ checks, and file references instead of reconstructing them from chat history.
 | Field | Required | Notes |
 |-------|----------|-------|
 | `agent_role` | yes | Who produced this handoff |
-| `model_used` | yes | Collegium auditing — verify different models per role |
+| `capability_profile` | yes | Why this model was selected for the role |
+| `runtime` | yes | Runtime/CLI used for the call |
+| `model_id` | yes | Concrete configured identity; compare across distinct roles |
 | `task_ref` | yes | Link to PBS leaf or GitHub issue |
 | `goal_achieved` | yes | Boolean; if false, explain in `blocked_on` |
 | `done` | yes | What was completed (human-readable, specific) |
@@ -80,24 +84,28 @@ checks, and file references instead of reconstructing them from chat history.
 
 ## Usage Per Role
 
-### After IMPLEMENTER (DeepSeek V4 / GLM 5.2)
+### After IMPLEMENTER (`implementation_general` or `implementation_ui` binding)
 
 ```json
 {
   "agent_role": "backend-implementer",
-  "model_used": "deepseek-v4",
+  "capability_profile": "implementation_general",
+  "runtime": "configured-runtime",
+  "model_id": "provider/implementation-model",
   "collegium_verdict": "needs-review",
   "next_agent": "test-owner",
   "next_agent_goal": "Verify implementation against contract.json criteria. Run tests. Flag any issue in uncertain_about."
 }
 ```
 
-### After TEST OWNER (GLM 5.2)
+### After TEST OWNER (`review_test` binding)
 
 ```json
 {
   "agent_role": "test-owner",
-  "model_used": "glm-5.2",
+  "capability_profile": "review_test",
+  "runtime": "configured-review-runtime",
+  "model_id": "provider/test-model",
   "collegium_verdict": "agreed | disagreed",
   "collegium_notes": "Disagreed: missing rate limit test. Implementation ignores burst scenario.",
   "next_agent": "orchestrator | implementer",
@@ -105,12 +113,14 @@ checks, and file references instead of reconstructing them from chat history.
 }
 ```
 
-### After JUDGE (Opus, isolated)
+### After JUDGE (`review_acceptance` binding, isolated context)
 
 ```json
 {
   "agent_role": "judge",
-  "model_used": "claude-opus",
+  "capability_profile": "review_acceptance",
+  "runtime": "configured-acceptance-runtime",
+  "model_id": "provider/acceptance-model",
   "collegium_verdict": "PASS | CONDITIONAL | FAIL",
   "collegium_notes": "CONDITIONAL: add integration test for token refresh flow.",
   "next_agent": "implementer | done",
@@ -123,7 +133,7 @@ checks, and file references instead of reconstructing them from chat history.
 ## Collegium Health Check
 
 A healthy collegium shows:
-- `model_used` is different across implementer → test-owner → judge
+- `model_id` is different across implementer → test-owner → judge when the route requires distinct roles
 - test-owner has at least one `collegium_note` (even "no issues found, all criteria met")
 - `uncertain_about` is addressed by the next agent or escalated to human
 

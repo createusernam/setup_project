@@ -5,7 +5,7 @@
 - `README.md` — entry point, install instructions for Claude Code / OpenCode / terminal
 - `docs/human/SETUP.md` — manual install steps, GRACE setup, troubleshooting
 - `docs/human/PIPELINE.md` — canonical pipeline process (Phase -1 to Phase 7)
-- `docs/agent/COMPAT.md` — cross-model/CLI compatibility: Claude Code, OpenCode+DeepSeek, terminal
+- `docs/agent/COMPAT.md` — cross-runtime compatibility and provider-neutral capability bindings
 - `docs/agent/PROMPT-FORMAT.md` — structured prompt standard (PCAM, Belief State, metamodel check)
 - `skills/grace-ontology/SKILL.md` — GRACE annotation vocabulary (agent-facing)
 - `skills/visualization/SKILL.md` — human-track views (Mermaid/HTML) at pipeline gates; concern → scale → notation
@@ -58,7 +58,7 @@ must resolve to the same canonical source.
 
 Apply to every agent in every phase:
 
-- **Model routing.** Before a pipeline phase, run `bash scripts/model-check.sh <phase>` — it prints that phase's `required_model` (+ collegium roles) from `model-routing.json`. A shell hook can't detect the running model, so the halt is **agent-cooperative**: identify your own model (system prompt), and on mismatch output `MODEL MISMATCH: phase [N] requires [required], current is [detected]. Switch and re-run.` then STOP. Collegium phases (6 build; 3 design): verify implementer ≠ test-owner ≠ acceptor are different models.
+- **Model routing.** `model-routing.json` declares provider-neutral capability profiles and role independence; each project maps profiles to concrete runtime/model IDs in `model-bindings.json`. Before a phase, run `bash scripts/model-check.sh <phase> <project>`. Confirm the running identity matches the resolved binding and STOP on mismatch. A shell cannot detect the generating model. Collegium phases also require the configured roles to resolve to different model IDs.
 - **Route skills before tools.** Apply `docs/agent/SKILL-ROUTING.md` in every CLI. A named or clearly matching skill is mandatory. In particular, load `planning-with-files` when the user asks to save and execute a plan, calls the work a large task, the task likely needs 5+ tool calls, or it must survive a CLI/provider switch.
 - **Arithmetic → calculator tool.** All arithmetic goes through the JS-sandbox calculator tool — never mental math. Token-by-token generation is unreliable for numbers.
 - **Delete superseded code immediately.** Don't leave dead/orphaned code "just in case" — agents read existing code as few-shot examples, so dead code becomes a false template that propagates. `/code-review-expert` flags it MUST-FIX.

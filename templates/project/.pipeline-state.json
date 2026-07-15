@@ -24,8 +24,7 @@
     "contract_locked": {"by": null, "at": null},
     "human_acceptance": {"by": null, "at": null}
   },
-  "models_required": [],
-  "models_available": ["opus", "sonnet"],
+  "model_bindings_file": "model-bindings.json",
   "grace_full": {"enabled": true, "reason": null},
   "open_questions": [],
   "updated_at": null,

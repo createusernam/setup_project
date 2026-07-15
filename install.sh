@@ -164,9 +164,9 @@ else
   echo "    Run: claude mcp add playwright -- npx -y @playwright/mcp@latest --headless"
 fi
 
-# 7. Check OpenCode + DeepSeek (parity path — skips cleanly if you only use Claude Code)
+# 7. Check OpenCode (provider/model selection remains in the user's runtime config)
 echo ""
-echo "→ Checking OpenCode + DeepSeek..."
+echo "→ Checking OpenCode..."
 OC_CFG="$HOME/.config/opencode/opencode.json"
 if command -v opencode >/dev/null 2>&1; then
   echo "  ✓ opencode found ($(opencode --version 2>/dev/null | head -1))"
@@ -186,14 +186,7 @@ if [ -f "$OC_CFG" ]; then
 else
   echo "  ⚠ $OC_CFG not found. Minimal config:"
   echo "      { \"instructions\": [\"$SETUP_DIR/docs/human/PIPELINE.md\", \"$SETUP_DIR/docs/agent/COMPAT.md\"],"
-  echo "        \"model\": \"deepseek/deepseek-v4-pro\", \"small_model\": \"deepseek/deepseek-v4-flash\" }"
-fi
-# DeepSeek/OpenRouter key — OpenCode needs one to actually run DeepSeek
-if [ -f "$HOME/.opencode/openrouter-key" ] || [ -n "${DEEPSEEK_API_KEY:-}" ] || [ -n "${OPENROUTER_API_KEY:-}" ]; then
-  echo "  ✓ DeepSeek/OpenRouter key present"
-else
-  echo "  ⚠ No DeepSeek/OpenRouter key found:"
-  echo "    echo 'sk-...' > ~/.opencode/openrouter-key   (or export DEEPSEEK_API_KEY / OPENROUTER_API_KEY)"
+  echo "        \"model\": \"provider/model-id\", \"small_model\": \"provider/fast-model-id\" }"
 fi
 # END_BLOCK_OPTIONAL_CHECKS
 
@@ -210,15 +203,14 @@ echo "  → /researcher only for remaining factual gaps → /grill-with-docs →
 echo "  → /grace-init + /grace-plan → /design-first → /contract → /judge → /to-issues"
 echo "  → /scaffold → /build-loop | /tdd → /judge feature → /code-review-expert → ship"
 echo ""
-echo "Model routing (model-routing.json · scripts/model-check.sh <phase>):"
-echo "  Orchestrator / architect / scaffold → Claude Opus"
-echo "  Backend code   → DeepSeek V4        Frontend code → GLM 5.2 / DeepSeek V4"
-echo "  Research work  → DeepSeek Flash     Judge         → Claude Opus (isolated)"
+echo "Model routing:"
+echo "  model-routing.json defines capability profiles and role independence"
+echo "  each project/model-bindings.json selects concrete runtime/model IDs"
 echo ""
 echo "Gates callable from any project dir:"
 echo "  bash ~/.claude/scripts/pipeline-preflight.sh <phase>   # inputs, models, human gates"
 echo "  bash ~/.claude/scripts/grace-lint.sh                   # GRACE Lite markup"
-echo "  bash ~/.claude/scripts/model-check.sh <phase>          # required model for a phase"
+echo "  bash ~/.claude/scripts/model-check.sh <phase> <project> # resolve configured profile binding"
 echo ""
 echo "Cross-runtime task continuation:"
 echo "  workctl doctor"

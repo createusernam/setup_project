@@ -1,6 +1,6 @@
 ---
 name: scaffold
-description: Generate GRACE-marked module skeletons from the plan and contract, so the cheap implementer model gets a code few-shot instead of a spec. Writes MODULE_CONTRACT, FUNCTION_CONTRACT, typed signatures, START_BLOCK anchors, block-anchored logs and IMPL directives; leaves block bodies unimplemented. Runs on the strong model (Opus) between /to-issues and the build cycle. Use when starting Phase 6 on a greenfield feature, or when user says "scaffold", "write the skeleton", "prototype the modules", "prepare for the implementer". Not for bugfixes.
+description: Generate GRACE-marked module skeletons from the plan and contract, so the implementer gets a code few-shot instead of a spec. Writes MODULE_CONTRACT, FUNCTION_CONTRACT, typed signatures, START_BLOCK anchors, block-anchored logs and IMPL directives; leaves block bodies unimplemented. Runs with the reasoning_high binding between /to-issues and the build cycle. Use for greenfield features, not bugfixes.
 user-invocable: true
 allowed-tools: "Read Write Edit Bash Glob Grep Agent TaskCreate TaskUpdate TaskList"
 metadata:
@@ -17,7 +17,7 @@ The obvious way to drive a cheap implementer model is: strong model writes a spe
 the spec and writes the code. It is also the wrong way, for two measured reasons:
 
 1. **A spec costs about what the code costs.** A verbose strong model spends roughly 80% of the
-   target code's token count writing the spec for it. You paid Opus prices to *describe* the work, and
+   target code's token count writing the spec for it. You paid a high-reasoning model to *describe* the work, and
    you still have to pay to have it done.
 2. **A spec is a weak prior; code is a strong one.** In-context learning is imitation. Give a model a
    prose spec and it composes from general priors. Give it a half-written module — real imports, real
@@ -51,7 +51,7 @@ actually good at it, rather than being demanded from the weakest link in the cha
 4. If contract.json.is_frontend: design-contract.json exists and is attested
 5. Git working tree is clean — the scaffold lands as one reviewable commit
 6. You are running on the routed model for this phase:
-   bash ~/.claude/scripts/model-check.sh 5.5     # → opus
+   bash ~/.claude/scripts/model-check.sh 5.5 .   # → configured reasoning_high binding
 ```
 
 Halt with a precise diagnostic if any check fails. A scaffold generated from an unattested contract
@@ -217,7 +217,7 @@ The scaffold only pays off if the cheap model respects it:
 | Don't | Do instead |
 |-------|-----------|
 | Write a spec doc for the implementer | Write the skeleton — it *is* the spec, in the form the model imitates |
-| Implement "the easy parts" while scaffolding | Leave every block empty; you're paying Opus rates for boundaries, not for loops |
+| Implement "the easy parts" while scaffolding | Leave every block empty; this phase pays for boundaries, not loops |
 | Leave plausible stub returns (`return []`) | `throw new Error("NOT_IMPLEMENTED: …")` — a half-built path must fail loudly, not look green |
 | Bare `TODO` | `IMPL:` with the constraint and the criterion it serves |
 | Invent block names | Take them from `verification-plan.xml` / the trace criteria |
@@ -227,7 +227,7 @@ The scaffold only pays off if the cheap model respects it:
 ## Portable invocation
 
 The artifact is plain source files — portable everywhere. What differs is only who writes them:
-run `/scaffold` on the strong model (Claude Code with Opus; OpenCode with an Opus/Sonnet route), then
+run `/scaffold` with the configured `reasoning_high` binding, then
 switch the model to the implementer tier for Phase 6. In a single-model setup the skill still helps —
 the skeleton pass and the logic pass are different tasks, and separating them keeps the contracts
 intact — but the cost argument disappears, so the gain is quality only.

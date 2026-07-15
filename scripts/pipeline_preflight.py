@@ -2,7 +2,7 @@
 # START_MODULE_CONTRACT
 # PURPOSE: Evaluate one pipeline transition against the canonical machine contract and project ledger.
 # SCOPE: Risk policy, artifact attestation, semantic JSON outcomes, invalidation, model availability, and human gates.
-# DEPENDS: Python standard library, pipeline-machine.json, model-routing.json, project .pipeline-state.json.
+# DEPENDS: Python standard library, pipeline-machine.json, model-routing.json, project model-bindings.json and .pipeline-state.json.
 # END_MODULE_CONTRACT
 """Fail-closed transition evaluator for the setup pipeline."""
 
@@ -42,6 +42,13 @@ def applicable(requirement: dict[str, Any], tier: str) -> bool:
     return tier in requirement.get("tiers", ["T0", "T1", "T2", "T3", "T4"])
 
 
+def resolve_binding(bindings: dict[str, Any], profile: str) -> tuple[str, str] | None:
+    entry = bindings.get(profile, {})
+    if not isinstance(entry, dict) or entry.get("enabled", True) is False or not entry.get("model_id"):
+        return None
+    return str(entry.get("runtime", "")), str(entry["model_id"])
+
+
 def evaluate(root: Path, project: Path, phase: str) -> tuple[list[str], list[str], dict[str, Any]]:
     machine = json.loads((root / "pipeline-machine.json").read_text(encoding="utf-8"))
     routing = json.loads((root / "model-routing.json").read_text(encoding="utf-8"))
@@ -53,7 +60,7 @@ def evaluate(root: Path, project: Path, phase: str) -> tuple[list[str], list[str
     if not ledger_path.is_file():
         if phase != "-1":
             return [f"no ledger at {ledger_path}"], [], transition
-        ledger: dict[str, Any] = {"models_available": [], "artifacts": {}, "human_gates": {}, "policy": {"risk_tier": machine["risk_policy"]["default"], "skipped_gates": []}}
+        ledger: dict[str, Any] = {"model_bindings_file": "model-bindings.json", "artifacts": {}, "human_gates": {}, "policy": {"risk_tier": machine["risk_policy"]["default"], "skipped_gates": []}}
     else:
         ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
 
@@ -68,22 +75,34 @@ def evaluate(root: Path, project: Path, phase: str) -> tuple[list[str], list[str
         failures.append(f"policy: phase {phase} is not on the {tier} route")
 
     route = routing.get("phases", {}).get(phase, {})
-    available = set(ledger.get("models_available", []))
-    required_model = route.get("required_model", "")
-    if required_model and not any(model.strip() in available for model in required_model.split("|")):
-        failures.append(f"model: phase needs one of [{required_model}] but models_available={sorted(available)}")
-    roles: dict[str, str] = {}
-    for role in ("implementer", "test_owner", "acceptor"):
-        spec = route.get(role)
-        if not spec:
-            continue
-        matches = [model.strip() for model in spec.split("|") if model.strip() in available]
-        if not matches:
-            failures.append(f"model: collegium role {role!r} needs one of [{spec}]")
+    binding_path = project / ledger.get("model_bindings_file", "model-bindings.json")
+    bindings: dict[str, Any] = {}
+    if not binding_path.is_file():
+        failures.append(f"model: binding file missing at {binding_path}")
+    else:
+        try:
+            bindings = json.loads(binding_path.read_text(encoding="utf-8")).get("bindings", {})
+        except (json.JSONDecodeError, AttributeError) as error:
+            failures.append(f"model: cannot read bindings at {binding_path}: {error}")
+
+    resolved: dict[str, str] = {}
+    required_profile = route.get("profile", "")
+    if required_profile:
+        binding = resolve_binding(bindings, required_profile)
+        if binding is None:
+            failures.append(f"model: capability profile {required_profile!r} is unbound or disabled")
         else:
-            roles[role] = matches[0]
-    if roles and len(set(roles.values())) != len(roles):
-        failures.append(f"collegium: roles must be different models, got {roles}")
+            resolved["primary"] = binding[1]
+    for role, profile in route.get("roles", {}).items():
+        binding = resolve_binding(bindings, profile)
+        if binding is None:
+            failures.append(f"model: role {role!r} capability profile {profile!r} is unbound or disabled")
+        else:
+            resolved[role] = binding[1]
+    for group in route.get("distinct_roles", []):
+        values = [resolved.get(role) for role in group]
+        if None not in values and len(set(values)) != len(values):
+            failures.append(f"collegium: roles {group} must resolve to different model IDs, got {values}")
 
     records = ledger.get("artifacts", {})
     for requirement in transition.get("requires", []):
@@ -125,7 +144,7 @@ def evaluate(root: Path, project: Path, phase: str) -> tuple[list[str], list[str
 
     if tier in {"T3", "T4"} and phase not in machine["risk_policy"]["tiers"][tier]["required_phases"]:
         warnings.append(f"phase {phase} is outside the canonical {tier} route")
-    return failures, warnings, {**transition, "tier": tier, "required_model": required_model}
+    return failures, warnings, {**transition, "tier": tier, "required_profile": required_profile, "resolved_models": resolved}
 
 
 def main() -> int:
@@ -144,7 +163,8 @@ def main() -> int:
             print(f"  ✗ {failure}")
         return 1
     print("✓ policy ✓ models ✓ semantic inputs/attestations ✓ human gate")
-    print(f"required model: {transition.get('required_model', '')} (agent must confirm its running model)")
+    print(f"required profile: {transition.get('required_profile', '')}; resolved models: {transition.get('resolved_models', {})}")
+    print("agent must confirm its running runtime/model matches the resolved binding for its role")
     return 0
 
 

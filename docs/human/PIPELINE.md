@@ -285,7 +285,9 @@ The plan owner supplies the view; a separate human reviewer approves it.
 
 ## Model routing
 
-`model-routing.json` owns models and collegium roles only. It does not own transition semantics.
+`model-routing.json` owns capability profiles and collegium role-independence policy only.
+Each project's `model-bindings.json` maps those profiles to user-selected runtimes and concrete
+model IDs. Neither file owns transition semantics.
 
 ```bash
 bash scripts/model-check.sh <phase>

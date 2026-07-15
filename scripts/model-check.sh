@@ -1,44 +1,65 @@
 #!/usr/bin/env bash
 # START_MODULE_CONTRACT
-# PURPOSE: Surface the configured model and collegium roles for a pipeline phase.
-# SCOPE: Read model-routing.json and print agent-verifiable routing requirements without claiming OS enforcement.
-# DEPENDS: Bash, Python 3, and model-routing.json.
+# PURPOSE: Resolve provider-neutral phase capability profiles through project-local model bindings.
+# SCOPE: Read model-routing.json and model-bindings.json; print agent-verifiable runtime/model selections and role independence.
+# DEPENDS: Bash, Python 3, model-routing.json, and project model-bindings.json.
 # END_MODULE_CONTRACT
-# model-check.sh — surface the required model for a pipeline phase from model-routing.json.
-#
-# Usage:  bash scripts/model-check.sh <phase>      # e.g. -1, 0, 2, 2-PM, 4, 6
-#
-# HONEST LIMITATION: a shell script cannot detect which model is currently running. This SURFACES
-# the requirement; the agent (which does know its own model from the system prompt) must confirm the
-# match and switch if wrong. Enforcement is agent-cooperative, not OS-level. This is why there is no
-# blocking hook — a hook that "enforces model per phase" without model detection would be theatre.
 set -euo pipefail
-# Resolve through the symlink install.sh puts at ~/.claude/scripts/ (see install.sh §2).
+
 SELF="$(readlink -f "${BASH_SOURCE[0]}")"
 ROOT="$(cd "$(dirname "$SELF")/.." && pwd)"
-MR="$ROOT/model-routing.json"
 PHASE="${1:-}"
-[ -f "$MR" ] || { echo "model-check: model-routing.json not found at $MR"; exit 2; }
-[ -n "$PHASE" ] || { echo "usage: model-check.sh <phase>   (e.g. -1, 0, 2, 2-PM, 4, 6)"; exit 2; }
+PROJECT="${2:-.}"
+MR="$ROOT/model-routing.json"
+BINDINGS="$PROJECT/model-bindings.json"
 
-python3 - "$MR" "$PHASE" <<'PY'
+[ -n "$PHASE" ] || { echo "usage: model-check.sh <phase> [project_dir]"; exit 2; }
+[ -f "$MR" ] || { echo "model-check: routing not found at $MR"; exit 2; }
+[ -f "$BINDINGS" ] || { echo "model-check: bindings not found at $BINDINGS (copy templates/project/model-bindings.json and configure it)"; exit 2; }
+
+python3 - "$MR" "$BINDINGS" "$PHASE" <<'PY'
 import json, sys
-mr, phase = sys.argv[1], sys.argv[2]
-d = json.load(open(mr))
-p = d.get("phases", {}).get(phase)
-if not p:
-    print(f"model-check: phase '{phase}' not in model-routing.json. Known: {', '.join(d.get('phases', {}))}")
-    sys.exit(2)
-print(f"=== Phase {phase} · {p.get('skill','?')} ===")
-print(f"required model: {p.get('required_model','?')}")
-for k in ("workers", "implementer", "test_owner", "acceptor", "fallback"):
-    if k in p:
-        print(f"{k}: {p[k]}")
-if p.get("note"):
-    print(f"note: {p['note']}")
-print()
-print("AGENT VERIFY: confirm your current model matches 'required model' above.")
-print(f"On mismatch, output: MODEL MISMATCH: phase {phase} requires {p.get('required_model')}, current is <detected> — switch and re-run. Then STOP.")
-if any(k in p for k in ("implementer", "test_owner", "acceptor")):
-    print("Collegium phase: also confirm implementer / test-owner / acceptor are DIFFERENT models.")
+routing_path, bindings_path, phase = sys.argv[1:]
+routing = json.load(open(routing_path, encoding="utf-8"))
+configured = json.load(open(bindings_path, encoding="utf-8")).get("bindings", {})
+route = routing.get("phases", {}).get(phase)
+if not route:
+    print(f"model-check: phase {phase!r} unknown; known: {', '.join(routing.get('phases', {}))}")
+    raise SystemExit(2)
+
+failures = []
+resolved = {}
+
+def bind(label, profile):
+    entry = configured.get(profile, {})
+    model_id = entry.get("model_id", "") if isinstance(entry, dict) else ""
+    runtime = entry.get("runtime", "") if isinstance(entry, dict) else ""
+    enabled = entry.get("enabled", True) if isinstance(entry, dict) else False
+    if not model_id or not enabled:
+        failures.append(f"{label}: profile {profile!r} is unbound or disabled")
+        return
+    resolved[label] = model_id
+    print(f"{label}: profile={profile} → runtime={runtime or '<unspecified>'} model={model_id}")
+
+print(f"=== Phase {phase} · {route.get('skill', '?')} ===")
+if route.get("profile"):
+    bind("primary", route["profile"])
+for role, profile in route.get("roles", {}).items():
+    bind(role, profile)
+
+for group in route.get("distinct_roles", []):
+    values = [resolved.get(role) for role in group]
+    if None not in values and len(set(values)) != len(values):
+        failures.append(f"roles {group} must resolve to different model IDs, got {values}")
+
+if route.get("note"):
+    print(f"note: {route['note']}")
+if failures:
+    print("HALT — model binding failed:")
+    for failure in failures:
+        print(f"  - {failure}")
+    raise SystemExit(1)
+
+print("AGENT VERIFY: confirm the running runtime/model matches the resolved binding for your role.")
+print("On mismatch, stop, switch the user-configured binding/runtime, and re-run this check.")
 PY

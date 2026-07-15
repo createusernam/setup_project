@@ -98,6 +98,9 @@ status: draft
 
 ### Step 6 — git init and AGENTS.md symlink
 
+Before the first routed phase, fill `model-bindings.json` with the project's concrete runtime/model
+IDs. Startup leaves bindings empty because provider selection belongs to the user/environment.
+
 ```bash
 cd "$PROJECT_PATH"
 ln -sf CLAUDE.md AGENTS.md      # OpenCode reads AGENTS.md
@@ -122,10 +125,12 @@ Print summary:
 ✓ GRACE Lite: mandatory; GRACE Full planning is enabled by default
 ✓ AGENTS.md → CLAUDE.md (OpenCode ready)
 ✓ product_brief.md: metadata initialized
+✓ model-bindings.json: created; configure profiles before routed phases
 ✓ Next step: fill the neutral 9-section brief using your discovery process; then /judge product-brief
 
 Key files:
   ~/[project-name]/product_brief.md        ← portable discovery-to-delivery handoff
+  ~/[project-name]/model-bindings.json     ← user-owned runtime/model selection
   ~/[project-name]/CLAUDE.md              ← project config
   ~/[project-name]/AGENTS.md              ← → CLAUDE.md symlink
   ~/[project-name]/docs/agents/domain.md  ← domain terminology

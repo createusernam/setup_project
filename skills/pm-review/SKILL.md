@@ -17,7 +17,7 @@ brief promised?** — before a single line of code.
 ## Rules
 
 - **Isolated context, different model.** Run this on a model that did NOT write `task_plan.md`
-  (per `model-routing.json`: Opus, isolated). A planner reviewing its own plan rubber-stamps it.
+  (per `model-routing.json`: `review_acceptance`, isolated). A planner reviewing its own plan rubber-stamps it.
   If you are the same context that just planned, say so and recommend the user re-run on a fresh
   context / different model.
 - **Read-only on the plan.** This gate judges; it does not edit `task_plan.md`. On REVISE, it hands
@@ -70,7 +70,8 @@ or a specific REVISE list the planner can act on.
 <output_format>
 {
   "gate": "2-PM",
-  "reviewer_model": "opus",
+  "reviewer_profile": "review_acceptance",
+  "model_id": "[resolved binding]",
   "isolated_context": true,
   "status": "APPROVE | REVISE",
   "checks": {
@@ -97,7 +98,8 @@ to Phase 3 (`/design-first`, if frontend) or Phase 4 (`/contract`).
 ```json
 {
   "agent_role": "pm-review",
-  "model_used": "opus",
+  "capability_profile": "review_acceptance",
+  "model_id": "[resolved binding]",
   "task_ref": "task_plan.md",
   "goal_achieved": true,
   "done": ["reviewed plan against product_brief §7/§8", "5 checks run"],
@@ -112,5 +114,5 @@ to Phase 3 (`/design-first`, if frontend) or Phase 4 (`/contract`).
 ## Note on the reviewer
 
 There is no separate `product-manager` code agent — this skill *is* the PM gate. Run it on an
-isolated Opus context (a fresh session or a sub-agent via the `Agent` tool) so the reviewer is not
+isolated `review_acceptance` context (a fresh session or a sub-agent) so the reviewer is not
 the model that authored the plan. That separation is the whole point of the gate.

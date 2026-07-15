@@ -206,7 +206,7 @@ This is why the rubric must exist **before** prototyping, not after.
 | Ship without calibration images for subjective criteria | Calibrate or downgrade weight to ≤1 |
 | Hand-edit `design-contract.json` and re-attest | Re-run `/design-rubric` to update properly |
 
-## Portable invocation (OpenCode, DeepSeek, etc.)
+## Portable invocation (any supported CLI/model)
 
 The `design-contract.json` artifact is portable across any CLI/model. What's CLI-specific:
 

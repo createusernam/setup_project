@@ -3,7 +3,7 @@
 
 ```mermaid
 flowchart LR
-    Pm1["-1 · methodology"]
+    Pm1["-1 · discovery process"]
     P0["0 · researcher"]
     P1["1 · grill-with-docs"]
     P2["2 · planning-with-files"]
@@ -34,7 +34,7 @@ flowchart LR
 
 | Phase | Skill | Tiers | Semantic inputs | Human gate |
 |---|---|---|---|---|
-| -1 | `methodology` | T3, T4 | — | `—` |
+| -1 | `discovery process` | T3, T4 | — | `—` |
 | 0 | `researcher` | T2, T3, T4 | `product_brief.md`<br>`evidence-handoff.json/decision` delivery | `—` |
 | 1 | `grill-with-docs` | T2, T3, T4 | `product_brief.md`<br>`evidence-handoff.json/decision` delivery | `—` |
 | 2 | `planning-with-files` | T2, T3, T4 | `product_brief.md`<br>`evidence-handoff.json/validation_stage` ['alpha', 'live'] | `—` |
@@ -50,3 +50,4 @@ flowchart LR
 | 7 | `judge feature, code-review-expert` | T0, T1, T2, T3, T4 | `build-evidence.json/status` complete<br>`rollout-plan.json/rollback/defined` True | `human_acceptance` |
 
 Risk policy: T0=mechanical · T1=bounded_bugfix · T2=small_reversible_feature · T3=cross_module_or_high_risk · T4=safety_regulatory_irreversible
+Conditional phases: T2 phase 0: only when material factual gaps remain · T3 phase 0: only when material factual gaps remain · T3 phase 3: only when the change includes frontend behavior · T4 phase 0: only when material factual gaps remain · T4 phase 3: only when the change includes frontend behavior

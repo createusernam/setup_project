@@ -36,7 +36,14 @@ def render(machine: dict) -> str:
             expected = requirement.get("equals", requirement.get("in", ""))
             inputs.append(f'`{requirement["artifact"]}{semantic}` {expected}'.strip())
         lines.append(f'| {phase} | `{transition["skill"]}` | {", ".join(transition["tiers"])} | {"<br>".join(inputs) or "—"} | `{transition.get("human_gate", "—")}` |')
-    lines.extend(["", "Risk policy: " + " · ".join(f"{tier}={data['label']}" for tier, data in machine["risk_policy"]["tiers"].items()), ""])
+    lines.extend(["", "Risk policy: " + " · ".join(f"{tier}={data['label']}" for tier, data in machine["risk_policy"]["tiers"].items())])
+    conditions = []
+    for tier, data in machine["risk_policy"]["tiers"].items():
+        for phase, condition in data.get("conditional_phases", {}).items():
+            conditions.append(f"{tier} phase {phase}: {condition}")
+    if conditions:
+        lines.append("Conditional phases: " + " · ".join(conditions))
+    lines.append("")
     return "\n".join(lines)
 
 

@@ -21,7 +21,8 @@ python3 - "$MR" "$BINDINGS" "$PHASE" <<'PY'
 import json, sys
 routing_path, bindings_path, phase = sys.argv[1:]
 routing = json.load(open(routing_path, encoding="utf-8"))
-configured = json.load(open(bindings_path, encoding="utf-8")).get("bindings", {})
+document = json.load(open(bindings_path, encoding="utf-8"))
+configured = document.get("bindings", {})
 route = routing.get("phases", {}).get(phase)
 if not route:
     print(f"model-check: phase {phase!r} unknown; known: {', '.join(routing.get('phases', {}))}")
@@ -29,17 +30,45 @@ if not route:
 
 failures = []
 resolved = {}
+known_profiles = set(routing.get("profiles", {}))
+known_runtimes = {"claude", "codex", "opencode", "api", "manual", "self-hosted"}
+
+if document.get("version") != "1":
+    failures.append("bindings version must be '1'")
+if not isinstance(configured, dict):
+    failures.append("bindings must be an object")
+    configured = {}
+for profile in configured:
+    if profile not in known_profiles:
+        failures.append(f"unknown capability profile {profile!r}")
+
+def valid_runtime(value):
+    if value in known_runtimes:
+        return True
+    if not isinstance(value, str) or not value.startswith("custom:"):
+        return False
+    slug = value[7:]
+    return bool(slug) and all(char.islower() or char.isdigit() or char in "._-" for char in slug) and slug[0].isalnum()
 
 def bind(label, profile):
     entry = configured.get(profile, {})
     model_id = entry.get("model_id", "") if isinstance(entry, dict) else ""
     runtime = entry.get("runtime", "") if isinstance(entry, dict) else ""
     enabled = entry.get("enabled", True) if isinstance(entry, dict) else False
-    if not model_id or not enabled:
+    if not isinstance(enabled, bool):
+        failures.append(f"{label}: profile {profile!r} enabled must be true or false")
+        return
+    if not enabled:
         failures.append(f"{label}: profile {profile!r} is unbound or disabled")
         return
+    if not valid_runtime(runtime):
+        failures.append(f"{label}: profile {profile!r} runtime must be claude|codex|opencode|api|manual|self-hosted|custom:<slug>")
+        return
+    if not isinstance(model_id, str) or not model_id or any(char.isspace() for char in model_id):
+        failures.append(f"{label}: profile {profile!r} model_id must be the exact non-empty runtime identifier without whitespace")
+        return
     resolved[label] = model_id
-    print(f"{label}: profile={profile} → runtime={runtime or '<unspecified>'} model={model_id}")
+    print(f"{label}: profile={profile} → runtime={runtime} model={model_id}")
 
 print(f"=== Phase {phase} · {route.get('skill', '?')} ===")
 if route.get("profile"):

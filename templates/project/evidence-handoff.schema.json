@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "evidence-handoff.schema.json",
+  "title": "Evidence handoff",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "validation_stage", "decision", "claims", "open_questions", "assumptions", "cheapest_next_experiment"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "version": {"const": "1"},
+    "validation_stage": {"enum": ["discovery", "alpha", "live"]},
+    "decision": {"enum": ["stop", "alpha", "delivery"]},
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "status", "evidence_refs", "falsifier"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "status": {"enum": ["hypothesis", "case_supported", "segment_supported", "behavior_supported", "commercially_supported"]},
+          "evidence_refs": {"type": "array"},
+          "falsifier": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "open_questions": {"type": "array"},
+    "assumptions": {"type": "array"},
+    "cheapest_next_experiment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hypothesis", "prototype", "observable_result", "promotion_rule", "kill_rule"],
+      "properties": {
+        "hypothesis": {"type": "string"},
+        "prototype": {"type": "string"},
+        "observable_result": {"type": "string"},
+        "promotion_rule": {"type": "string"},
+        "kill_rule": {"type": "string"}
+      }
+    }
+  }
+}

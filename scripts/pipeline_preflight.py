@@ -15,6 +15,9 @@ from pathlib import Path
 from typing import Any
 
 
+KNOWN_RUNTIMES = {"claude", "codex", "opencode", "api", "manual", "self-hosted"}
+
+
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
@@ -42,11 +45,24 @@ def applicable(requirement: dict[str, Any], tier: str) -> bool:
     return tier in requirement.get("tiers", ["T0", "T1", "T2", "T3", "T4"])
 
 
+def valid_runtime(value: Any) -> bool:
+    if value in KNOWN_RUNTIMES:
+        return True
+    if not isinstance(value, str) or not value.startswith("custom:"):
+        return False
+    slug = value[7:]
+    return bool(slug) and slug[0].isalnum() and all(char.islower() or char.isdigit() or char in "._-" for char in slug)
+
+
 def resolve_binding(bindings: dict[str, Any], profile: str) -> tuple[str, str] | None:
     entry = bindings.get(profile, {})
-    if not isinstance(entry, dict) or entry.get("enabled", True) is False or not entry.get("model_id"):
+    if not isinstance(entry, dict) or entry.get("enabled") is not True:
         return None
-    return str(entry.get("runtime", "")), str(entry["model_id"])
+    runtime = entry.get("runtime")
+    model_id = entry.get("model_id")
+    if not valid_runtime(runtime) or not isinstance(model_id, str) or not model_id or any(char.isspace() for char in model_id):
+        return None
+    return runtime, model_id
 
 
 def evaluate(root: Path, project: Path, phase: str) -> tuple[list[str], list[str], dict[str, Any]]:
@@ -81,7 +97,16 @@ def evaluate(root: Path, project: Path, phase: str) -> tuple[list[str], list[str
         failures.append(f"model: binding file missing at {binding_path}")
     else:
         try:
-            bindings = json.loads(binding_path.read_text(encoding="utf-8")).get("bindings", {})
+            binding_document = json.loads(binding_path.read_text(encoding="utf-8"))
+            if binding_document.get("version") != "1":
+                failures.append("model: binding file version must be '1'")
+            bindings = binding_document.get("bindings", {})
+            if not isinstance(bindings, dict):
+                failures.append("model: bindings must be an object")
+                bindings = {}
+            unknown_profiles = sorted(set(bindings) - set(routing.get("profiles", {})))
+            if unknown_profiles:
+                failures.append(f"model: unknown capability profiles: {', '.join(unknown_profiles)}")
         except (json.JSONDecodeError, AttributeError) as error:
             failures.append(f"model: cannot read bindings at {binding_path}: {error}")
 

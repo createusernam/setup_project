@@ -31,6 +31,7 @@ def main() -> None:
     machine = json.loads((ROOT / "pipeline-machine.json").read_text(encoding="utf-8"))
     routing = json.loads((ROOT / "model-routing.json").read_text(encoding="utf-8"))
     assert set(machine["transitions"]) == set(routing["phases"]), "machine/model phase drift"
+    assert machine["transitions"]["-1"]["skill"] == "discovery process", "public phase -1 must not require a private skill"
     assert not any("requires" in phase or "human_gate" in phase for phase in routing["phases"].values()), "transition truth leaked back into model routing"
     serialized_routing = json.dumps(routing).lower()
     for concrete_name in ("op" + "us", "son" + "net", "deep" + "seek", "g" + "lm", "gem" + "ini", "g" + "rok"):
@@ -49,14 +50,15 @@ def main() -> None:
     with tempfile.TemporaryDirectory() as raw:
         project = Path(raw)
         write(project, "model-bindings.json", {
+            "version": "1",
             "bindings": {
-                "reasoning_high": {"runtime": "runtime-a", "model_id": "model-reasoning-high"},
-                "reasoning_balanced": {"runtime": "runtime-a", "model_id": "model-reasoning-balanced"},
-                "research_worker": {"runtime": "runtime-b", "model_id": "model-research"},
-                "implementation_general": {"runtime": "runtime-b", "model_id": "model-implementation"},
-                "implementation_ui": {"runtime": "runtime-c", "model_id": "model-ui"},
-                "review_test": {"runtime": "runtime-c", "model_id": "model-test"},
-                "review_acceptance": {"runtime": "runtime-a", "model_id": "model-acceptance"},
+                "reasoning_high": {"runtime": "claude", "model_id": "model-reasoning-high", "enabled": True},
+                "reasoning_balanced": {"runtime": "claude", "model_id": "model-reasoning-balanced", "enabled": True},
+                "research_worker": {"runtime": "codex", "model_id": "model-research", "enabled": True},
+                "implementation_general": {"runtime": "codex", "model_id": "model-implementation", "enabled": True},
+                "implementation_ui": {"runtime": "opencode", "model_id": "model-ui", "enabled": True},
+                "review_test": {"runtime": "opencode", "model_id": "model-test", "enabled": True},
+                "review_acceptance": {"runtime": "claude", "model_id": "model-acceptance", "enabled": True},
             }
         })
         contract_hash = write(project, "contract.json", {"scope": "x"})
@@ -104,6 +106,11 @@ def main() -> None:
         write(project, ".pipeline-state.json", ledger)
         failures, _, _ = module.evaluate(ROOT, project, "6")
         assert any("must resolve to different model IDs" in item for item in failures), failures
+
+        bindings["bindings"]["review_test"] = {"runtime": "typo-runtime", "model_id": "model-test", "enabled": True}
+        write(project, "model-bindings.json", bindings)
+        failures, _, _ = module.evaluate(ROOT, project, "6")
+        assert any("review_test" in item and "unbound or disabled" in item for item in failures), failures
     print("PASS pipeline semantic preflight tests")
 
 

@@ -55,7 +55,7 @@ for root_spec in "claude|$CLAUDE_SKILLS_DST" "agents|$AGENT_SKILLS_DST"; do
   done
 done
 
-for command_spec in "workctl|$SETUP_DIR/scripts/workctl.py" "setup-skill-doctor|$SETUP_DIR/scripts/check-skill-discovery.py"; do
+for command_spec in "workctl|$SETUP_DIR/scripts/workctl.py" "setup-skill-doctor|$SETUP_DIR/scripts/check-skill-discovery.py" "setup-pipeline|$SETUP_DIR/scripts/pipeline-state.py"; do
   command_name="${command_spec%%|*}"
   command_src="${command_spec#*|}"
   command_dst="$BIN_DST/$command_name"
@@ -127,7 +127,7 @@ done
 echo ""
 echo "→ Installing workctl and setup-skill-doctor in $BIN_DST..."
 mkdir -p "$BIN_DST"
-for command_spec in "workctl|$SETUP_DIR/scripts/workctl.py" "setup-skill-doctor|$SETUP_DIR/scripts/check-skill-discovery.py"; do
+for command_spec in "workctl|$SETUP_DIR/scripts/workctl.py" "setup-skill-doctor|$SETUP_DIR/scripts/check-skill-discovery.py" "setup-pipeline|$SETUP_DIR/scripts/pipeline-state.py"; do
   command_name="${command_spec%%|*}"
   command_src="${command_spec#*|}"
   command_dst="$BIN_DST/$command_name"
@@ -208,6 +208,9 @@ echo "  model-routing.json defines capability profiles and role independence"
 echo "  each project/model-bindings.json selects concrete runtime/model IDs"
 echo ""
 echo "Gates callable from any project dir:"
+echo "  setup-pipeline status                                  # inspect project ledger"
+echo "  setup-pipeline attest <artifact...>                   # hash/register changed artifacts"
+echo "  setup-pipeline sign <gate> --by <identity>            # record an explicit human gate"
 echo "  bash ~/.claude/scripts/pipeline-preflight.sh <phase>   # inputs, models, human gates"
 echo "  bash ~/.claude/scripts/grace-lint.sh                   # GRACE Lite markup"
 echo "  bash ~/.claude/scripts/model-check.sh <phase> <project> # resolve configured profile binding"

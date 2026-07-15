@@ -35,6 +35,10 @@ TARGETS = [
     ROOT / "templates" / "project" / "product_brief.md",
 ]
 
+assert "methodology" not in (ROOT / "pipeline-machine.json").read_text(encoding="utf-8").lower(), (
+    "public pipeline-machine must not route to the excluded private methodology skill"
+)
+
 hits = []
 for path in TARGETS:
     text = path.read_text(encoding="utf-8")

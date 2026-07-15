@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "model-bindings.schema.json",
+  "title": "Setup project model bindings",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "bindings"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "version": {"const": "1"},
+    "_instructions": {"type": "string"},
+    "bindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reasoning_high",
+        "reasoning_balanced",
+        "research_worker",
+        "implementation_general",
+        "implementation_ui",
+        "review_test",
+        "review_acceptance"
+      ],
+      "properties": {
+        "reasoning_high": {"$ref": "#/$defs/binding"},
+        "reasoning_balanced": {"$ref": "#/$defs/binding"},
+        "research_worker": {"$ref": "#/$defs/binding"},
+        "implementation_general": {"$ref": "#/$defs/binding"},
+        "implementation_ui": {"$ref": "#/$defs/binding"},
+        "review_test": {"$ref": "#/$defs/binding"},
+        "review_acceptance": {"$ref": "#/$defs/binding"}
+      }
+    }
+  },
+  "$defs": {
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runtime", "model_id", "enabled"],
+      "properties": {
+        "runtime": {
+          "type": "string",
+          "description": "Empty only while disabled; otherwise a canonical runtime or custom:<slug>.",
+          "anyOf": [
+            {"enum": ["", "claude", "codex", "opencode", "api", "manual", "self-hosted"]},
+            {"pattern": "^custom:[a-z0-9][a-z0-9._-]*$"}
+          ]
+        },
+        "model_id": {
+          "type": "string",
+          "description": "Exact runtime model identifier; empty only while disabled.",
+          "pattern": "^$|^[^\\s]+$"
+        },
+        "enabled": {"type": "boolean"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"enabled": {"const": true}}, "required": ["enabled"]},
+          "then": {
+            "properties": {
+              "runtime": {"minLength": 1},
+              "model_id": {"minLength": 1}
+            }
+          }
+        }
+      ]
+    }
+  }
+}

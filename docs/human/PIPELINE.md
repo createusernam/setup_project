@@ -56,6 +56,10 @@ decision is a valid outcome, but it is not permission to enter a delivery route.
 | T3 | cross-module, uncertain, or costly feature | plan, PM gate, GRACE Full, contract, visualization, issues, scaffold, collegium |
 | T4 | safety/regulatory/irreversible change | T3 plus risk/threat review, staged rollout, rollback, audit evidence |
 
+`researcher` (Phase 0) is conditional for T2–T4: use it only when material factual gaps remain.
+`design-first` (Phase 3) is conditional for T3–T4: use it only when the change includes frontend
+behavior. These are declared conditions, not undocumented skips.
+
 Record the tier and its rationale in `.pipeline-state.json`. A skipped optional step is a policy
 decision, not an undocumented omission. A phase outside the selected machine route cannot be entered
 by adding a skip record.
@@ -239,6 +243,15 @@ cross-module, data-migration, safety, or irreversible impact.
 ## State ledger and semantic preflight
 
 Every project uses `.pipeline-state.json` from `../../templates/project/.pipeline-state.json`.
+Use `setup-pipeline` to update it; do not hand-calculate or paste hashes:
+
+```bash
+setup-pipeline set-phase 4b
+setup-pipeline attest contract.json
+setup-pipeline sign contract_locked --by "name-or-account"
+setup-pipeline status
+```
+
 Before a phase, run:
 
 ```bash
@@ -257,8 +270,54 @@ The evaluator checks:
 The running agent must still confirm its actual model: the script validates the declared availability
 manifest, not the process identity.
 
-Record append-only harness events with `scripts/pipeline-event.py`. Useful fields include phase
+Record append-only harness events from the setup checkout with
+`python3 ~/setup/scripts/pipeline-event.py`. Useful fields include phase
 duration, gate wait, rework, cost, disagreement, rollback, escaped defects, and user outcome.
+
+## Run or resume a phase
+
+From the project root, use the same loop whether beginning or resuming work:
+
+```bash
+setup-pipeline status
+setup-pipeline set-phase 2
+bash ~/.claude/scripts/model-check.sh 2 .
+bash ~/.claude/scripts/pipeline-preflight.sh 2 .
+```
+
+If preflight passes, invoke the phase skill in the current runtime. Register every required artifact
+after the skill produces it; this records its exact bytes and invalidates registered downstream
+artifacts if an upstream hash changed.
+
+```bash
+setup-pipeline attest task_plan.md
+```
+
+Review before recording a human gate:
+
+```bash
+setup-pipeline sign viz_before_tickets --by "name-or-account"
+```
+
+| Phase | Invoke | Register or sign after success |
+|---|---|---|
+| -1 | selected discovery process; private installs may use `methodology` | `product_brief.md`, `evidence-handoff.json` |
+| 0 | `researcher` only when material factual gaps remain | research state plus changed brief/evidence |
+| 1 | `grill-with-docs` | `CONTEXT.md`, relevant ADRs |
+| 2 | `planning-with-files` | `task_plan.md` and its JSON mirror |
+| 2-PM | `pm-review` in an independent context | `pm-review.json` |
+| 2b | `grace-init`, then `grace-plan` | required GRACE XML files |
+| 3 | `design-first` for frontend work | approved design/API artifacts |
+| 4 | `contract` | `contract.json` (the skill also creates its lock file) |
+| 4b | `judge contract` in an independent context | `judge-report.json` |
+| 4c | `visualization` | `SUPERVISION.md` and the review view |
+| 5 | `to-issues` after `viz_before_tickets` is signed | `issues-manifest.json` |
+| 5.5 | `scaffold` | `scaffold-manifest.json` |
+| 6 | `build-loop` or `tdd` after `contract_locked` is signed | `build-evidence.json` |
+| 7 | `judge feature`, then `code-review-expert` | acceptance evidence; sign `human_acceptance` only after review |
+
+For a workctl-managed task, first run `workctl status <task-id>` and then use the ledger status and
+preflight. Never infer the current phase from chat history or file timestamps.
 
 ## Invalidation
 
@@ -290,7 +349,7 @@ Each project's `model-bindings.json` maps those profiles to user-selected runtim
 model IDs. Neither file owns transition semantics.
 
 ```bash
-bash scripts/model-check.sh <phase>
+bash ~/.claude/scripts/model-check.sh <phase> [project_dir]
 ```
 
 If the current runtime cannot satisfy the required model/role, stop and switch runtime or update the
@@ -311,6 +370,8 @@ Then:
 3. run `/judge product-brief` and `/grill-with-docs`;
 4. select the risk tier and continue through the machine route;
 5. use `workctl init <task-id> --goal "..."` if work may cross coding CLIs.
+
+Runtime-specific skill syntax and model-binding values are in `SETUP.md` and `../agent/COMPAT.md`.
 
 ## Common mistakes
 

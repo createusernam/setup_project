@@ -142,9 +142,24 @@ This checklist checks the handoff, not the private reasoning process that produc
 ## Re-entry into the pipeline
 
 1. Save the architecture section in `task_plan.md` and any required ADR/GRACE artifacts.
-2. Attest or register changed artifacts in `.pipeline-state.json` where the route requires it.
-3. Run `/pm-review`; it checks plan-to-brief traceability, coverage, risk, and scope.
-4. On `APPROVE`, continue to design/contract gates selected by `pipeline-machine.json`.
+2. From the project root, register the exact artifact bytes and select the PM phase:
+
+   ```bash
+   setup-pipeline attest task_plan.md
+   setup-pipeline set-phase 2-PM
+   bash ~/.claude/scripts/model-check.sh 2-PM .
+   bash ~/.claude/scripts/pipeline-preflight.sh 2-PM .
+   ```
+
+3. Invoke `pm-review` using the current runtime's skill syntax; it checks plan-to-brief
+   traceability, coverage, risk, and scope. The reviewer must use the resolved independent context.
+4. Register `pm-review.json`, rerun the next phase preflight, and continue only on `APPROVE`:
+
+   ```bash
+   setup-pipeline attest pm-review.json
+   setup-pipeline status
+   ```
+
 5. On `REVISE`, return specific gaps to the artifact owner. Do not repair missing product evidence
    by making an architecture assumption.
 

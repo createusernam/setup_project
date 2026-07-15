@@ -1,13 +1,14 @@
 {
+  "$schema": "./model-bindings.schema.json",
   "version": "1",
-  "_instructions": "Bind every capability profile used by your selected pipeline route to a concrete runtime/model ID. Values are examples of shape, not model recommendations. Keep distinct collegium roles on different model_id values.",
+  "_instructions": "Enable and fill every capability profile used by your selected route. runtime is one of claude, codex, opencode, api, manual, self-hosted, or custom:<slug>. model_id is the exact non-whitespace identifier selected in that runtime; use provider/model-id where the runtime does. Disabled unused profiles may stay empty. Collegium roles must use different model_id values.",
   "bindings": {
-    "reasoning_high": {"runtime": "", "model_id": "", "enabled": true},
-    "reasoning_balanced": {"runtime": "", "model_id": "", "enabled": true},
-    "research_worker": {"runtime": "", "model_id": "", "enabled": true},
-    "implementation_general": {"runtime": "", "model_id": "", "enabled": true},
-    "implementation_ui": {"runtime": "", "model_id": "", "enabled": true},
-    "review_test": {"runtime": "", "model_id": "", "enabled": true},
-    "review_acceptance": {"runtime": "", "model_id": "", "enabled": true}
+    "reasoning_high": {"runtime": "", "model_id": "", "enabled": false},
+    "reasoning_balanced": {"runtime": "", "model_id": "", "enabled": false},
+    "research_worker": {"runtime": "", "model_id": "", "enabled": false},
+    "implementation_general": {"runtime": "", "model_id": "", "enabled": false},
+    "implementation_ui": {"runtime": "", "model_id": "", "enabled": false},
+    "review_test": {"runtime": "", "model_id": "", "enabled": false},
+    "review_acceptance": {"runtime": "", "model_id": "", "enabled": false}
   }
 }

@@ -6,15 +6,15 @@
     "tiers": {
       "T0": {"label": "mechanical", "criteria": "typo, config, or deterministic edit; reversible; one boundary", "required_phases": ["7"]},
       "T1": {"label": "bounded_bugfix", "criteria": "reproduced defect with bounded blast radius", "required_phases": ["7"]},
-      "T2": {"label": "small_reversible_feature", "criteria": "small reversible feature across at most two boundaries", "required_phases": ["0", "1", "2", "4", "4b", "4c", "5", "6", "7"]},
-      "T3": {"label": "cross_module_or_high_risk", "criteria": "cross-module change, high uncertainty, or costly rework", "required_phases": ["-1", "0", "1", "2", "2-PM", "2b", "3", "4", "4b", "4c", "5", "5.5", "6", "7"]},
-      "T4": {"label": "safety_regulatory_irreversible", "criteria": "safety, regulatory, security, privacy, or irreversible impact", "required_phases": ["-1", "0", "1", "2", "2-PM", "2b", "3", "4", "4b", "4c", "5", "5.5", "6", "7"]}
+      "T2": {"label": "small_reversible_feature", "criteria": "small reversible feature across at most two boundaries", "required_phases": ["1", "2", "4", "4b", "4c", "5", "6", "7"], "conditional_phases": {"0": "only when material factual gaps remain"}},
+      "T3": {"label": "cross_module_or_high_risk", "criteria": "cross-module change, high uncertainty, or costly rework", "required_phases": ["-1", "1", "2", "2-PM", "2b", "4", "4b", "4c", "5", "5.5", "6", "7"], "conditional_phases": {"0": "only when material factual gaps remain", "3": "only when the change includes frontend behavior"}},
+      "T4": {"label": "safety_regulatory_irreversible", "criteria": "safety, regulatory, security, privacy, or irreversible impact", "required_phases": ["-1", "1", "2", "2-PM", "2b", "4", "4b", "4c", "5", "5.5", "6", "7"], "conditional_phases": {"0": "only when material factual gaps remain", "3": "only when the change includes frontend behavior"}}
     },
     "selection_factors": ["reversibility", "blast_radius", "uncertainty", "boundary_count", "cost_of_error"],
     "skip_contract": "Every omitted normally applicable gate must be listed in ledger.policy.skipped_gates with phase, reason, approved_by, and approved_at."
   },
   "transitions": {
-    "-1": {"skill": "methodology", "tiers": ["T3", "T4"], "requires": []},
+    "-1": {"skill": "discovery process", "tiers": ["T3", "T4"], "requires": []},
     "0": {
       "skill": "researcher", "tiers": ["T2", "T3", "T4"],
       "requires": [

@@ -19,7 +19,7 @@ Or without args — the skill will ask for project name.
 
 1. Creates `~/<project-name>/` directory structure
 2. Copies templates from `~/setup/templates/project/`
-3. Asks 5 setup questions
+3. Asks 4 setup questions
 4. Generates pre-filled `CLAUDE.md` for the project
 5. Initializes git repo
 6. Creates GitHub repo (if GH_TOKEN available)
@@ -99,7 +99,9 @@ status: draft
 ### Step 6 — git init and AGENTS.md symlink
 
 Before the first routed phase, fill `model-bindings.json` with the project's concrete runtime/model
-IDs. Startup leaves bindings empty because provider selection belongs to the user/environment.
+IDs. Startup leaves all bindings disabled because provider selection belongs to the
+user/environment. Allowed values are defined by the copied `model-bindings.schema.json` and
+`~/setup/docs/agent/COMPAT.md`.
 
 ```bash
 cd "$PROJECT_PATH"
@@ -125,7 +127,8 @@ Print summary:
 ✓ GRACE Lite: mandatory; GRACE Full planning is enabled by default
 ✓ AGENTS.md → CLAUDE.md (OpenCode ready)
 ✓ product_brief.md: metadata initialized
-✓ model-bindings.json: created; configure profiles before routed phases
+✓ model-bindings.json + schema: created; enable/configure profiles before routed phases
+✓ Next operator commands: setup-pipeline set-tier ... → model-check → pipeline-preflight
 ✓ Next step: fill the neutral 9-section brief using your discovery process; then /judge product-brief
 
 Key files:

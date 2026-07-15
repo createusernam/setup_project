@@ -1,5 +1,8 @@
 # Setup Guide
 
+The automated installer is supported on Linux and Windows through WSL2. Native Windows and macOS
+are not currently validated install targets; use WSL2 or the terminal/API artifact fallback.
+
 ## Install — Claude Code
 
 ### One command
@@ -18,7 +21,20 @@ Verify the cross-runtime controller:
 ```bash
 workctl doctor
 setup-skill-doctor
+setup-pipeline --help
 ```
+
+## Choose the runtime syntax
+
+| Runtime | What the human enters to invoke a skill |
+|---|---|
+| Claude Code | `/startup my-project` or another `/skill-name` command |
+| Codex | `$startup` with the project name in the request, or explicitly name the skill |
+| OpenCode | ask for the skill by name or use its native `skill` tool, then provide the arguments |
+| Terminal/API | load the complete `~/setup/skills/<skill-name>/SKILL.md`, then provide the goal and input files |
+
+Restart an already open CLI after installation. If a named skill is absent, run
+`setup-skill-doctor`; do not substitute a similarly named process.
 
 ---
 
@@ -90,14 +106,15 @@ bash ~/setup/install.sh
 `install.sh` links skills into both roots OpenCode scans; both resolve to the same source. Nothing
 else is needed for skill discovery.
 
-Add to `~/.config/opencode/opencode.json` (merge with existing). `instructions` is an
+Add to `~/.config/opencode/opencode.json` (merge with existing). Replace the example absolute path
+with the output of `cd ~/setup && pwd`; do not rely on `~` expansion inside JSON. `instructions` is an
 **array of file paths** OpenCode loads — not a prose string — and the paths include the
 `docs/` subdirs (`install.sh` prints the exact block with absolute paths):
 ```json
 {
   "instructions": [
-    "~/setup/docs/human/PIPELINE.md",
-    "~/setup/docs/agent/COMPAT.md"
+    "/home/you/setup/docs/human/PIPELINE.md",
+    "/home/you/setup/docs/agent/COMPAT.md"
   ],
   "model": "provider/model-id",
   "small_model": "provider/fast-model-id",
@@ -175,6 +192,19 @@ workctl init <task-id> --goal "Carry <task> through the pipeline"
 workctl start <task-id> --runtime claude  # launches the selected CLI
 ```
 
+Before the first routed phase, fill `model-bindings.json` using its adjacent schema and
+`docs/agent/COMPAT.md`, then record the route:
+
+```bash
+setup-pipeline set-tier T3 --reason "Cross-module feature with costly rework"
+bash ~/.claude/scripts/model-check.sh -1 .
+setup-pipeline status
+```
+
+Only project-local files are edited here. `model-routing.json` and `pipeline-machine.json` are
+setup-maintainer contracts: select from their declared values rather than changing them to bypass a
+gate. `COMPAT.md` gives the allowed `runtime`, `model_id`, and `enabled` values.
+
 ## Per-project first session
 
 ```bash
@@ -189,7 +219,7 @@ workctl start <task-id> --runtime claude  # launches the selected CLI
 # 4. Start discovery:
 /grill-with-docs
 
-# 5. Continue per ~/setup/docs/human/PIPELINE.md
+# 5. Continue per ~/setup/docs/human/PIPELINE.md; it contains the commands for each phase and resume.
 ```
 
 ## Mandatory GRACE Lite checklist

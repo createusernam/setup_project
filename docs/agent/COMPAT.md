@@ -73,9 +73,45 @@ Each project has `model-bindings.json`, created from the project template:
 
 Fill every profile used by the selected route. Unused profiles may remain unbound. Validate a phase:
 
+### Allowed values
+
+| Field | Allowed value |
+|---|---|
+| `version` | exactly `"1"` |
+| binding key | one of the seven profile names in the capability table above; no extra keys |
+| `enabled` | JSON boolean `true` or `false`; unused profiles stay `false` |
+| `runtime` | `claude`, `codex`, `opencode`, `api`, `manual`, `self-hosted`, or `custom:<lowercase-slug>` |
+| `model_id` | the exact non-empty, no-whitespace identifier selected by that runtime; use `provider/model-id` when the runtime uses that form |
+
+`runtime` names the surface that will actually run the phase. `api` means a direct provider API;
+`manual` means a human moves prompts/artifacts between surfaces; `self-hosted` means a locally
+served model; `custom:<slug>` is the explicit extension point. Empty strings are valid only while
+the binding is disabled.
+
+Example shape (identifiers are placeholders, not recommendations):
+
+```json
+{
+  "$schema": "./model-bindings.schema.json",
+  "version": "1",
+  "bindings": {
+    "reasoning_high": {"runtime": "claude", "model_id": "provider/reasoning-model", "enabled": true},
+    "reasoning_balanced": {"runtime": "codex", "model_id": "provider/general-model", "enabled": true},
+    "research_worker": {"runtime": "api", "model_id": "provider/research-model", "enabled": true},
+    "implementation_general": {"runtime": "codex", "model_id": "provider/code-model", "enabled": true},
+    "implementation_ui": {"runtime": "opencode", "model_id": "provider/ui-model", "enabled": true},
+    "review_test": {"runtime": "opencode", "model_id": "provider/test-model", "enabled": true},
+    "review_acceptance": {"runtime": "claude", "model_id": "provider/review-model", "enabled": true}
+  }
+}
+```
+
+The adjacent `model-bindings.schema.json` is authoritative for shape. `model-check.sh` additionally
+checks the profiles used by one phase and role independence.
+
 ```bash
-bash scripts/model-check.sh 2 /path/to/project
-bash scripts/pipeline-preflight.sh 6 /path/to/project
+bash ~/.claude/scripts/model-check.sh 2 /path/to/project
+bash ~/.claude/scripts/pipeline-preflight.sh 6 /path/to/project
 ```
 
 The scripts resolve profiles and enforce declared role separation. They cannot detect the model

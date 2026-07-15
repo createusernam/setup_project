@@ -1,4 +1,5 @@
 {
+  "$schema": "./evidence-handoff.schema.json",
   "version": "1",
   "validation_stage": "discovery",
   "decision": "alpha",

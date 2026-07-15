@@ -9,7 +9,23 @@
     "risk_policy": {
       "type": "object",
       "required": ["default", "tiers", "selection_factors", "skip_contract"],
-      "properties": {"default": {"enum": ["T0", "T1", "T2", "T3", "T4"]}, "tiers": {"type": "object", "minProperties": 5}}
+      "properties": {
+        "default": {"enum": ["T0", "T1", "T2", "T3", "T4"]},
+        "tiers": {
+          "type": "object",
+          "minProperties": 5,
+          "additionalProperties": {
+            "type": "object",
+            "required": ["label", "criteria", "required_phases"],
+            "properties": {
+              "label": {"type": "string", "minLength": 1},
+              "criteria": {"type": "string", "minLength": 1},
+              "required_phases": {"type": "array", "items": {"type": "string"}},
+              "conditional_phases": {"type": "object", "additionalProperties": {"type": "string", "minLength": 1}}
+            }
+          }
+        }
+      }
     },
     "transitions": {
       "type": "object",

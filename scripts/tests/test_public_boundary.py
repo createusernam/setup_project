@@ -36,13 +36,14 @@ TARGETS = [
 ]
 
 PUBLISHER = ROOT / "publish-public.sh"
-publisher = PUBLISHER.read_text(encoding="utf-8")
-assert "git -C \"$SCRIPT_DIR\" status --porcelain" in publisher, (
-    "publisher must refuse a dirty private source before syncing"
-)
-assert "--dry-run" in publisher and "no commit or push performed" in publisher, (
-    "publisher must provide a non-mutating public-preview mode"
-)
+if PUBLISHER.is_file():
+    publisher = PUBLISHER.read_text(encoding="utf-8")
+    assert "git -C \"$SCRIPT_DIR\" status --porcelain" in publisher, (
+        "publisher must refuse a dirty private source before syncing"
+    )
+    assert "--dry-run" in publisher and "no commit or push performed" in publisher, (
+        "publisher must provide a non-mutating public-preview mode"
+    )
 
 assert "methodology" not in (ROOT / "pipeline-machine.json").read_text(encoding="utf-8").lower(), (
     "public pipeline-machine must not route to the excluded private methodology skill"

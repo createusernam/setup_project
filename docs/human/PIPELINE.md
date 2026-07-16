@@ -16,8 +16,9 @@ with `python3 scripts/render-pipeline-views.py`; verify drift with `--check`.
 
 ## Core rules
 
-1. **Choose the risk tier first.** The route must match reversibility, blast radius, uncertainty,
-   affected boundaries, and cost of error.
+1. **Classify the delivery route after discovery.** Discovery may begin with an unclassified
+   project. Before entering the delivery route, choose a tier from evidenced reversibility, blast
+   radius, uncertainty, affected boundaries, and cost of error.
 2. **Carry intent in artifacts.** Briefs, plans, contracts, decisions, evidence, and handoffs live on
    disk; chat history is not a pipeline input.
 3. **Keep evidence status intact.** A planning or approval decision cannot turn an assumption into a
@@ -28,6 +29,10 @@ with `python3 scripts/render-pipeline-views.py`; verify drift with `--check`.
    from an independent context; build collegium roles use distinct models where required.
 6. **Keep human decisions legible.** Scope and architecture are visualized before tickets; contract
    lock and final acceptance remain explicit human gates.
+7. **Ask at the knowledge boundary.** Read code and approved artifacts first. Ask only when the next
+   transition depends on a decision owned by that person. Give a recommendation and consequences;
+   allow `unknown`/`deferred` when discovery or architecture has not produced the answer. Technical
+   surfaces are proposed and reviewed by technical roles, not invented by the product owner.
 
 ## Pipeline entry contract
 
@@ -207,11 +212,11 @@ workflow requires them.
 
 When `is_frontend: true`:
 
-1. `/design-first` creates a wireframe and stops for human approval.
-2. The approved wireframe defines the UI flow and data requirements.
-3. `api-contract.json` is derived from those requirements.
-4. `/design-rubric` creates or updates the project design contract when required.
-5. `/contract` references the approved design/API artifacts.
+1. `/design-rubric` creates the one-time project design contract when it is missing or stale. On a
+   greenfield project it may declare initial tokens; existing CSS tokens are evidence, not a prerequisite.
+2. `/design-first` creates a wireframe and stops for product-owner approval of flow, screens, and interactions.
+3. A technical reviewer derives and checks data requirements and `api-contract.json` from the approved experience.
+4. `/contract` references the approved design/API artifacts.
 
 Backend-only work skips the frontend design phase when the machine route permits it.
 
@@ -323,7 +328,7 @@ setup-pipeline sign viz_before_tickets --by "name-or-account"
 | 2 | `planning-with-files` | `task_plan.md` and its JSON mirror |
 | 2-PM | `pm-review` in an independent context | `pm-review.json` |
 | 2b | `grace-init`, then `grace-plan` | required GRACE XML files |
-| 3 | `design-first` for frontend work | approved design/API artifacts |
+| 3 | `design-rubric` when needed, then `design-first` for frontend work | approved design/API artifacts |
 | 4 | `contract` | `contract.json` (the skill also creates its lock file) |
 | 4b | `judge contract` in an independent context | `judge-report.json` |
 | 4c | `visualization` | `SUPERVISION.md` and the review view |
@@ -384,8 +389,9 @@ Then:
 1. complete `product_brief.md` and `evidence-handoff.json` using your preferred discovery process;
 2. run `/researcher` only for material factual gaps;
 3. run `/judge product-brief` and `/grill-with-docs`;
-4. select the risk tier and continue through the machine route;
-5. use `workctl init <task-id> --goal "..."` if work may cross coding CLIs.
+4. resolve product shape (`is_frontend`/`is_backend`) from the approved proposal and journey;
+5. select the risk tier, enable only required model bindings, and continue through the machine route;
+6. use `workctl init <task-id> --goal "..."` if work may cross coding CLIs.
 
 Runtime-specific skill syntax and model-binding values are in `SETUP.md` and `../agent/COMPAT.md`.
 

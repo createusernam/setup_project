@@ -28,7 +28,8 @@ the orchestrator.
 
 ## First project
 
-After `/startup <name>`, configure `model-bindings.json` and continue with the operator loop in
+After `/startup <name>`, complete discovery, classify the route, configure only the required
+`model-bindings.json` profiles, and continue with the operator loop in
 [`docs/human/PIPELINE.md`](docs/human/PIPELINE.md). If a task may move between coding CLIs, create
 its explicit identity with `workctl init <task-id> --goal "..."`; workctl does not replace pipeline
 phases or gates.

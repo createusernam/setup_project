@@ -5,7 +5,9 @@ description: Create new project from setup template — copies templates, pre-fi
 
 # /startup — Create New Project
 
-Creates a new project folder from the setup template, configures mandatory GRACE Lite plus default GRACE Full planning, and asks key setup questions.
+Creates a new project folder from the setup template and records only bootstrap decisions that are
+knowable before discovery. Product shape, stack, risk tier, and GRACE Full applicability are derived
+later from approved artifacts.
 
 ## Usage
 
@@ -19,19 +21,18 @@ Or without args — the skill will ask for project name.
 
 1. Creates `~/<project-name>/` directory structure
 2. Copies templates from `~/setup/templates/project/`
-3. Asks 4 setup questions
+3. Confirms the product display name and optional GitHub remote
 4. Generates pre-filled `CLAUDE.md` for the project
 5. Initializes git repo
-6. Creates GitHub repo (if GH_TOKEN available)
+6. Creates a GitHub repo only after explicit approval
 7. Initial commit
 
-## Questions asked
+## Bootstrap questions
 
 ```
-1. Product name?
-2. Is there a frontend? (y/n)
-3. Tech stack? (e.g. React + Express + Postgres)
-4. Is architecturally complex? (≥5 modules with cross-deps) (y/n)
+1. Product display name? (default: project name)
+2. Create a GitHub remote now? (default: no)
+3. If yes: which owner and visibility (`private|public`)?
 ```
 
 ## Instructions
@@ -40,7 +41,12 @@ Read this prompt before executing. Then execute step by step.
 
 ### Step 1 — gather inputs
 
-Ask the 4 questions above if not provided via args. Store answers.
+Use the project name as the display name unless the user distinguishes them. Ask the remote question
+only if the user has not already requested local-only or GitHub creation. Ask owner and visibility
+only when remote creation was approved.
+
+Do not ask for frontend/backend shape, tech stack, module count, architectural complexity, risk tier,
+GRACE mode, test stack, or observability here. Record those as deferred until discovery and planning.
 
 ### Step 2 — create directory structure
 
@@ -61,28 +67,29 @@ cp -r ~/setup/templates/project/. "$PROJECT_PATH/"
 
 ### Step 4 — fill CLAUDE.md
 
-Generate `$PROJECT_PATH/CLAUDE.md` with answers substituted:
+Generate `$PROJECT_PATH/CLAUDE.md` with the bootstrap values substituted and decision fields deferred:
 
 ```markdown
 # <project-name>
 
 ## Stack
-<tech-stack>
+Deferred until architecture planning. Do not infer a stack from the project name or idea.
 
 ## Config
-- is_frontend: <y/n>
-- is_architecturally_complex: <y/n>
+- is_frontend: null
+- is_architecturally_complex: null
+- grace_mode: pending
 
 ## Pipeline
 See ~/setup/docs/human/PIPELINE.md
 
 ## GRACE
-GRACE Lite is mandatory in source files; GRACE Full planning is on by default. See ~/setup/docs/agent/PROMPT-FORMAT.md for structured prompts.
+GRACE Lite is mandatory in source files; GRACE Full remains pending until route classification. See ~/setup/docs/agent/PROMPT-FORMAT.md for structured prompts.
 
 ## Commands
-- dev: <fill-in>
-- build: <fill-in>
-- test: <fill-in>
+- dev: pending
+- build: pending
+- test: pending
 ```
 
 ### Step 5 — initialize product_brief.md metadata
@@ -91,17 +98,16 @@ Pre-fill the YAML metadata block in `product_brief.md`:
 ```yaml
 product_name: "<product-name>"
 created: "<today ISO>"
-is_frontend: false
-is_backend: false
+is_frontend: null
+is_backend: null
 status: draft
 ```
 
 ### Step 6 — git init and AGENTS.md symlink
 
-Before the first routed phase, fill `model-bindings.json` with the project's concrete runtime/model
-IDs. Startup leaves all bindings disabled because provider selection belongs to the
-user/environment. Allowed values are defined by the copied `model-bindings.schema.json` and
-`~/setup/docs/agent/COMPAT.md`.
+Startup leaves model bindings disabled. After discovery determines the risk tier and route, enable
+only the capability profiles required by that route. Allowed values are defined by the copied
+`model-bindings.schema.json` and `~/setup/docs/agent/COMPAT.md`.
 
 ```bash
 cd "$PROJECT_PATH"
@@ -114,22 +120,25 @@ git commit -m "feat: init project from setup template"
 
 ### Step 7 — create GitHub repo (optional)
 
-If GH_TOKEN is set:
+Only if the user explicitly approved remote creation, verify `gh auth status`, then run:
 ```bash
-gh repo create "<github-account>/$PROJECT_NAME" --private --source=. --push
+gh repo create "<github-owner>/$PROJECT_NAME" --<private|public> --source=. --push
 ```
+
+If approval, owner, visibility, or authentication is missing, keep the project local and report the
+missing decision. Never treat `GH_TOKEN` as consent.
 
 ### Step 8 — report
 
 Print summary:
 ```
 ✓ Project created: ~/[project-name]
-✓ GRACE Lite: mandatory; GRACE Full planning is enabled by default
+✓ GRACE Lite: mandatory; GRACE Full: pending route classification
 ✓ AGENTS.md → CLAUDE.md (OpenCode ready)
 ✓ product_brief.md: metadata initialized
-✓ model-bindings.json + schema: created; enable/configure profiles before routed phases
-✓ Next operator commands: setup-pipeline set-tier ... → model-check → pipeline-preflight
-✓ Next step: fill the neutral 9-section brief using your discovery process; then /judge product-brief
+✓ model-bindings.json + schema: created; profiles remain disabled until the route is known
+✓ Product shape, stack, commands, risk tier, and GRACE mode: deferred
+✓ Next step: fill the neutral 9-section brief and evidence handoff using your discovery process
 
 Key files:
   ~/[project-name]/product_brief.md        ← portable discovery-to-delivery handoff
@@ -147,7 +156,7 @@ Key files:
   "data": {
     "project_path": "~/...",
     "github_url": "https://github.com/...",
-    "next_step": "complete neutral 9-section brief → judge product-brief"
+    "next_step": "complete neutral brief and evidence handoff → classify route → judge product-brief"
   },
   "issues": []
 }

@@ -15,8 +15,8 @@ created: ""                 # ISO 8601
 owner: ""                   # accountable person or team
 product_type: ""            # software | service | physical | hybrid | other
 delivery_format: ""         # web | mobile | API | offline | service | hybrid | other
-is_frontend: false
-is_backend: false
+is_frontend: null           # resolve from the approved proposal and user journey
+is_backend: null            # resolve before planning/contract handoff
 validation_stage: discovery # discovery | alpha | live
 decision: alpha             # stop | alpha | delivery
 status: draft               # draft | reviewed | pipeline-ready

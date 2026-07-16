@@ -9,7 +9,7 @@ flowchart LR
     P2["2 · planning-with-files"]
     P2mPM["2-PM · pm-review"]
     P2b["2b · grace-init, grace-plan"]
-    P3["3 · design-first"]
+    P3["3 · design-rubric, design-first"]
     P4["4 · contract"]
     P4b["4b · judge contract"]
     P4c["4c · visualization"]
@@ -40,7 +40,7 @@ flowchart LR
 | 2 | `planning-with-files` | T2, T3, T4 | `product_brief.md`<br>`evidence-handoff.json/validation_stage` ['alpha', 'live'] | `—` |
 | 2-PM | `pm-review` | T3, T4 | `task_plan.md`<br>`product_brief.md` | `—` |
 | 2b | `grace-init, grace-plan` | T3, T4 | `task_plan.md`<br>`pm-review.json/status` APPROVE | `—` |
-| 3 | `design-first` | T3, T4 | `task_plan.md`<br>`pm-review.json/status` APPROVE | `—` |
+| 3 | `design-rubric, design-first` | T3, T4 | `task_plan.md`<br>`pm-review.json/status` APPROVE | `—` |
 | 4 | `contract` | T2, T3, T4 | `task_plan.md`<br>`evidence-handoff.json/decision` delivery<br>`pm-review.json/status` APPROVE<br>`docs/knowledge-graph.xml`<br>`risk-review.json/verdict` PASS | `—` |
 | 4b | `judge contract` | T2, T3, T4 | `contract.json` | `—` |
 | 4c | `visualization` | T2, T3, T4 | `contract.json`<br>`judge-report.json/data/verdict` PASS | `—` |

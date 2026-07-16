@@ -38,14 +38,14 @@ If you're not sure, run `ls design-contract.json` in the project root. Present �
 
 ```
 PROJECT INITIALIZATION (one-time):
-  /grill-with-docs (initial)  
-    → /design-rubric  ←  YOU ARE HERE (only if frontend project)
-      → /planning-with-files (first feature)
+  /planning-with-files → /pm-review
+    → /design-rubric  ←  YOU ARE HERE (only if the approved plan includes frontend behavior)
+      → /design-first → /contract
 
 PER-FEATURE FLOW (subsequent):
   /grill-with-docs (with design lens, if frontend feature)  
-    → /planning-with-files  
-      → /contract (inherits design-contract.json)  
+    → /planning-with-files → /pm-review
+      → /design-first → /contract (inherits design-contract.json)
         → /to-issues → /build-loop or /tdd
 ```
 
@@ -69,11 +69,15 @@ Before writing criteria, list what tokens **already exist**:
 grep -hE '^\s*--[a-z-]+:' src/**/*.css src/**/*.scss 2>/dev/null | sort -u
 ```
 
-Criteria reference tokens **by name**. If a category is missing (no `--space-*`), present this to the user as a precondition:
+Criteria reference existing tokens **by name**. If a category is missing on a greenfield project,
+derive an initial token proposal from the approved design constraints and base rubric:
 
-> Project has no `--space-*` tokens defined. Design rubric can't enforce token usage without them. Add them to `src/styles/tokens.css` first, then re-run `/design-rubric`.
+> Project has no `--space-*` tokens yet. Proposed initial scale: [...], derived from [...]. The
+> technical design reviewer must approve or revise these token names before the rubric is attested.
 
-Don't proceed with a partial rubric.
+For an existing UI, missing expected tokens are drift: route the concrete migration to planning.
+For greenfield UI, the rubric may define initial tokens before implementation. Do not ask the
+product owner to author CSS variable names.
 
 ### 3. Compose the rubric
 
@@ -87,7 +91,10 @@ Pick relevant references for this project. Drop criteria that don't apply (e.g.,
 
 ### 4. Project-specific extensions
 
-After the base rubric, add project-specific criteria. Read `<project>/CLAUDE.md` for hints; ask the user to confirm before adding.
+After the base rubric, add project-specific criteria from the approved plan and journey. A product
+owner confirms behavior/tone consequences; a technical design reviewer confirms tokens,
+breakpoints, and enforceability. Ask only when a proposed extension introduces a new product-owned
+constraint not already approved.
 
 Examples per existing project:
 

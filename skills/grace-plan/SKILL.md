@@ -11,9 +11,9 @@ Run the GRACE architectural planning phase.
 
 ## Prerequisites
 - `docs/requirements.xml` must exist and have at least one UseCase
-- `docs/technology.xml` must exist with stack decisions
+- `docs/technology.xml` must exist; stack decisions may be `pending` on entry
 - `docs/verification-plan.xml` should exist as the shared verification artifact template
-- If requirements or technology are missing, tell the user to run `/grace-init` first
+- If requirements or the technology template are missing, tell the user to run `/grace-init` first
 - If the verification plan template is missing, recreate it before finalizing the planning artifacts
 
 ## Architectural Principles
@@ -76,6 +76,18 @@ Read `docs/requirements.xml`. For each UseCase, identify:
 - What data flows between them
 - What external services or APIs are involved
 
+### Phase 1.5: Resolve Technology Decisions
+
+Read constraints, existing manifests/source, operational environment, and approved architecture
+handoff. Reuse implemented choices when they satisfy the requirements. For unresolved decisions,
+propose 2-3 viable stacks and recommend one with explicit reliability, maintenance, verification,
+cost, and reversibility trade-offs.
+
+The product owner approves consequences and constraints. A named architect or technical reviewer
+approves runtime/framework, data, testing, and observability choices. If the same person holds both
+roles, record both authority scopes. Preserve `pending` when the evidence is insufficient; do not
+ask an open-ended "what stack do you want?" question.
+
 ### Phase 2: Design Module Architecture
 Propose a module breakdown. For each module, define:
 - Purpose (one sentence)
@@ -85,7 +97,8 @@ Propose a module breakdown. For each module, define:
 - Tentative source path, test path, and `verification-ref`
 - Semantic anchors the worker should reuse: module naming, function naming, and critical block names
 
-Present this to the user as a structured list and **wait for approval** before proceeding.
+Present this to the named architecture reviewer as a structured list. Ask only about unresolved
+trade-offs that would change boundaries; otherwise record review without a new questionnaire.
 
 ### Phase 3: Design Verification Surfaces
 Before finalizing the plan, derive the first verification draft:
@@ -96,7 +109,8 @@ Before finalizing the plan, derive the first verification draft:
 - note module-local checks plus any wave-level or phase-level follow-up
 - define stop conditions or replan triggers for the highest-risk modules so execution can halt cleanly instead of drifting
 
-Present this verification draft to the user as part of the same approval checkpoint. If the verification story is weak, revise the architecture before proceeding.
+Present this verification draft to the named test owner as part of the same review checkpoint. If
+the verification story is weak, revise the architecture before proceeding.
 
 ### Phase 4: Mental Walkthroughs
 Run "mental tests" for 2-3 key user scenarios step by step:
@@ -106,10 +120,10 @@ Run "mental tests" for 2-3 key user scenarios step by step:
 - Which logs or trace markers would prove the path was correct?
 - Are there circular dependencies?
 
-Present the walkthrough to the user. If issues are found — revise the architecture.
+Present the walkthrough to the architecture reviewer. If issues are found — revise the architecture.
 
 ### Phase 5: Generate Artifacts
-After user approval:
+After the named architecture reviewer and test owner approve their respective surfaces:
 
 1. Update `docs/development-plan.xml` with the full module breakdown, public module contracts, target paths, observability notes, data flows, and implementation order. Use unique ID-based tags: `M-xxx` for modules, `Phase-N` for phases, `DF-xxx` for flows, `step-N` for steps, and `V-M-xxx` references for verification.
 2. Update `docs/verification-plan.xml` with global verification policy, critical flows, module verification stubs, autonomy-gate evidence, and phase gates.
@@ -120,7 +134,9 @@ After user approval:
 ## Important
 - Do NOT generate any code during this phase
 - This phase produces ONLY planning documents and verification artifacts
-- Every architectural decision must be explicitly approved by the user
+- Every consequential architecture decision must have a named technical reviewer, rationale, and
+  authority scope. Product-owner approval is required only when the trade-off changes product scope,
+  user journey, cost/risk tolerance, or another product-owned constraint.
 
 ## Output Format
 Always produce:

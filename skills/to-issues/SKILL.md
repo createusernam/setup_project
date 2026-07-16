@@ -31,7 +31,7 @@ Slices may be 'HITL' or 'AFK'. HITL slices require human interaction, such as an
 - Prefer many thin slices over few thick ones
 </vertical-slice-rules>
 
-### 4. Quiz the user
+### 4. Verify the derived breakdown
 
 Present the proposed breakdown as a numbered list. For each slice, show:
 
@@ -40,18 +40,19 @@ Present the proposed breakdown as a numbered list. For each slice, show:
 - **Blocked by**: which other slices (if any) must complete first
 - **User stories covered**: which user stories this addresses (if the source material has them)
 
-Ask the user:
+Compare granularity, dependencies, HITL/AFK ownership, journeys, and criteria against the approved
+`task_plan.md`, `contract.json`, and `viz_before_tickets` view.
 
-- Does the granularity feel right? (too coarse / too fine)
-- Are the dependency relationships correct?
-- Should any slices be merged or split further?
-- Are the correct slices marked as HITL and AFK?
-
-Iterate until the user approves the breakdown.
+- If the breakdown is a faithful derivation, publish without another questionnaire; the signed
+  visualization gate is the approval.
+- If it exposes a real upstream conflict or missing decision, stop and show the smallest delta with
+  a recommendation. Return the change to the owning plan/contract/view, re-attest it, and invalidate
+  downstream state before continuing.
+- Never let an informal late answer silently override the contract.
 
 ### 5. Publish the issues to the issue tracker
 
-For each approved slice, publish a new issue to the issue tracker. Use the issue body template below. These issues are considered ready for AFK agents, so publish them with the correct triage label unless instructed otherwise.
+For each verified slice, publish a new issue to the issue tracker. Use the issue body template below. These issues are considered ready for AFK agents, so publish them with the correct triage label unless instructed otherwise.
 
 Publish issues in dependency order (blockers first) so you can reference real issue identifiers in the "Blocked by" field.
 

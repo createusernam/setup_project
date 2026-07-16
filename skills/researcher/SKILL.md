@@ -145,14 +145,17 @@ Whichever you pick: pass the belief-state in the prompt, don't inherit a huge co
 
 **When to run**: always when the research question comes from a human (not from another agent/skill). Skip for programmatic calls where the question is already structured.
 
-**What to ask** (3–6 questions, pick the relevant subset):
+First infer answers from the request and available artifacts. Ask only the smallest unresolved subset
+whose answer would materially change the research plan; a complete request may require no intake question.
 
-1. **Freshness**: how recent must sources be? (last month / last year / no constraint)
-2. **Scope boundary**: what specifically are we NOT researching? (reduces worker drift)
-3. **Must-cover angles**: any specific facets the user already knows they need?
-4. **Definition of done**: what does "good enough" look like? (a ranked list? a report? a single answer?)
-5. **Budget/width**: quick narrow answer or broad landscape scan?
-6. **Domain volatility**: is this a stable domain (regulated, slow-changing) or volatile (fast-moving tech)? Affects iteration depth.
+1. **Decision/use**: what decision or action will this research support?
+2. **Deliverable/definition of done**: what artifact and sufficiency threshold are required?
+3. **Scope boundary**: what is explicitly out of scope?
+4. **Must-cover angles**: which facets are mandatory but not evident from the goal?
+
+Infer domain volatility from the domain. Recommend a freshness window and research width from that
+volatility, decision risk, and requested artifact. Ask the user only when two materially different
+choices remain; include the recommended default and its consequence.
 
 Output: update `research-state.json.intake` with clarified intent, scope boundaries, and DoD. Then proceed to Phase -1 with the clarified question.
 
@@ -257,7 +260,9 @@ Retrieval budget: [max queries per worker, max depth pages]
 2. Identify N distinct research angles — adaptive count based on question breadth, not capped at 5
 3. For each angle: define scope, worker type, expected output format, explicit "out of scope" boundaries
 4. Identify what each worker needs from others (dependencies)
-5. Produce PLAN-CONFIRM with Mermaid visualization of the angle decomposition for human approval
+5. For broad, costly, or high-stakes research, produce PLAN-CONFIRM with a compact visualization of
+   the angle decomposition. For narrow work with no material ambiguity, record
+   `preapproved_by_request` and proceed without an extra approval question
 </task>
 <think_before_answering>
 Generate 3 decomposition approaches. Score each on:

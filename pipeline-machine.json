@@ -51,7 +51,7 @@
       ]
     },
     "3": {
-      "skill": "design-first", "tiers": ["T3", "T4"],
+      "skill": "design-rubric, design-first", "tiers": ["T3", "T4"],
       "requires": [
         {"artifact": "task_plan.md", "attested": true},
         {"artifact": "pm-review.json", "attested": true, "json_pointer": "/status", "equals": "APPROVE"}

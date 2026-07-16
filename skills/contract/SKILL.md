@@ -38,6 +38,11 @@ Vague spec → vague critique → the generator shrugs. **27 granular criteria**
 
 The contract is the **hard gate** before any autonomous cycle. `/build-loop` refuses to start if any required section is empty.
 
+Derive feature shape, user flow, integrations, and technical surfaces from approved upstream
+artifacts. Ask the product owner only about unresolved outcomes, scope, and acceptance boundaries;
+route stack/API/module questions to the named technical reviewer. A contract gap returns to its
+owning artifact rather than being silently renegotiated here.
+
 ## Prerequisites
 
 - `task_plan.md` from `/planning-with-files` — describes the scope and phases.

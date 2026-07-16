@@ -1,15 +1,15 @@
 {
   "$schema": "./pipeline-state.schema.json",
   "version": "2",
-  "phase": "-1",
+  "phase": "discovery",
   "policy": {
-    "risk_tier": "T3",
+    "risk_tier": null,
     "selection": {
-      "reversibility": "low",
-      "blast_radius": "cross-module",
-      "uncertainty": "high",
-      "boundary_count": 3,
-      "cost_of_error": "high"
+      "reversibility": null,
+      "blast_radius": null,
+      "uncertainty": null,
+      "boundary_count": null,
+      "cost_of_error": null
     },
     "skipped_gates": []
   },
@@ -26,9 +26,9 @@
     "human_acceptance": {"by": null, "at": null}
   },
   "model_bindings_file": "model-bindings.json",
-  "grace_full": {"enabled": true, "reason": null},
+  "grace_full": {"enabled": false, "reason": "pending route classification"},
   "open_questions": [],
   "updated_at": null,
-  "_note": "pipeline-machine.json owns transition truth. Set risk_tier from reversibility, blast radius, uncertainty, boundary count, and cost of error. Every skipped gate needs a reason and human approval. Artifact hashes and semantic verdicts are checked before each transition; invalidated artifacts fail closed. Append harness telemetry with scripts/pipeline-event.py.",
-  "_grace_full_note": "GRACE Full is on for T3/T4. A T0-T2 route or explicit skip still needs policy.skipped_gates evidence when a normally applicable phase is omitted."
+  "_note": "Discovery begins before route classification. After brief/evidence are sufficient, set risk_tier from reversibility, blast radius, uncertainty, boundary count, and cost of error. Every skipped gate needs a reason and human approval. Artifact hashes and semantic verdicts are checked before each transition; invalidated artifacts fail closed. Append harness telemetry with scripts/pipeline-event.py.",
+  "_grace_full_note": "Enable GRACE Full when the selected T3/T4 route requires Phase 2b; do not decide it during startup."
 }

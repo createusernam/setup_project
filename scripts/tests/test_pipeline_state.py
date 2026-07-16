@@ -6,7 +6,9 @@
 # END_MODULE_CONTRACT
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
 import json
 from pathlib import Path
 import tempfile
@@ -22,6 +24,20 @@ SPEC.loader.exec_module(module)
 
 
 class PipelineStateTests(unittest.TestCase):
+    def test_new_ledger_defers_route_and_status_does_not_offer_preflight(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            project = Path(raw)
+            module.command_init(SimpleNamespace(force=False), ROOT, project)
+            ledger = json.loads((project / ".pipeline-state.json").read_text(encoding="utf-8"))
+            self.assertEqual(ledger["phase"], "discovery")
+            self.assertIsNone(ledger["policy"]["risk_tier"])
+
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                module.command_status(SimpleNamespace(), ROOT, project)
+            self.assertIn("complete discovery artifacts", output.getvalue())
+            self.assertNotIn("pipeline-preflight", output.getvalue())
+
     def test_attest_change_invalidates_consumers_and_signs_gate(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             project = Path(raw)

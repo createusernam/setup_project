@@ -17,6 +17,9 @@ Design-first flow for frontend features. Forces wireframe agreement BEFORE API d
 
 ## Phases
 
+Before Phase 1, require `design-contract.json` for the first frontend feature. If it is missing, run
+`/design-rubric` from the approved plan; do not draw against unstated project rules.
+
 ### Phase 1 — Wireframe Generation
 
 Agent generates wireframe in structured markdown with:
@@ -79,7 +82,7 @@ Include: screen layout, components, interactions, data-per-screen.
 
 ### Phase 2 — Human Approval Gate
 
-**Hard stop.** Present wireframe to user. Ask:
+**Hard stop.** Present the wireframe to the product owner. Ask only about the experience they own:
 
 ```
 WIREFRAME READY FOR REVIEW:
@@ -87,9 +90,8 @@ WIREFRAME READY FOR REVIEW:
 [wireframe markdown]
 
 Questions:
-1. Does the user flow match product_brief §7 (user journey) primary_path?
-2. Any missing screens or interactions?
-3. Any data requirements that seem wrong?
+1. Does this flow produce the approved user outcome?
+2. Are any screens, states, or interactions missing or wrong?
 
 Reply APPROVE to continue or describe changes needed.
 ```
@@ -98,7 +100,8 @@ Do NOT proceed to Phase 3 until explicit APPROVE.
 
 ### Phase 3 — API Contract Generation
 
-From approved wireframe, derive minimal API contract.
+From the approved wireframe, derive minimal data requirements and API contract. A named technical
+reviewer checks field sources, types, error states, and boundary ownership; this is not a product-owner questionnaire.
 
 ```xml
 <role>
@@ -159,6 +162,9 @@ Every data_requirements field from the wireframe must be covered. Output valid J
 </critical_reminder>
 ```
 
+If the architecture handoff still leaves the stack `pending`, return to Phase 2/2b. Do not ask the
+product owner to choose a framework inside the design gate.
+
 ### Phase 4 — Save and Proceed
 
 1. Save wireframe to `docs/wireframe-<feature>.md`
@@ -169,9 +175,7 @@ Every data_requirements field from the wireframe must be covered. Output valid J
 ✓ Wireframe: docs/wireframe-<feature>.md
 ✓ API contract: api-contract.json (<N> endpoints)
 
-Next steps:
-1. Run /design-rubric (if first UI feature for this project)
-2. Run /contract with: inherits: ["design-contract.json", "api-contract.json"]
+Next: run /contract with: inherits: ["design-contract.json", "api-contract.json"]
 ```
 
 ## Output
@@ -185,6 +189,6 @@ Next steps:
     "endpoints_count": 0,
     "approved_by_human": true
   },
-  "next_action": "/design-rubric (if first UI) or /contract"
+    "next_action": "/contract"
 }
 ```

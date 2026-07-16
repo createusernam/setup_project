@@ -46,18 +46,22 @@ RIGHT (vertical):
 
 When exploring the codebase, use the project's domain glossary so that test names and interface vocabulary match the project's language, and respect ADRs in the area you're touching.
 
-Before writing any code:
+Before writing any code, derive the test surface from the attested contract. For a standalone bugfix,
+derive the public interface from existing code and the regression behavior from the reproduction.
 
-- [ ] Confirm with user what interface changes are needed
-- [ ] Confirm with user which behaviors to test (prioritize)
+- [ ] Confirm the interface against contract/existing public behavior
+- [ ] Derive behavior priority from must-pass criteria, critical paths, and the reproduced symptom
 - [ ] Identify opportunities for [deep modules](deep-modules.md) (small interface, deep implementation)
 - [ ] Design interfaces for [testability](interface-design.md)
 - [ ] List the behaviors to test (not implementation steps)
-- [ ] Get user approval on the plan
+- [ ] Escalate only an unresolved product-owned behavior or contract change
 
-Ask: "What should the public interface look like? Which behaviors are most important to test?"
+Do not ask an open-ended interface/test-priority question when approved artifacts or existing public
+behavior answer it. If two materially different behaviors remain valid, present both, recommend one,
+name the contract impact, and ask the owner of that behavior one blocking question.
 
-**You can't test everything.** Confirm with the user exactly which behaviors matter most. Focus testing effort on critical paths and complex logic, not every possible edge case.
+**You can't test everything.** Prioritize must-pass outcomes, critical paths, complex logic, and the
+regression symptom. A changed priority that alters acceptance returns to `/contract`.
 
 ### 2. Tracer Bullet
 

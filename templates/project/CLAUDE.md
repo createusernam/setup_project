@@ -4,25 +4,26 @@
 
 ## Stack
 
-- Frontend: REPLACE (or "none")
-- Backend: REPLACE (or "none")
-- Database: REPLACE (or "none")
-- Key dependencies: REPLACE
+- Status: deferred until architecture planning
+- Frontend: unknown
+- Backend: unknown
+- Database: unknown
+- Key dependencies: unknown
 
 ## Config
 
 ```yaml
-is_frontend: false
-is_architecturally_complex: false
-grace_mode: "full"   # full by default; lite only for a bugfix/single small edit with reason
+is_frontend: null
+is_architecturally_complex: null
+grace_mode: "pending"   # set from the selected route after discovery and planning
 ```
 
 ## Commands
 
 ```bash
-dev:   REPLACE
-build: REPLACE
-test:  REPLACE
+dev:   pending
+build: pending
+test:  pending
 ```
 
 ## Pipeline

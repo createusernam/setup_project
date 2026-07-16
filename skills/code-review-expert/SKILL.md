@@ -182,7 +182,9 @@ Description of the issue and suggested fix.
 
 ### 7) Next steps confirmation
 
-After presenting findings, ask user how to proceed:
+After presenting findings, ask how to proceed only when the original request did not already fix the
+mode. A read-only review ends with findings; an explicit fix request may proceed within its stated
+scope. Otherwise use:
 
 ```markdown
 ---

@@ -57,6 +57,11 @@ Apply to every agent in every phase:
 
 - **Model routing.** `model-routing.json` declares provider-neutral capability profiles and role independence; each project maps profiles to concrete runtime/model IDs in `model-bindings.json`. Before a phase, run `bash ~/.claude/scripts/model-check.sh <phase> <project>`. Confirm the running identity matches the resolved binding and STOP on mismatch. A shell cannot detect the generating model. Collegium phases also require the configured roles to resolve to different model IDs.
 - **Route skills before tools.** Apply `docs/agent/SKILL-ROUTING.md` in every CLI. A named or clearly matching skill is mandatory. In particular, load `planning-with-files` when the user asks to save and execute a plan, calls the work a large task, the task likely needs 5+ tool calls, or it must survive a CLI/provider switch.
+- **Ask only at the knowledge boundary.** Inspect code and approved artifacts before asking. Ask only
+  for a decision that is necessary for the next transition and owned by the respondent; give a
+  recommended answer and consequences. Preserve `unknown`/`deferred` when evidence does not exist,
+  and ask one blocking question per pause. Never ask a product owner to invent stack, module, test,
+  logging, or mock details that a technical role can derive and review.
 - **Arithmetic → calculator tool.** All arithmetic goes through the JS-sandbox calculator tool — never mental math. Token-by-token generation is unreliable for numbers.
 - **Delete superseded code immediately.** Don't leave dead/orphaned code "just in case" — agents read existing code as few-shot examples, so dead code becomes a false template that propagates. `/code-review-expert` flags it MUST-FIX.
 - **GRACE Lite is checked, not trusted.** Every source file carries a MODULE_CONTRACT. Verify with `bash ~/.claude/scripts/grace-lint.sh --changed` before you hand work on; `--profile autonomous` adds FUNCTION_CONTRACT on exports and block-anchored logs, and is a hard gate for `/build-loop`. The rule used to live only in prose here — and prose is not an enforcement mechanism.

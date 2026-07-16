@@ -1,11 +1,11 @@
 {
-  "_comment": "Fill this via /contract skill. This is the pre-flight template.",
+  "_comment": "Draft only. /contract must resolve all null decision fields before attestation.",
   "version": "2",
   "scope": "",
   "created": "",
-  "is_frontend": false,
-  "is_backend": false,
-  "is_architecturally_complex": false,
+  "is_frontend": null,
+  "is_backend": null,
+  "is_architecturally_complex": null,
   "linked_issue": null,
   "linked_plan": "task_plan.md",
   "linked_cjm": null,
@@ -25,5 +25,5 @@
   "criteria": [],
   "out_of_scope": [],
   "judge_required": true,
-  "grace_mode": "full"
+  "grace_mode": "pending"
 }

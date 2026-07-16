@@ -151,17 +151,20 @@ would otherwise invent differently in every module.
 If GRACE Full did not run, derive modules from `task_plan.md` + `contract.json.integrations` and say so
 in the summary — the skeleton is weaker without the graph, and the human should know.
 
-### 2. PLAN_CONFIRM
+### 2. DERIVATION_CHECK
 
-Present, before writing a single file:
+Derive and report, before writing a single file:
 
 - The file list (path → module ID → PBS leaf → target size)
 - For each file: block names, and which `trace`/`test` criteria they serve
 - What you will mock, and against which contract
-- Anything in the plan you cannot scaffold without guessing — **ask, don't invent**. A guess here is
+- Anything in the plan you cannot scaffold without guessing — **stop, don't invent**. A guess here is
   copied by the implementer into every module.
 
-Wait for APPROVE.
+If every item traces to attested plan/contract/GRACE artifacts, proceed without a duplicate generic
+approval: the visualization and contract locks already authorize the derived skeleton. If a material
+gap exists, route one concrete question to the technical owner of that artifact. Any answer that
+changes a boundary returns upstream for re-attestation before scaffold generation.
 
 ### 3. Generate
 

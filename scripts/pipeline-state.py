@@ -23,6 +23,7 @@ from typing import Any
 TIERS = ("T0", "T1", "T2", "T3", "T4")
 
 
+# START_BLOCK_LEDGER_IO
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
@@ -74,8 +75,10 @@ def load_ledger(project: Path) -> tuple[Path, dict[str, Any]]:
     if not path.is_file():
         raise ValueError(f"no ledger at {path}; run `setup-pipeline --project {project} init`")
     return path, read_json(path)
+# END_BLOCK_LEDGER_IO
 
 
+# START_BLOCK_LEDGER_COMMANDS
 def command_init(args: argparse.Namespace, root: Path, project: Path) -> int:
     target = project / ".pipeline-state.json"
     if target.exists() and not args.force:
@@ -169,10 +172,15 @@ def command_status(args: argparse.Namespace, root: Path, project: Path) -> int:
     for name, signature in sorted(ledger.get("human_gates", {}).items()):
         signature = signature if isinstance(signature, dict) else {}
         print(f"  {name}: {signature.get('by') or 'unsigned'} · {signature.get('at') or '—'}")
-    print(f"next check: bash ~/.claude/scripts/pipeline-preflight.sh {ledger.get('phase', '<phase>')} {project}")
+    if policy.get("risk_tier") is None:
+        print("next action: complete discovery artifacts, then select the evidence-based risk tier")
+    else:
+        print(f"next check: bash ~/.claude/scripts/pipeline-preflight.sh {ledger.get('phase', '<phase>')} {project}")
     return 0
+# END_BLOCK_LEDGER_COMMANDS
 
 
+# START_BLOCK_CLI
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--project", type=Path, default=Path.cwd(), help="project directory (default: current directory)")
@@ -219,3 +227,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+# END_BLOCK_CLI

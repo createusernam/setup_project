@@ -11,7 +11,7 @@
       "type": "object",
       "required": ["risk_tier", "skipped_gates"],
       "properties": {
-        "risk_tier": {"enum": ["T0", "T1", "T2", "T3", "T4"]},
+        "risk_tier": {"enum": [null, "T0", "T1", "T2", "T3", "T4"]},
         "skipped_gates": {"type": "array"}
       }
     },

@@ -162,11 +162,10 @@ The explicit task ID is required whenever a repository may contain multiple task
 ```bash
 /startup my-project-name
 
-# Answers these questions:
-# 1. Product name?
-# 2. Is there a frontend? (y/n)
-# 3. Tech stack?
-# 4. Is architecturally complex? (y/n)
+# Confirms only bootstrap decisions:
+# 1. Product display name? (defaults to project name)
+# 2. Create a GitHub remote now? (default: no)
+# 3. If yes: owner and visibility?
 ```
 
 ### OpenCode
@@ -175,11 +174,11 @@ The explicit task ID is required whenever a repository may contain multiple task
 "create a new project called my-project-name"
 ```
 
-Startup skill asks the same 4 questions, creates project, and:
+Startup asks the same minimal bootstrap questions, creates the project, and:
 - Copies all templates from `~/setup/templates/project/`
 - Generates `CLAUDE.md` with answers
 - Creates `AGENTS.md → CLAUDE.md` symlink (auto, no manual step needed)
-- `git init` + `gh repo create`
+- runs `git init`; `gh repo create` runs only after explicit approval
 
 ### After creation
 
@@ -192,12 +191,14 @@ workctl init <task-id> --goal "Carry <task> through the pipeline"
 workctl start <task-id> --runtime claude  # launches the selected CLI
 ```
 
-Before the first routed phase, fill `model-bindings.json` using its adjacent schema and
-`docs/agent/COMPAT.md`, then record the route:
+Do not choose a stack, frontend/backend shape, architecture complexity, risk tier, or GRACE mode in
+setup. Complete discovery first. When the brief and evidence make the work shape visible, classify
+the route, then enable only the model bindings required by that route:
 
 ```bash
-setup-pipeline set-tier T3 --reason "Cross-module feature with costly rework"
-bash ~/.claude/scripts/model-check.sh -1 .
+setup-pipeline set-tier <T0..T4> --reason "<evidence-based route rationale>"
+setup-pipeline set-phase <next-phase>
+bash ~/.claude/scripts/model-check.sh <next-phase> .
 setup-pipeline status
 ```
 
@@ -207,7 +208,8 @@ gate. `COMPAT.md` gives the allowed `runtime`, `model_id`, and `enabled` values.
 
 ## Setup ends; pipeline begins
 
-At this point the installation, runtime syntax, project bootstrap and model configuration are ready.
+At this point the installation, runtime syntax, and project bootstrap are ready. Model configuration
+is intentionally deferred until the route is known.
 Do not run the first phase from this guide: the shared operator loop, required artifacts, GRACE
 mode, attestation and resume procedure are owned by [`PIPELINE.md`](PIPELINE.md).
 

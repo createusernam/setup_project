@@ -14,11 +14,38 @@ Sources of truth:
 When prose and the machine contract disagree, the machine contract wins. Regenerate its human view
 with `python3 scripts/render-pipeline-views.py`; verify drift with `--check`.
 
+## Everyday use: ask the agent
+
+You are not expected to remember phase commands or reread this document whenever you return. Open
+Claude Code, Codex, or OpenCode in the project directory and ask an ordinary question, for example:
+
+> What stage are we at, and what should we do next?
+
+Equivalent wording such as “where did we stop?”, “let's continue the project”, or the same question
+in another language works too. The shared `pipeline-status` skill must inspect
+`.pipeline-state.json` and the current read-only preflight behind the scenes. It answers with:
+
+1. the current phase and what it means;
+2. READY, BLOCKED, or COMPLETE plus the relevant missing evidence or decision;
+3. one next action in human language, normally “ask me to run `<skill>`”;
+4. a separate task summary only when workctl-managed tasks actually exist.
+
+The agent must not infer phase from chat history or silently fill a specification gap. Commands in
+the rest of this runbook are the executable/reference layer for agents and troubleshooting, not a
+memorization requirement for the human.
+
+Project stage and task progress are different questions:
+
+- `pipeline-status` answers where the whole project is in the delivery pipeline;
+- `workctl` answers where one named task is and carries that task across a CLI/session boundary;
+- asking project status does not create a workctl task.
+
 ## Human operator path
 
-Use this section in order. You may enter from Claude Code, Codex, OpenCode, or the terminal/API
-fallback. The pipeline names portable skills; translate a skill name using the one runtime-syntax
-table in [`SETUP.md`](SETUP.md). Shell commands below are identical in every CLI terminal.
+Use this section for first-time bootstrap, decisions, or diagnostics. In daily use, ask the agent as
+described above. You may enter from Claude Code, Codex, OpenCode, or the terminal/API fallback. The
+pipeline names portable skills; translate a skill name using the one runtime-syntax table in
+[`SETUP.md`](SETUP.md). Shell commands below are identical in every CLI terminal.
 
 ### 1. Verify installation, then bootstrap one project
 
@@ -45,7 +72,8 @@ setup-pipeline values
 artifact statuses, capability profiles, runtimes, evidence enums, and schema paths. Use the adjacent
 schema when a field is not enumerated inline.
 
-If work may cross CLIs, optionally create durable task identity now:
+Only if one concrete task must later cross a CLI/session boundary or coexist with other active
+tasks, optionally create durable task identity now:
 
 ```bash
 workctl init my-task --goal "One concrete delivery outcome"
@@ -563,8 +591,9 @@ setup-pipeline sign viz_before_tickets --by "name-or-account"
 | 6 | `build-loop` or `tdd` after `contract_locked` is signed | `build-evidence.json` with status `complete` |
 | 7 | T0/T1: `code-review-expert`; T2–T4: `judge feature`, then `code-review-expert` | stable final reports, then `human_acceptance`, then `setup-preflight 7 . --completion` |
 
-For a workctl-managed task, first run `workctl status <task-id>` and then use the ledger status and
-preflight. Never infer the current phase from chat history or file timestamps.
+For a workctl-managed task, inspect `workctl status <task-id>` after pipeline status and preflight.
+Report task Done/Now/Next separately from the project phase. Never infer the current phase from chat
+history or file timestamps.
 
 ## Invalidation
 

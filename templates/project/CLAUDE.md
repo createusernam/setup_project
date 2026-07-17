@@ -30,6 +30,11 @@ test:  pending
 
 See `~/setup/docs/human/PIPELINE.md` for full process.
 
+When the user asks what stage the project is at, what comes next, where work stopped, or to continue,
+in any language, use the `pipeline-status` skill. Read `.pipeline-state.json` and run the
+current preflight behind the scenes; never infer phase from chat history. Answer with the stage,
+readiness/blockers, and one next action. The human does not need to remember pipeline commands.
+
 Key reminders:
 1. Fill all 9 neutral brief sections using your preferred discovery process; maintain `evidence-handoff.json`
 2. GRACE Lite mandatory — MODULE_CONTRACT in every file
@@ -55,9 +60,14 @@ Every file starts with:
 
 ## Continuity & memory (cross-session and cross-CLI)
 
-For material work, use one named workctl task (`workctl init <task-id> --goal "..."`). Its
+For material work that must cross a CLI/session boundary or coexist with other active tasks, use one
+named workctl task (`workctl init <task-id> --goal "..."`). Its
 `.workctl/tasks/<task-id>/` directory owns Done/Now/Next, checks, and runtime handoff. Never infer the
 task by recency when several tasks exist.
+
+`pipeline-status` answers where the project is in the delivery pipeline. `workctl` answers where one
+named implementation task is. Report them separately; a project-status question does not require
+creating a workctl task.
 
 `CONTINUITY.md` is a manual fallback only when workctl is unavailable. Do not maintain both for the
 same task: two current-state ledgers will drift. Memory stays **bounded & curated**:

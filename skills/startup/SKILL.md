@@ -91,6 +91,10 @@ Deferred until architecture planning. Do not infer a stack from the project name
 ## Pipeline
 See ~/setup/docs/human/PIPELINE.md
 
+When the user asks where the project is, what comes next, where work stopped, or to continue, use
+pipeline-status. Read .pipeline-state.json and current preflight; answer with stage, blockers, and
+one next action. Never infer phase from chat history or require the human to remember commands.
+
 ## GRACE
 GRACE Lite is mandatory in source files; GRACE Full remains pending until route classification. See ~/setup/docs/agent/PROMPT-FORMAT.md for structured prompts.
 
@@ -146,7 +150,7 @@ Print summary:
 ✓ product_brief.md: metadata initialized
 ✓ model-bindings.json + schema: created; profiles remain disabled until the route is known
 ✓ Product shape, stack, commands, risk tier, and GRACE mode: deferred
-✓ Next step: fill the neutral 9-section brief and evidence handoff using your discovery process
+✓ Next step: ask the agent “What stage are we at, and what should we do next?”
 
 Key files:
   ~/[project-name]/product_brief.md        ← portable discovery-to-delivery handoff
@@ -164,7 +168,7 @@ Key files:
   "data": {
     "project_path": "~/...",
     "github_url": "https://github.com/...",
-    "next_step": "follow docs/human/PIPELINE.md#human-operator-path from discovery through route classification"
+    "next_step": "ask the agent what stage the project is at and what to do next; it must use pipeline-status"
   },
   "issues": []
 }

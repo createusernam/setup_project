@@ -7,6 +7,18 @@ description: Continue one specific coding task safely across Claude Code, Codex,
 
 Use `workctl` as the task-level control plane when a conversation may move between coding CLIs. Repository phase artifacts remain canonical for specification and gates; `.workctl/tasks/<task-id>/` is canonical for task identity, current execution state, and runtime provenance. A reusable model session is an optional cache resource, never the source of truth.
 
+## Conversational contract
+
+Do not make the human operate workctl for normal project orientation. If they ask where the project
+is or what comes next, use `pipeline-status`. Use workctl only when one concrete task must survive a
+CLI/session/provider switch, when several tasks coexist, or when the user names a task to resume.
+
+In an agent conversation, translate requests such as “continue auth-refresh in Codex” or “where is
+the auth-refresh task?” into read-only inspection first. Explain the task's Done/Now/Next and only
+then perform or propose the exact handoff. `start` and `continue` launch child CLIs, so do not run
+them inside an interactive coding CLI; tell the human the one terminal action needed at that point.
+Do not dump the full command catalog unless asked.
+
 When the setup pipeline is present, do not copy or redefine root `product_brief.md`, `task_plan.md`,
 `contract.json`, or other phase outputs inside the task files. Reference their paths from
 `context.md`; if a summary conflicts with a phase artifact, the phase artifact wins and the task

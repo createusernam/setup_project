@@ -29,6 +29,10 @@ routing contract, retains the legacy script links, and exposes these runtime-neu
 | `setup-grace-lint` | check source-level GRACE contracts |
 | `workctl` | continue one named task across CLIs |
 
+The commands are agent-facing deterministic mechanisms and troubleshooting surfaces. After install,
+the normal human interface is conversation: open an agent in a project and ask where the project is
+and what to do next; the installed `pipeline-status` skill performs the checks.
+
 If `~/.local/bin` is not on `PATH`, add it using your shell's normal configuration before
 continuing. Verify the installation:
 
@@ -174,10 +178,11 @@ existing command without inspecting or backing it up.
 
 ## Setup ends; the project path begins
 
-Once `setup-skill-doctor` passes and the chosen CLI can load `startup`, stop using this guide. Follow
-the ordered human checklist in [`PIPELINE.md`](PIPELINE.md), starting at “Human operator path”. It
-covers both new and existing projects, allowed values, route selection, phase gates, cross-CLI
-continuation, and final acceptance.
+Once `setup-skill-doctor` passes and the chosen CLI can load `startup` and `pipeline-status`, stop
+using this guide. In the project directory ask the agent “What stage are we at, and what should we do next?”
+For a new project, ask it to use `startup`; for an existing repository, ask it to adopt the repository
+into the setup pipeline. [`PIPELINE.md`](PIPELINE.md) remains the reference for allowed values,
+route decisions, gates, diagnostics, and final acceptance, but it is not required daily reading.
 
 Runtime/model field values and provider-neutral capability profiles are owned by
 [`../agent/COMPAT.md`](../agent/COMPAT.md) and the project schemas it names.
@@ -207,9 +212,11 @@ root manually.
 
 **A runtime cannot execute a phase**
 
-Run `setup-pipeline status`, then `setup-preflight <phase> .`. The diagnostic names the missing
-artifact, allowed route, profile binding, or human gate. Use `setup-pipeline values` to find valid
-phases, tiers, gates, statuses, profiles, runtimes, and schema owners.
+First ask the agent where the project is and what comes next; `pipeline-status` runs the ledger and
+preflight diagnostics for you. If diagnosing manually, run `setup-pipeline status`, then
+`setup-preflight <phase> .`. The diagnostic names the missing artifact, allowed route, profile
+binding, or human gate. Use `setup-pipeline values` to find valid phases, tiers, gates, statuses,
+profiles, runtimes, and schema owners.
 
 **OpenCode ignores shared instructions**
 

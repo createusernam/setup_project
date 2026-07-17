@@ -24,3 +24,10 @@ are optional extensions; the workflow in `SKILL.md` must remain usable without t
 
 For cross-CLI continuation, `workctl` and `.workctl/tasks/<task-id>/` own task identity and handoff
 state. A legacy `CONTINUITY.md` is fallback-only and must not be maintained for the same task.
+
+When the user asks in ordinary language where a project is, what comes next, where work stopped, or
+to resume the project, invoke `pipeline-status`. Read `.pipeline-state.json` and current preflight;
+never infer a phase from chat history. The answer must give the stage, readiness or blockers, and one
+next action without requiring the user to know a command. If named task continuation across a
+session or CLI is also relevant, use `workctl` after project status and keep task progress separate
+from pipeline phase. A status question alone must not create a workctl task.

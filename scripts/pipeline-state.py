@@ -282,9 +282,13 @@ def command_set_phase(args: argparse.Namespace, root: Path, project: Path) -> in
 
 def command_status(args: argparse.Namespace, root: Path, project: Path) -> int:
     _, ledger = load_ledger(project)
+    machine = read_json(root / "pipeline-machine.json")
     policy = ledger.get("policy", {})
+    phase = ledger.get("phase", "<unset>")
+    transition = machine.get("transitions", {}).get(phase, {})
     print(f"project: {project}")
-    print(f"phase: {ledger.get('phase', '<unset>')}")
+    print(f"current stage: {phase} — {transition.get('skill', 'unknown process')}")
+    print(f"phase: {phase}")
     print(f"risk tier: {policy.get('risk_tier', '<unset>')}")
     print(f"tier reason: {policy.get('tier_reason', '<unset>')}")
     print("conditions:")
@@ -304,8 +308,8 @@ def command_status(args: argparse.Namespace, root: Path, project: Path) -> int:
         print(f"  {name}: {signature.get('by') or 'unsigned'} · {signature.get('at') or '—'}")
     if policy.get("risk_tier") is None:
         print("next action: complete discovery artifacts, then select the evidence-based risk tier")
+        print(f"current check: setup-preflight {phase} {project}")
     else:
-        machine = read_json(root / "pipeline-machine.json")
         tier = policy["risk_tier"]
         route = machine["risk_policy"]["tiers"][tier]
         selected = set(route["required_phases"])
@@ -321,6 +325,7 @@ def command_status(args: argparse.Namespace, root: Path, project: Path) -> int:
         if unresolved:
             print("route incomplete: classify conditions with setup-pipeline set-condition: " + ", ".join(sorted(set(unresolved))))
         print(f"next entry check: setup-preflight {ledger.get('phase', '<phase>')} {project}")
+        print(f"after a passing check: use {transition.get('skill', 'the phase process')}")
         if ledger.get("phase") == "7":
             print(f"after review + human signature: setup-preflight 7 {project} --completion")
     return 0

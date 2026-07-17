@@ -46,8 +46,11 @@ class PipelineStateTests(unittest.TestCase):
             output = io.StringIO()
             with contextlib.redirect_stdout(output):
                 module.command_status(SimpleNamespace(), ROOT, project)
-            self.assertIn("complete discovery artifacts", output.getvalue())
-            self.assertNotIn("next entry check", output.getvalue())
+            rendered = output.getvalue()
+            self.assertIn("current stage: -1 — discovery process", rendered)
+            self.assertIn("complete discovery artifacts", rendered)
+            self.assertIn("current check: setup-preflight -1", rendered)
+            self.assertNotIn("next entry check", rendered)
 
     def test_values_lists_human_inputs_and_schema_owners(self) -> None:
         output = io.StringIO()
@@ -76,6 +79,14 @@ class PipelineStateTests(unittest.TestCase):
             rendered = output.getvalue()
             self.assertIn("route: -1 -> 0 -> 1 -> 2 -> 2-PM -> 2b -> 4", rendered)
             self.assertNotIn("-> 3 ->", rendered)
+
+            module.command_set_phase(SimpleNamespace(phase="2"), ROOT, project)
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                module.command_status(SimpleNamespace(), ROOT, project)
+            rendered = output.getvalue()
+            self.assertIn("current stage: 2 — planning-with-files", rendered)
+            self.assertIn("after a passing check: use planning-with-files", rendered)
 
             (project / "task_plan.md").write_text("plan\n", encoding="utf-8")
             module.command_attest(SimpleNamespace(artifacts=["task_plan.md"], status="ready"), ROOT, project)

@@ -23,6 +23,9 @@ class HumanJourneyIntegrityTests(unittest.TestCase):
         self.assertIn("single source of truth for installing", setup)
         self.assertIn("Claude Code, Codex, OpenCode, or the terminal/API", pipeline)
         self.assertIn("Human operator path", pipeline)
+        self.assertIn("Everyday use: ask the agent", pipeline)
+        self.assertIn("What stage are we at, and what should we do next?", pipeline)
+        self.assertIn("pipeline-status", readme)
         self.assertIn("setup-pipeline bootstrap", pipeline)
         self.assertIn("setup-preflight 7 . --completion", pipeline)
 
@@ -37,6 +40,22 @@ class HumanJourneyIntegrityTests(unittest.TestCase):
         setup = (ROOT / "docs/human/SETUP.md").read_text(encoding="utf-8")
         for runtime in ("Claude Code", "Codex", "OpenCode", "Terminal/API"):
             self.assertIn(runtime, setup)
+
+    def test_conversational_status_is_portable_and_ledger_backed(self) -> None:
+        routing = (ROOT / "docs/agent/SKILL-ROUTING.md").read_text(encoding="utf-8")
+        template = (ROOT / "templates/project/CLAUDE.md").read_text(encoding="utf-8")
+        pipeline = (ROOT / "docs/human/PIPELINE.md").read_text(encoding="utf-8")
+        workctl = (ROOT / "docs/human/WORKCTL.md").read_text(encoding="utf-8")
+        skill = (ROOT / "skills/pipeline-status/SKILL.md").read_text(encoding="utf-8")
+        for text in (routing, template, skill):
+            self.assertIn("pipeline-status", text)
+            self.assertIn(".pipeline-state.json", text)
+            self.assertIn("preflight", text)
+            self.assertIn("never infer", text.lower())
+        self.assertIn("READY, BLOCKED, or COMPLETE", pipeline)
+        self.assertIn("Do you need workctl?", workctl)
+        self.assertIn("no workctl task is created", workctl)
+        self.assertIn("Do not mutate the ledger", skill)
 
     def test_every_human_input_has_values_or_a_discovery_owner(self) -> None:
         setup = (ROOT / "docs/human/SETUP.md").read_text(encoding="utf-8")

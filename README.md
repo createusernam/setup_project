@@ -16,6 +16,11 @@ There are two runbooks and no duplicated command path:
    [`PIPELINE.md`](docs/human/PIPELINE.md). It is the only source of truth for phase order, optional
    branches, gates, and acceptance.
 
+Already inside a project? Open any supported agent there and ask, in ordinary language, “What stage
+are we at, and what should we do next?” The shared `pipeline-status` skill reads the durable project
+state and answers with the current stage, blockers, and one next action. The human does not need to
+memorize pipeline commands or reread the runbook between sessions.
+
 This README is orientation only. Do not copy operational commands into it; update the owning
 runbook instead.
 
@@ -59,10 +64,11 @@ source; old copies are never deleted.
 
 | I need to… | Start here |
 |---|---|
+| return to a project and learn its current stage or next action | ask the agent; it uses `pipeline-status` |
 | install the harness, select/configure a CLI, or add an optional browser evaluator | [`SETUP.md`](docs/human/SETUP.md) |
 | create/adopt a project, configure its route/models, run a phase, pass a gate, or accept delivery | [`PIPELINE.md`](docs/human/PIPELINE.md) |
 | hand an architecture decision back into the pipeline | [`ARCHITECTURE-GUIDE.md`](docs/human/ARCHITECTURE-GUIDE.md) |
-| continue one named task in another coding CLI | [`WORKCTL.md`](docs/human/WORKCTL.md) |
+| continue one named task in another coding CLI (not just ask the project stage) | [`WORKCTL.md`](docs/human/WORKCTL.md) |
 | change a machine-facing contract or learn allowed config values | [`COMPAT.md`](docs/agent/COMPAT.md) and the adjacent JSON schema |
 
 `SETUP.md` owns installation/runtime configuration. `PIPELINE.md` owns the project journey from

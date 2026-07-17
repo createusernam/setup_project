@@ -4,6 +4,22 @@
 not transfer chat history. It transfers durable task state: identity, goal, constraints, decisions,
 progress, checks, Git snapshots, and the exact next action.
 
+## Do you need workctl?
+
+Usually, the human should not start with a workctl command.
+
+| What you want | What to say to the agent | Mechanism |
+|---|---|---|
+| Learn where the project is and what comes next | “What stage are we at, and what should we do next?” | `pipeline-status`; no workctl task is created |
+| Continue the current conversation in the same CLI | “Continue the current work” | current agent and project files |
+| Continue one named task after a session/provider/CLI switch | “Continue the auth-refresh task in Codex” | `workctl` |
+| Choose among several active tasks | “Show the active tasks” | read-only workctl status, then the human names one |
+
+The agent should translate these requests into the underlying checks. You only need a terminal
+command when launching a different CLI, because one interactive coding CLI must not start another
+inside itself. At that point the agent should give exactly one launch action, not the whole command
+catalog.
+
 ## Why it exists
 
 Session history belongs to one CLI and model. A repository may contain several active tasks, so a
@@ -44,7 +60,7 @@ must be updated.
 
 Do not maintain `CONTINUITY.md` for the same task. It would become a second current-state ledger.
 
-## Quick start
+## Terminal reference: first cross-CLI task
 
 ```bash
 bash ~/setup/install.sh

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Pipeline Status"
+  short_description: "Explain the current project stage and next step"
+  default_prompt: "Use $pipeline-status to tell me what stage this project is at and what I should do next."

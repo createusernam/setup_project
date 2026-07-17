@@ -1,7 +1,7 @@
 {
   "version": "2",
   "_description": "Provider-neutral capability routing for pipeline phases. Concrete runtime/model IDs are selected separately in each project's model-bindings.json.",
-  "_enforcement": "Run 'bash scripts/model-check.sh <phase> [project_dir]'. The script resolves capability profiles through model-bindings.json. The running agent must confirm its actual model matches the resolved binding; a shell cannot detect the generating model.",
+  "_enforcement": "Run 'setup-model-check <phase> [project_dir]'. The script resolves capability profiles through model-bindings.json. The running agent must confirm its actual model matches the resolved binding; a shell cannot detect the generating model.",
   "_state_ledger_note": "This file owns model capability and role-independence policy only. pipeline-machine.json owns transition semantics. model-bindings.json owns provider/runtime/model selection.",
   "task_signal_policy": {
     "_description": "Phase profiles are safe defaults. Before binding a concrete model, record task signals as low, medium, or high and select the cheapest enabled binding that satisfies the resulting capability need. Roles and independence constraints still apply.",
@@ -73,8 +73,7 @@
   "phases": {
     "-1": {
       "skill": "discovery process",
-      "profile": "reasoning_balanced",
-      "note": "The selected private or public discovery process may define additional independent roles. Human interviews remain human input."
+      "note": "No project binding is required before route classification. The selected discovery process may define its own runtime and independent roles; human interviews remain human input."
     },
     "0": {
       "skill": "researcher",
@@ -94,6 +93,11 @@
       "skill": "design-first",
       "roles": {"designer": "implementation_ui", "acceptor": "review_acceptance"},
       "distinct_roles": [["designer", "acceptor"]]
+    },
+    "3r": {
+      "skill": "risk-review",
+      "profile": "review_acceptance",
+      "note": "T4 risk review runs in an independent context before contract authoring."
     },
     "4": {"skill": "contract", "profile": "reasoning_high"},
     "4b": {

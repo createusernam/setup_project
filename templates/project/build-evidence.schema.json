@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "build-evidence.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "version", "status", "route", "contract_ref", "checks", "criteria", "trace_refs", "residual_risks"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "version": {"const": "1"},
+    "status": {"enum": ["incomplete", "complete"]},
+    "route": {"enum": ["targeted", "tdd", "build-loop"]},
+    "contract_ref": {"type": ["string", "null"]},
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["command", "status", "evidence_ref"],
+        "properties": {
+          "command": {"type": "string", "minLength": 1},
+          "status": {"enum": ["pass", "fail", "not_run"]},
+          "evidence_ref": {"type": "string"}
+        }
+      }
+    },
+    "criteria": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "status", "evidence_ref"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "status": {"enum": ["PASS", "FAIL", "PARTIAL"]},
+          "evidence_ref": {"type": "string"}
+        }
+      }
+    },
+    "trace_refs": {"type": "array", "items": {"type": "string"}},
+    "residual_risks": {"type": "array", "items": {"type": "string"}}
+  },
+  "allOf": [{
+    "if": {"properties": {"status": {"const": "complete"}}, "required": ["status"]},
+    "then": {"properties": {"checks": {"minItems": 1}}}
+  }]
+}

@@ -1,0 +1,8 @@
+{
+  "$schema": "./issues-manifest.schema.json",
+  "version": "1",
+  "status": "draft",
+  "plan_ref": "task_plan.md",
+  "contract_ref": "contract.json",
+  "issues": []
+}

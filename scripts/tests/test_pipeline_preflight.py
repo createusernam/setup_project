@@ -58,6 +58,12 @@ def main() -> None:
     template_bindings = json.loads((ROOT / "templates/project/model-bindings.json").read_text(encoding="utf-8"))["bindings"]
     assert set(template_bindings) == known_profiles, "model binding template/profile drift"
     with tempfile.TemporaryDirectory() as raw:
+        discovery_project = Path(raw)
+        write(discovery_project, ".pipeline-state.json", json.loads((ROOT / "templates/project/.pipeline-state.json").read_text(encoding="utf-8")))
+        write(discovery_project, "model-bindings.json", json.loads((ROOT / "templates/project/model-bindings.json").read_text(encoding="utf-8")))
+        failures, _, _ = module.evaluate(ROOT, discovery_project, "-1")
+        assert not failures, f"unclassified discovery must be runnable from any CLI: {failures}"
+    with tempfile.TemporaryDirectory() as raw:
         project = Path(raw)
         write(project, "model-bindings.json", {
             "version": "1",
@@ -74,10 +80,19 @@ def main() -> None:
         contract_hash = write(project, "contract.json", {"scope": "x"})
         judge_hash = write(project, "judge-report.json", {"data": {"verdict": "FAIL"}})
         ledger = {
-            "policy": {"risk_tier": "T2", "skipped_gates": []},
+            "version": "2",
+            "phase": "4c",
+            "policy": {"risk_tier": "T2", "conditions": {"research_required": False, "frontend": False}},
             "model_bindings_file": "model-bindings.json",
-            "artifacts": {"contract.json": {"sha256": contract_hash}, "judge-report.json": {"sha256": judge_hash}},
-            "human_gates": {}
+            "artifacts": {
+                "contract.json": {"sha256": contract_hash, "status": "ready", "invalidated_by": None},
+                "judge-report.json": {"sha256": judge_hash, "status": "ready", "invalidated_by": None},
+            },
+            "human_gates": {
+                "contract_locked": {"by": None, "at": None},
+                "viz_before_tickets": {"by": None, "at": None},
+                "human_acceptance": {"by": None, "at": None},
+            }
         }
         write(project, ".pipeline-state.json", ledger)
         failures, _, _ = module.evaluate(ROOT, project, "4c")
@@ -89,27 +104,46 @@ def main() -> None:
         failures, _, _ = module.evaluate(ROOT, project, "4c")
         assert not failures, failures
 
+        failures, _, _ = module.evaluate(ROOT, project, "3")
+        assert any("unnecessary" in item and "frontend" in item for item in failures), failures
+
+        brief_hash = write(project, "product_brief.md", "brief\n")
+        evidence_hash = write(project, "evidence-handoff.json", {"decision": "alpha", "spec_gaps": []})
+        ledger["policy"] = {"risk_tier": "T2", "conditions": {"research_required": True, "frontend": False}}
+        ledger["phase"] = "0"
+        ledger["artifacts"].update({
+            "product_brief.md": {"sha256": brief_hash, "status": "ready", "invalidated_by": None},
+            "evidence-handoff.json": {"sha256": evidence_hash, "status": "ready", "invalidated_by": None},
+        })
+        write(project, ".pipeline-state.json", ledger)
+        failures, _, _ = module.evaluate(ROOT, project, "0")
+        assert not failures, f"research must be available before delivery decision: {failures}"
+
         ledger["policy"] = {
             "risk_tier": "T0",
-            "skipped_gates": [{"phase": "4c", "reason": "not needed", "approved_by": "owner", "approved_at": "2026-07-15"}],
+            "conditions": {"research_required": False, "frontend": False},
         }
+        ledger["phase"] = "4c"
         write(project, ".pipeline-state.json", ledger)
         failures, _, _ = module.evaluate(ROOT, project, "4c")
         assert any("not on the T0 route" in item for item in failures), failures
 
-        ledger["policy"] = {"risk_tier": "T2", "skipped_gates": []}
+        ledger["policy"] = {"risk_tier": "T2", "conditions": {"research_required": False, "frontend": False}}
+        ledger["phase"] = "4c"
         ledger["artifacts"]["contract.json"]["sha256"] = "0" * 64
         write(project, ".pipeline-state.json", ledger)
         failures, _, _ = module.evaluate(ROOT, project, "4c")
         assert any("changed since attested" in item for item in failures), failures
 
         ledger["policy"]["risk_tier"] = "T4"
+        ledger["phase"] = "4"
         ledger["artifacts"]["contract.json"]["sha256"] = contract_hash
         write(project, ".pipeline-state.json", ledger)
         failures, _, _ = module.evaluate(ROOT, project, "4")
         assert any("risk-review.json" in item for item in failures), failures
 
         ledger["policy"]["risk_tier"] = "T3"
+        ledger["phase"] = "6"
         bindings = json.loads((project / "model-bindings.json").read_text(encoding="utf-8"))
         bindings["bindings"]["review_test"]["model_id"] = "model-implementation"
         write(project, "model-bindings.json", bindings)
@@ -126,6 +160,54 @@ def main() -> None:
         write(project, ".pipeline-state.json", ledger)
         failures, _, _ = module.evaluate(ROOT, project, "6")
         assert any("model_bindings_file" in item and "project-relative" in item for item in failures), failures
+        ledger["model_bindings_file"] = "model-bindings.json"
+
+        build_hash = write(project, "build-evidence.json", {
+            "status": "complete",
+            "checks": [{"command": "test", "status": "pass", "evidence_ref": "test.log"}],
+            "criteria": [{"id": "C1", "status": "PASS", "evidence_ref": "test.log"}],
+        })
+        feature_hash = write(project, "feature-judge-report.json", {"data": {"verdict": "PASS"}})
+        review_hash = write(project, "code-review.md", "**Overall assessment**: APPROVE\n")
+        ledger["policy"] = {"risk_tier": "T2", "conditions": {"research_required": False, "frontend": False}}
+        ledger["phase"] = "7"
+        ledger["artifacts"].update({
+            "build-evidence.json": {"sha256": build_hash, "status": "complete", "invalidated_by": None},
+            "feature-judge-report.json": {"sha256": feature_hash, "status": "approved", "invalidated_by": None},
+            "code-review.md": {"sha256": review_hash, "status": "approved", "invalidated_by": None},
+        })
+        ledger["human_gates"] = {
+            "contract_locked": {"by": None, "at": None},
+            "viz_before_tickets": {"by": None, "at": None},
+            "human_acceptance": {"by": None, "at": None},
+        }
+        write(project, ".pipeline-state.json", ledger)
+        failures, _, _ = module.evaluate(ROOT, project, "7")
+        assert not any("human_acceptance" in item for item in failures), failures
+        failures, _, _ = module.evaluate(ROOT, project, "7", completion=True)
+        assert any("human_acceptance" in item for item in failures), failures
+        ledger["human_gates"]["human_acceptance"] = {"by": "owner", "at": "2026-07-17T00:00:00Z"}
+        write(project, ".pipeline-state.json", ledger)
+        failures, _, _ = module.evaluate(ROOT, project, "7", completion=True)
+        assert not failures, failures
+
+        empty_build_hash = write(project, "build-evidence.json", {"status": "complete", "checks": [], "criteria": []})
+        ledger["artifacts"]["build-evidence.json"]["sha256"] = empty_build_hash
+        write(project, ".pipeline-state.json", ledger)
+        failures, _, _ = module.evaluate(ROOT, project, "7")
+        assert any("requires at least one check" in item for item in failures), failures
+        ledger["artifacts"]["build-evidence.json"]["sha256"] = build_hash
+        write(project, "build-evidence.json", {
+            "status": "complete",
+            "checks": [{"command": "test", "status": "pass", "evidence_ref": "test.log"}],
+            "criteria": [{"id": "C1", "status": "PASS", "evidence_ref": "test.log"}],
+        })
+        write(project, ".pipeline-state.json", ledger)
+
+        ledger["artifacts"]["code-review.md"]["status"] = "draft"
+        write(project, ".pipeline-state.json", ledger)
+        failures, _, _ = module.evaluate(ROOT, project, "7", completion=True)
+        assert any("still draft" in item for item in failures), failures
 
         open_gap = {
             "id": "SG-1",

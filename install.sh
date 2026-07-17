@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # START_MODULE_CONTRACT
 # PURPOSE: Install setup skills and shared pipeline scripts into supported local agent runtimes.
-# SCOPE: Create fail-closed symlinks, then report optional runtime credentials and integrations.
-# DEPENDS: Bash, Python 3, coreutils, repository skills/docs/scripts, optional Claude/OpenCode CLIs.
+# SCOPE: Create fail-closed cross-CLI skill and command symlinks, then report optional runtime integrations.
+# DEPENDS: Bash, Python 3, coreutils, repository skills/docs/scripts, and any installed supported CLI.
 # END_MODULE_CONTRACT
 # Setup v2 — one-command install
 # Run from anywhere: bash ~/setup/install.sh
@@ -55,7 +55,13 @@ for root_spec in "claude|$CLAUDE_SKILLS_DST" "agents|$AGENT_SKILLS_DST"; do
   done
 done
 
-for command_spec in "workctl|$SETUP_DIR/scripts/workctl.py" "setup-skill-doctor|$SETUP_DIR/scripts/check-skill-discovery.py" "setup-pipeline|$SETUP_DIR/scripts/pipeline-state.py"; do
+for command_spec in \
+  "workctl|$SETUP_DIR/scripts/workctl.py" \
+  "setup-skill-doctor|$SETUP_DIR/scripts/check-skill-discovery.py" \
+  "setup-pipeline|$SETUP_DIR/scripts/pipeline-state.py" \
+  "setup-preflight|$SETUP_DIR/scripts/pipeline-preflight.sh" \
+  "setup-model-check|$SETUP_DIR/scripts/model-check.sh" \
+  "setup-grace-lint|$SETUP_DIR/scripts/grace-lint.sh"; do
   command_name="${command_spec%%|*}"
   command_src="${command_spec#*|}"
   command_dst="$BIN_DST/$command_name"
@@ -113,8 +119,7 @@ for skill_dir in "$SKILLS_SRC"/*/; do
   echo "  ✓ $skill_name"
 done
 
-# 3. Expose scripts at a stable path, so skills can call them from any project directory.
-#    Skills reference ~/.claude/scripts/<name>.sh — independent of where this repo is cloned.
+# 3. Retain legacy script links for older projects; current docs use runtime-neutral bin commands.
 echo ""
 echo "→ Exposing scripts at $SCRIPTS_DST..."
 mkdir -p "$SCRIPTS_DST"
@@ -127,7 +132,13 @@ done
 echo ""
 echo "→ Installing workctl and setup-skill-doctor in $BIN_DST..."
 mkdir -p "$BIN_DST"
-for command_spec in "workctl|$SETUP_DIR/scripts/workctl.py" "setup-skill-doctor|$SETUP_DIR/scripts/check-skill-discovery.py" "setup-pipeline|$SETUP_DIR/scripts/pipeline-state.py"; do
+for command_spec in \
+  "workctl|$SETUP_DIR/scripts/workctl.py" \
+  "setup-skill-doctor|$SETUP_DIR/scripts/check-skill-discovery.py" \
+  "setup-pipeline|$SETUP_DIR/scripts/pipeline-state.py" \
+  "setup-preflight|$SETUP_DIR/scripts/pipeline-preflight.sh" \
+  "setup-model-check|$SETUP_DIR/scripts/model-check.sh" \
+  "setup-grace-lint|$SETUP_DIR/scripts/grace-lint.sh"; do
   command_name="${command_spec%%|*}"
   command_src="${command_spec#*|}"
   command_dst="$BIN_DST/$command_name"
@@ -144,34 +155,33 @@ python3 "$SETUP_DIR/scripts/install-skill-routing.py" --install --source "$ROUTI
 # END_BLOCK_INSTALL
 
 # START_BLOCK_OPTIONAL_CHECKS
-# 5. Check GH_TOKEN
+# 5. Report optional Playwright MCP availability without making one CLI mandatory.
 echo ""
-echo "→ Checking GH_TOKEN..."
-if grep -q "GH_TOKEN" "$CLAUDE_DIR/.env" 2>/dev/null; then
-  echo "  ✓ GH_TOKEN found in ~/.claude/.env"
-else
-  echo "  ⚠ GH_TOKEN not found. Set it in ~/.claude/.env:"
-  echo "    echo 'GH_TOKEN=ghp_...' >> ~/.claude/.env"
+echo "→ Checking optional Playwright MCP (needed only for build-loop)..."
+if command -v claude >/dev/null 2>&1; then
+  claude mcp list 2>/dev/null | grep -q "playwright" \
+    && echo "  ✓ Claude: playwright" \
+    || echo "  · Claude: not configured; see docs/human/SETUP.md"
+fi
+if command -v codex >/dev/null 2>&1; then
+  codex mcp list 2>/dev/null | grep -q "playwright" \
+    && echo "  ✓ Codex: playwright" \
+    || echo "  · Codex: not configured; see docs/human/SETUP.md"
+fi
+if command -v opencode >/dev/null 2>&1; then
+  opencode mcp list 2>/dev/null | grep -q "playwright" \
+    && echo "  ✓ OpenCode: playwright" \
+    || echo "  · OpenCode: not configured; see docs/human/SETUP.md"
 fi
 
-# 6. Check Playwright MCP
-echo ""
-echo "→ Checking Playwright MCP..."
-if claude mcp list 2>/dev/null | grep -q "playwright"; then
-  echo "  ✓ Playwright MCP installed"
-else
-  echo "  ⚠ Playwright MCP not found (needed for /build-loop)"
-  echo "    Run: claude mcp add playwright -- npx -y @playwright/mcp@latest --headless"
-fi
-
-# 7. Check OpenCode (provider/model selection remains in the user's runtime config)
+# 6. Check OpenCode instructions when that runtime is installed.
 echo ""
 echo "→ Checking OpenCode..."
 OC_CFG="$HOME/.config/opencode/opencode.json"
 if command -v opencode >/dev/null 2>&1; then
   echo "  ✓ opencode found ($(opencode --version 2>/dev/null | head -1))"
 else
-  echo "  ⚠ opencode not on PATH (ignore if you only use Claude Code)"
+  echo "  · opencode not on PATH; no OpenCode-specific setup needed"
 fi
 # OpenCode scans both roots. They intentionally resolve to the same canonical setup source.
 echo "  ✓ Skills: OpenCode reads ~/.claude/skills and ~/.agents/skills; both resolve to setup/skills"
@@ -185,8 +195,7 @@ if [ -f "$OC_CFG" ]; then
   fi
 else
   echo "  ⚠ $OC_CFG not found. Minimal config:"
-  echo "      { \"instructions\": [\"$SETUP_DIR/docs/human/PIPELINE.md\", \"$SETUP_DIR/docs/agent/COMPAT.md\"],"
-  echo "        \"model\": \"provider/model-id\", \"small_model\": \"provider/fast-model-id\" }"
+  echo "      { \"instructions\": [\"$SETUP_DIR/docs/human/PIPELINE.md\", \"$SETUP_DIR/docs/agent/COMPAT.md\"] }"
 fi
 # END_BLOCK_OPTIONAL_CHECKS
 
@@ -197,23 +206,21 @@ echo ""
 "$BIN_DST/setup-skill-doctor" --setup-dir "$SETUP_DIR" --home "$HOME" --quiet
 echo "Every skill in $SKILLS_SRC now has one source across Claude, Codex, and OpenCode."
 echo ""
-echo "Pipeline (docs/human/PIPELINE.md):"
-echo "  /startup → complete neutral 9-section brief + evidence handoff → /judge product-brief"
-echo "  → /researcher only for remaining factual gaps → /grill-with-docs → /planning-with-files → /pm-review"
-echo "  → /grace-init + /grace-plan → /design-first → /contract → /judge → /to-issues"
-echo "  → /scaffold → /build-loop | /tdd → /judge feature → /code-review-expert → ship"
+echo "Next step: follow the ordered human path in $SETUP_DIR/docs/human/PIPELINE.md."
+echo "It names portable skills; use the invocation syntax of whichever CLI you entered from."
 echo ""
 echo "Model routing:"
 echo "  model-routing.json defines capability profiles and role independence"
 echo "  each project/model-bindings.json selects concrete runtime/model IDs"
 echo ""
 echo "Gates callable from any project dir:"
+echo "  setup-pipeline values                                  # phases, tiers, conditions, gates, profiles, runtimes, schemas"
 echo "  setup-pipeline status                                  # inspect project ledger"
 echo "  setup-pipeline attest <artifact...>                   # hash/register changed artifacts"
 echo "  setup-pipeline sign <gate> --by <identity>            # record an explicit human gate"
-echo "  bash ~/.claude/scripts/pipeline-preflight.sh <phase>   # inputs, models, human gates"
-echo "  bash ~/.claude/scripts/grace-lint.sh                   # GRACE Lite markup"
-echo "  bash ~/.claude/scripts/model-check.sh <phase> <project> # resolve configured profile binding"
+echo "  setup-preflight <phase> [project]                     # inputs, models, human gates"
+echo "  setup-grace-lint --changed                            # GRACE Lite markup"
+echo "  setup-model-check <phase> [project]                   # optional binding diagnostic"
 echo ""
 echo "Cross-runtime task continuation:"
 echo "  workctl doctor"

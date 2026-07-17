@@ -14,6 +14,199 @@ Sources of truth:
 When prose and the machine contract disagree, the machine contract wins. Regenerate its human view
 with `python3 scripts/render-pipeline-views.py`; verify drift with `--check`.
 
+## Human operator path
+
+Use this section in order. You may enter from Claude Code, Codex, OpenCode, or the terminal/API
+fallback. The pipeline names portable skills; translate a skill name using the one runtime-syntax
+table in [`SETUP.md`](SETUP.md). Shell commands below are identical in every CLI terminal.
+
+### 1. Verify installation, then bootstrap one project
+
+Do not repeat install commands here; `SETUP.md` owns them. From the project directory:
+
+- **new project:** invoke the `startup` skill with a 1–64 character lowercase slug containing only
+  `a-z`, `0-9`, and `-`. Its other inputs are: non-empty free-text display name; GitHub remote
+  `yes|no` (default `no`); and, only for `yes`, visibility `private|public` plus an owner discovered
+  with `gh api user --jq .login` or `gh api user/orgs --jq '.[].login'`;
+- **existing repository:** run `setup-pipeline bootstrap`. It copies missing templates and creates
+  `AGENTS.md → CLAUDE.md` only when absent; it never overwrites an existing file. Then run
+  `setup-pipeline migrate`: it is a no-op for a current ledger and otherwise writes a timestamped
+  `.pipeline-state.json.bak-*` before upgrading version-2 shape. Older semantic versions stop for
+  manual review rather than being guessed.
+
+Then run:
+
+```bash
+setup-pipeline status
+setup-pipeline values
+```
+
+`values` is the authoritative discovery command for phase IDs, tier criteria, human gate names,
+artifact statuses, capability profiles, runtimes, evidence enums, and schema paths. Use the adjacent
+schema when a field is not enumerated inline.
+
+If work may cross CLIs, optionally create durable task identity now:
+
+```bash
+workctl init my-task --goal "One concrete delivery outcome"
+```
+
+`my-task` follows the workctl ID rule: 1–64 letters, digits, `.`, `_`, or `-`. Allowed launch
+runtimes are `claude|codex|opencode`. Workctl is optional and never replaces pipeline phases.
+
+### 2. Complete discovery before selecting the delivery route
+
+The copied ledger starts at Phase `-1` with `risk_tier: null`; this is intentional. No project model
+binding is required for Phase -1, so any supported CLI and suitable discovery process may begin:
+
+```bash
+setup-pipeline set-phase -1
+setup-preflight -1 .
+```
+
+Produce or update `product_brief.md` and `evidence-handoff.json`. The key allowed values are:
+
+- `validation_stage`: `discovery|alpha|live`;
+- `decision`: `stop|alpha|delivery`;
+- brief `status`: `draft|reviewed|pipeline-ready`.
+
+All evidence/spec-gap enums are printed by `setup-pipeline values` and defined in
+`evidence-handoff.schema.json`. Before any research or delivery phase, register the exact current
+bytes:
+
+```bash
+setup-pipeline attest product_brief.md evidence-handoff.json --status ready
+```
+
+Branch on `decision`:
+
+- `stop` — stop the delivery route; preserve the evidence and reason;
+- `alpha` — run the named experiment and update evidence; do not enter Phase 1;
+- `delivery` — continue only when `validation_stage` is `alpha` or `live` and blocking specification
+  gaps are resolved, accepted by an accountable owner, or explicitly out of scope.
+
+Before any conditional phase, classify both route facts from the approved brief/evidence. Each value
+is exactly `true|false`:
+
+```bash
+setup-pipeline set-condition research_required true
+setup-pipeline set-condition frontend false
+```
+
+When material factual gaps remain, Phase 0 may run before final tier selection. Enable only its
+required profiles in `model-bindings.json`, then:
+
+```bash
+setup-pipeline set-phase 0
+setup-preflight 0 .
+```
+
+Invoke `researcher`, update the brief/evidence, then attest `docs/research-state.json` and the changed
+brief/evidence. Phase 0 accepts evidence decisions `alpha|delivery`; research is allowed to inform
+the delivery decision rather than assume it.
+
+### 3. Confirm conditional branches, select tier, and bind models
+
+Confirm the recorded decisions before selecting the tier:
+
+```bash
+setup-pipeline status
+```
+
+`research_required=true` requires Phase 0 and its attested `docs/research-state.json` before
+Phase 1. `frontend=true` requires Phase 3 and its attested `design-contract.json` and
+`api-contract.json` before Phase 4. This replaces informal “skip” notes: an optional phase runs
+exactly when its recorded condition is true.
+
+After discovery/research, choose exactly one tier from `T0|T1|T2|T3|T4` using the criteria printed
+by `setup-pipeline values` and summarized under “Risk tiers” below:
+
+```bash
+setup-pipeline set-tier T2 --reason "Small reversible feature across two boundaries"
+setup-pipeline status
+```
+
+`--reason` is accountable free text: name the evidence behind reversibility, blast radius,
+uncertainty, boundary count, and cost of error. `status` prints the required ordered route.
+Changing an already classified tier or condition invalidates downstream attestations and clears
+human gates; re-run the newly printed route rather than reusing evidence from the old policy.
+
+Edit `model-bindings.json` only for profiles used by that route. Binding keys are the seven profiles
+printed by `values`; `runtime` is
+`claude|codex|opencode|api|manual|self-hosted|custom:<lowercase-slug>`; `enabled` is JSON
+`true|false`; `model_id` is the exact no-whitespace identifier listed by the selected runtime or
+provider (use the “Find an exact model ID” table in `SETUP.md`). The authoritative shape is
+`model-bindings.schema.json`; examples and independence rules are in `../agent/COMPAT.md`.
+
+### 4. Run every selected phase with one loop
+
+Continue through the phases printed by `setup-pipeline status` after the discovery/research work
+already completed above. The route display is canonical order, not a claim that earlier phases are
+unfinished; do not repeat a phase unless its inputs changed or an invalidation requires it. For each
+phase you now enter:
+
+```bash
+setup-pipeline set-phase PHASE
+setup-preflight PHASE .
+# invoke the skill named in the Phase execution table
+# review its stable output and resolve any REVISE/FAIL/STOP branch
+setup-pipeline attest OUTPUT... --status ready
+setup-pipeline status
+```
+
+Replace `PHASE` only with a value printed by `setup-pipeline values`. Replace `OUTPUT` with the stable
+path in the execution table. `--status` accepts `draft|ready|approved|complete`; required inputs may
+not remain `draft`. `setup-preflight` already resolves model bindings, so `setup-model-check` is an
+optional focused diagnostic, not another mandatory gate. The running agent must still confirm that
+its actual runtime/model matches the resolved binding.
+
+The canonical routes are:
+
+| Tier | Ordered work after discovery |
+|---|---|
+| T0 | targeted deterministic change → `build-evidence.json` → Phase 7 review/completion |
+| T1 | `triage` → `diagnose` → `tdd` regression → `build-evidence.json` → Phase 7 review/completion |
+| T2 | optional 0 → 1 → 2 → optional 3 → 4 → 4b → 4c → 5 → 6 → 7 |
+| T3 | optional 0 → 1 → 2 → 2-PM → 2b → optional 3 → 4 → 4b → 4c → 5 → 5.5 → 6 → 7 |
+| T4 | optional 0 → 1 → 2 → 2-PM → 2b → optional 3 → 3r → 4 → 4b → 4c → 5 → 5.5 → 6 → 7 |
+
+“Optional” means its stated condition is false; required phases and gates cannot be waived by a
+skip note. A conditional phase that runs uses the same set-phase/preflight/attest loop.
+
+### 5. Record the three human decisions at the correct time
+
+Allowed gate names are exactly `contract_locked`, `viz_before_tickets`, and `human_acceptance`.
+`--by` is a free-text attributable person/account identity.
+
+1. After contract judge `PASS`, the human reviews the contract and signs:
+
+   ```bash
+   setup-pipeline sign contract_locked --by "name-or-account"
+   ```
+
+2. After Phase 4c, the human reviews the supervision view and signs before tickets:
+
+   ```bash
+   setup-pipeline attest SUPERVISION.md --status approved
+   setup-pipeline sign viz_before_tickets --by "name-or-account"
+   ```
+
+3. Phase 7 begins **without** human acceptance. Run its entry preflight, then produce and attest
+   `code-review.md` with `**Overall assessment**: APPROVE`; T2–T4 also produce and attest
+   `feature-judge-report.json` with verdict `PASS`.
+   Only after reviewing those outputs does the human sign and run the terminal completion check:
+
+   ```bash
+   setup-pipeline attest code-review.md --status approved
+   # T2–T4 only:
+   setup-pipeline attest feature-judge-report.json --status approved
+   setup-pipeline sign human_acceptance --by "name-or-account"
+   setup-preflight 7 . --completion
+   ```
+
+If code review requests changes or feature judge returns `CONDITIONAL|FAIL`, return to Phase 6,
+update `build-evidence.json`, re-attest it, and repeat Phase 7. Never sign acceptance first.
+
 ## Core rules
 
 1. **Classify the delivery route after discovery.** Discovery may begin with an unclassified
@@ -53,7 +246,7 @@ organization-specific discovery processes may fill it, but their terminology mus
 phases 0–7.
 
 If a discovery process creates a public `business_model.md`, retain it as supporting business
-context for `/grill-with-docs` and architecture. It is optional to this neutral pipeline contract;
+context for `grill-with-docs` and architecture. It is optional to this neutral pipeline contract;
 the mandatory, machine-gated entry remains the brief and evidence handoff.
 
 Full downstream delivery starts only when the semantic machine requirements are satisfied. An alpha
@@ -64,7 +257,7 @@ decision is a valid outcome, but it is not permission to enter a delivery route.
 | File or state | Owner | How it changes |
 |---|---|---|
 | `product_brief.md`, `evidence-handoff.json`, `model-bindings.json` | human/project owner | Edit deliberately; validate against the adjacent schema where provided. |
-| `.pipeline-state.json` | `setup-pipeline` | Use `init`, `set-tier`, `set-phase`, `attest`, and `sign`; do not hand-edit hashes or signatures. Its adjacent `pipeline-state.schema.json` defines the ledger shape. |
+| `.pipeline-state.json` | `setup-pipeline` | Use `bootstrap`/`migrate`/`init`, `set-condition`, `set-tier`, `set-phase`, `attest`, `sign`, `status`, and `values`; do not hand-edit hashes or signatures. Its adjacent `pipeline-state.schema.json` defines the ledger shape. |
 | phase artifacts such as plans, contracts, reviews, design and build evidence | producing skill | Run the phase, review its result, then attest the exact files. |
 | `pipeline-machine.json`, `model-routing.json`, their schemas and generated machine view | setup maintainer | Change only as a versioned setup-contract update; never edit a project copy to bypass a gate. |
 
@@ -81,13 +274,13 @@ decision is a valid outcome, but it is not permission to enter a delivery route.
 | T3 | cross-module, uncertain, or costly feature | plan, PM gate, GRACE Full, contract, visualization, issues, scaffold, collegium |
 | T4 | safety/regulatory/irreversible change | T3 plus risk/threat review, staged rollout, rollback, audit evidence |
 
-`researcher` (Phase 0) is conditional for T2–T4: use it only when material factual gaps remain.
-`design-first` (Phase 3) is conditional for T3–T4: use it only when the change includes frontend
-behavior. These are declared conditions, not undocumented skips.
+`researcher` (Phase 0) is conditional for T2–T4: set `research_required=true` only when such gaps
+remain. `design-first` (Phase 3) is conditional for T2–T4: set `frontend=true` only when the change
+includes frontend behavior. The ledger values are the skip/run decision; free-text skip notes have
+no authority.
 
-Record the tier and its rationale in `.pipeline-state.json`. A skipped optional step is a policy
-decision, not an undocumented omission. A phase outside the selected machine route cannot be entered
-by adding a skip record.
+Record both conditions, then the tier and rationale, with `setup-pipeline`. Omit a conditional phase
+only when its declared condition is false. Required phases and gates have no skip mechanism.
 
 ## End-to-end flow
 
@@ -101,6 +294,8 @@ flowchart TD
     GF["2b · grace-init + grace-plan<br/>GRACE Full artifacts"]
     UI{"Frontend?"}
     DF["3 · design-first<br/>wireframe approval + API contract"]
+    RT{"T4?"}
+    RR["3r · risk-review<br/>T4 risk + rollout verdict"]
     C["4 · contract<br/>locked contract"]
     J{"4b · judge contract<br/>PASS?"}
     V["4c · visualization<br/>human review"]
@@ -114,8 +309,10 @@ flowchart TD
     PM -->|REVISE| P
     PM -->|APPROVE; T3/T4| GF --> UI
     PM -->|APPROVE; route skips GRACE Full| UI
-    UI -->|yes| DF --> C
-    UI -->|no| C
+    UI -->|yes| DF --> RT
+    UI -->|no| RT
+    RT -->|yes| RR --> C
+    RT -->|no| C
     C --> J
     J -->|FAIL| C
     J -->|PASS| V --> I --> S --> B --> A
@@ -135,13 +332,14 @@ the common route; it does not override the machine.
 | 2-PM | verify plan against the brief | `pm-review.json` | semantic verdict `APPROVE` |
 | 2b | formalize module graph and verification | GRACE XML artifacts | required for T3/T4 unless machine policy says otherwise |
 | 3 | approve frontend behavior before API implementation | wireframe, `api-contract.json`, design artifacts | human wireframe approval |
+| 3r | independently resolve T4 delivery risks before contract | `risk-review.json`, `rollout-plan.json` | verdict `PASS`; accountable residual-risk acceptance |
 | 4 | define verifiable done | `contract.json`, attestation | contract complete and hash locked |
 | 4b | independently evaluate the contract | `judge-report.json` | verdict `PASS` |
 | 4c | make plan/structure legible to the human | Mermaid/Markdown view, `SUPERVISION.md` | `viz_before_tickets` signature |
 | 5 | create traceable implementation slices | approved issue set | issues link to plan/contract criteria |
 | 5.5 | provide code-native implementation boundaries | scaffolded module skeletons | scaffold readiness and contract preservation |
 | 6 | implement and verify | code, tests, traces, `build-evidence.json` | collegium/model and build-evidence requirements |
-| 7 | accept the completed outcome | feature judge report, code review, rollout evidence | human acceptance; rollback defined when required |
+| 7 | review and accept the completed outcome | `feature-judge-report.json` for T2–T4, `code-review.md`, rollout evidence | entry check first; human acceptance and `--completion` check last |
 
 ## Phase -1: discovery handoff
 
@@ -158,19 +356,20 @@ delivery route.
 
 ## Phase 0: research only when needed
 
-Run `/researcher` for factual gaps that can change scope, feasibility, risk, or success criteria.
+Run `researcher` for factual gaps that can change scope, feasibility, risk, or success criteria.
 Do not use research to manufacture certainty around a decision already made. Update the brief and
-evidence handoff with findings, limitations, contradictions, and remaining uncertainty.
+evidence handoff with findings, limitations, contradictions, and remaining uncertainty. Attest
+`docs/research-state.json` plus the changed brief/evidence before Phase 1.
 
 ## Phase 1: domain alignment
 
-`/grill-with-docs` consumes the brief and evidence handoff, aligns project vocabulary, and records
+`grill-with-docs` consumes the brief and evidence handoff, aligns project vocabulary, and records
 non-obvious decisions in `CONTEXT.md` and ADRs. It must not import private discovery vocabulary into
 public project terms.
 
 ## Phase 2: planning and architecture handoff
 
-`/planning-with-files` decomposes the approved outcome into bounded work. The plan should trace each
+`planning-with-files` decomposes the approved outcome into bounded work. The plan should trace each
 phase or component to a journey step and success criterion.
 
 `ARCHITECTURE-GUIDE.md` defines the transfer contract:
@@ -190,7 +389,7 @@ result, not the private reasoning technique that produced it.
 
 ## Phase 2-PM: plan approval
 
-`/pm-review` is the only plan approval gate. It checks:
+`pm-review` is the only plan approval gate. It checks:
 
 - plan/architecture traceability to `product_brief.md` §7 journeys;
 - coverage of §8 success criteria and out-of-scope boundaries;
@@ -200,12 +399,12 @@ result, not the private reasoning technique that produced it.
 - no unresolved blocking specification gap and traceable behavior projections at the appropriate
   level of detail.
 
-Generic `/judge plan` does not exist. `REVISE` returns specific gaps to planning; `APPROVE` unlocks
+Generic `judge plan` does not exist. `REVISE` returns specific gaps to planning; `APPROVE` unlocks
 the next transition permitted by the machine.
 
 ## Phase 2b: GRACE Full
 
-For routes that require it, `/grace-init` and `/grace-plan` produce:
+For routes that require it, `grace-init` and `grace-plan` produce:
 
 - `docs/development-plan.xml` — module responsibilities, dependencies, interfaces, and flows;
 - `docs/verification-plan.xml` — checks and critical-flow references;
@@ -222,30 +421,39 @@ workflow requires them.
 
 When `is_frontend: true`:
 
-1. `/design-rubric` creates the one-time project design contract when it is missing or stale. On a
+1. `design-rubric` creates the one-time project design contract when it is missing or stale. On a
    greenfield project it may declare initial tokens; existing CSS tokens are evidence, not a prerequisite.
-2. `/design-first` creates a wireframe and stops for product-owner approval of flow, screens, and interactions.
+2. `design-first` creates a wireframe and stops for product-owner approval of flow, screens, and interactions.
 3. A technical reviewer derives and checks data requirements and `api-contract.json` from the approved experience.
-4. `/contract` references the approved design/API artifacts.
+4. `contract` references the approved design/API artifacts.
 
 Backend-only work skips the frontend design phase when the machine route permits it.
+For frontend work, attest `design-contract.json`, `api-contract.json`, and the approved wireframe
+path printed by the skill; Phase 4 machine-checks both stable contracts.
+
+## Phase 3r: T4 risk review
+
+For T4, invoke `risk-review` in an independent context after the approved plan/GRACE artifacts and
+any frontend design. It writes stable root `risk-review.json` and `rollout-plan.json` using their
+project schemas. Verdict values are `PASS|REVISE|STOP`; risk categories, impact, likelihood,
+residual-risk, and status enums are in `risk-review.schema.json`. Only `PASS` enters Phase 4.
 
 ## Phases 4–5.5: contract, review, tickets, scaffold
 
-`/contract` translates scope, journeys, integrations, risks, and success criteria into verifiable
+`contract` translates scope, journeys, integrations, risks, and success criteria into verifiable
 requirements. Attest the resulting file; changing it invalidates downstream artifacts.
 
-`/judge contract` runs from an isolated evaluator context. A PASS leads to the human-readable
-visualization gate. Only after that approval does `/to-issues` create traceable vertical slices.
+`judge contract` runs from an isolated evaluator context. A PASS leads to the human-readable
+visualization gate. Only after that approval does `to-issues` create traceable vertical slices.
 
-For greenfield feature work, `/scaffold` writes code-native boundaries before implementation:
+For greenfield feature work, `scaffold` writes code-native boundaries before implementation:
 module/function contracts, typed signatures, named blocks, log anchors, mocks, and explicit
 unimplemented bodies. The implementer must not silently change those boundaries; requested changes
 return to the contract/scaffold owner.
 
 ## Phases 6–7: build and acceptance
 
-Use `/build-loop` for a contract-driven autonomous cycle or `/tdd` for human-paced test-first work.
+Use `build-loop` for a contract-driven autonomous cycle or `tdd` for human-paced test-first work.
 The selected route determines required model roles and evidence. Keep implementation, test ownership,
 and acceptance independent where the collegium is required.
 
@@ -262,10 +470,15 @@ human acceptance.
 
 ## Short bugfix route
 
+For T0, the current implementer performs the deterministic edit and its targeted check, then updates
+the copied `build-evidence.json` with `route: targeted`, at least one actual `checks[]` entry with
+`status: pass`, and `status: complete`. Attest it before entering Phase 7; the adjacent schema owns
+all other allowed fields.
+
 For a bounded reproducible defect:
 
 ```text
-/triage → /diagnose → /tdd (regression first) → /code-review-expert → human acceptance
+triage → diagnose → tdd (regression first) → code-review-expert → human acceptance
 ```
 
 Use T1 and document why the full feature route is unnecessary. Escalate the tier if diagnosis shows
@@ -274,11 +487,13 @@ cross-module, data-migration, safety, or irreversible impact.
 ## State ledger and semantic preflight
 
 Every project uses `.pipeline-state.json` from `../../templates/project/.pipeline-state.json`.
-Use `setup-pipeline` to update it; do not hand-calculate or paste hashes:
+Use `setup-pipeline` to update it; do not hand-calculate or paste hashes. Run
+`setup-pipeline values` whenever an allowed value or schema owner is unclear:
 
 ```bash
 setup-pipeline set-phase 4b
 setup-pipeline attest contract.json
+setup-pipeline set-condition frontend false
 setup-pipeline sign contract_locked --by "name-or-account"
 setup-pipeline status
 ```
@@ -286,7 +501,7 @@ setup-pipeline status
 Before a phase, run:
 
 ```bash
-bash ~/.claude/scripts/pipeline-preflight.sh <phase> [project_dir]
+setup-preflight PHASE [project_dir]
 ```
 
 The evaluator checks:
@@ -312,8 +527,8 @@ From the project root, use the same loop whether beginning or resuming work:
 ```bash
 setup-pipeline status
 setup-pipeline set-phase 2
-bash ~/.claude/scripts/model-check.sh 2 .
-bash ~/.claude/scripts/pipeline-preflight.sh 2 .
+setup-model-check 2 .
+setup-preflight 2 .
 ```
 
 If preflight passes, invoke the phase skill in the current runtime. Register every required artifact
@@ -334,18 +549,19 @@ setup-pipeline sign viz_before_tickets --by "name-or-account"
 |---|---|---|
 | -1 | selected discovery process; private installs may use `methodology` | `product_brief.md`, `evidence-handoff.json`, and `business_model.md` if that process produced it |
 | 0 | `researcher` only when material factual gaps remain | research state plus changed brief/evidence |
-| 1 | `grill-with-docs` | `CONTEXT.md`, relevant ADRs |
+| 1 | `grill-with-docs` | attest stable `CONTEXT.md` plus relevant ADRs |
 | 2 | `planning-with-files` | `task_plan.md` and its JSON mirror |
 | 2-PM | `pm-review` in an independent context | `pm-review.json` |
 | 2b | `grace-init`, then `grace-plan` | required GRACE XML files |
-| 3 | `design-rubric` when needed, then `design-first` for frontend work | approved design/API artifacts |
+| 3 | `design-rubric` when needed, then `design-first` for frontend work | `design-contract.json`, `api-contract.json`, and the approved `docs/wireframe-<feature>.md` path returned by the skill |
+| 3r | `risk-review` for T4 | `risk-review.json`, `rollout-plan.json`; continue only on `PASS` |
 | 4 | `contract` | `contract.json` (the skill also creates its lock file) |
 | 4b | `judge contract` in an independent context | `judge-report.json` |
 | 4c | `visualization` | `SUPERVISION.md` and the review view |
-| 5 | `to-issues` after `viz_before_tickets` is signed | `issues-manifest.json` |
-| 5.5 | `scaffold` | `scaffold-manifest.json` |
-| 6 | `build-loop` or `tdd` after `contract_locked` is signed | `build-evidence.json` |
-| 7 | `judge feature`, then `code-review-expert` | acceptance evidence; sign `human_acceptance` only after review |
+| 5 | `to-issues` after `viz_before_tickets` is signed | `issues-manifest.json` with status `approved` |
+| 5.5 | `scaffold` | `scaffold-manifest.json` with status `ready` |
+| 6 | `build-loop` or `tdd` after `contract_locked` is signed | `build-evidence.json` with status `complete` |
+| 7 | T0/T1: `code-review-expert`; T2–T4: `judge feature`, then `code-review-expert` | stable final reports, then `human_acceptance`, then `setup-preflight 7 . --completion` |
 
 For a workctl-managed task, first run `workctl status <task-id>` and then use the ledger status and
 preflight. Never infer the current phase from chat history or file timestamps.
@@ -361,10 +577,13 @@ gate. Common examples:
 - code/scaffold boundary change → tests, traces, review, and acceptance evidence may be stale.
 
 Exact invalidation declarations live in `pipeline-machine.json` and the producing skill contracts.
+When a changed source invalidates the evidence behind a human gate, `setup-pipeline attest` also
+clears that signature. Review the refreshed artifacts and sign again; an earlier approval cannot be
+carried across changed bytes.
 
 ## Human supervision artifacts
 
-`/visualization` creates the human track. Keep it separate from the GRACE agent graph.
+`visualization` creates the human track. Keep it separate from the GRACE agent graph.
 
 - choose the review concern and scale before notation;
 - use a stable Markdown/Mermaid filename next to the reviewed state artifact;
@@ -388,30 +607,12 @@ Do not select by the prestige of a role title, and never let task signals weaken
 role-independence rule.
 
 ```bash
-bash ~/.claude/scripts/model-check.sh <phase> [project_dir]
+setup-model-check <phase> [project_dir]
 ```
 
 If the current runtime cannot satisfy the required model/role, stop and switch runtime or update the
 explicit project policy. Do not claim that a shell script can detect the model that is generating
 the current response.
-
-## New project
-
-```bash
-/startup <project-name>
-cd ~/<project-name>
-```
-
-Then:
-
-1. complete `product_brief.md` and `evidence-handoff.json` using your preferred discovery process;
-2. run `/researcher` only for material factual gaps;
-3. run `/judge product-brief` and `/grill-with-docs`;
-4. resolve product shape (`is_frontend`/`is_backend`) from the approved proposal and journey;
-5. select the risk tier, enable only required model bindings, and continue through the machine route;
-6. use `workctl init <task-id> --goal "..."` if work may cross coding CLIs.
-
-Runtime-specific skill syntax and model-binding values are in `SETUP.md` and `../agent/COMPAT.md`.
 
 ## Common mistakes
 

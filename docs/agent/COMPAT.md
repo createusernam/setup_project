@@ -28,6 +28,11 @@ provider renamed or replaced a model.
 
 Runtime differences affect invocation, not artifact contracts.
 
+Canonical pipeline documents therefore name portable skills without runtime punctuation. The only
+translation table for Claude Code, Codex, OpenCode, and terminal/API invocation lives in
+`../human/SETUP.md`. Run `setup-pipeline values` for allowed project values and exact schema-owner
+paths; do not guess a provider model ID or copy a placeholder.
+
 ## Capability profiles
 
 Canonical profiles live in `model-routing.json`:
@@ -128,12 +133,12 @@ Example shape (identifiers are placeholders, not recommendations):
 }
 ```
 
-The adjacent `model-bindings.schema.json` is authoritative for shape. `model-check.sh` additionally
+The adjacent `model-bindings.schema.json` is authoritative for shape. `setup-model-check` additionally
 checks the profiles used by one phase and role independence.
 
 ```bash
-bash ~/.claude/scripts/model-check.sh 2 /path/to/project
-bash ~/.claude/scripts/pipeline-preflight.sh 6 /path/to/project
+setup-model-check 2 /path/to/project
+setup-preflight 6 /path/to/project
 ```
 
 The scripts resolve profiles and enforce declared role separation. They cannot detect the model
@@ -232,7 +237,7 @@ separation, isolated-context, or single-writer lease requirements.
 
 When no agent primitive exists:
 
-1. resolve the phase profile with `model-check.sh`;
+1. resolve the phase profile with `setup-model-check`;
 2. start the configured runtime/model manually;
 3. load the relevant skill and required artifacts;
 4. save the structured output to the expected state file;

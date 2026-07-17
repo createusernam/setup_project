@@ -100,9 +100,9 @@ Important boundary rule:
 GRACE also has an optional CLI package, `@osovv/grace-cli`, which installs the `grace` binary.
 
 Current public commands:
-- `bash ~/.claude/scripts/grace-lint.sh --path /path/to/project`
-- `bash ~/.claude/scripts/grace-lint.sh --profile autonomous --path /path/to/project`
-- `bash ~/.claude/scripts/grace-lint.sh --explain docs.missing-required-artifact`
+- `setup-grace-lint --path /path/to/project`
+- `setup-grace-lint --profile autonomous --path /path/to/project`
+- `setup-grace-lint --explain docs.missing-required-artifact`
 - `grace status --path /path/to/project`
 - `grace status --with modules --path /path/to/project`
 - `grace module find auth --path /path/to/project`
@@ -133,9 +133,9 @@ The CLI does not replace `/grace-reviewer`, `/grace-refresh`, or `/grace-verific
 Typical preflight:
 - `grace status` for the current health snapshot and next action
 - `grace status --with modules` when you also need per-module health summaries
-- `bash ~/.claude/scripts/grace-lint.sh` for structural drift
-- `bash ~/.claude/scripts/grace-lint.sh --profile autonomous` before long autonomous execution
-- `bash ~/.claude/scripts/grace-lint.sh --json` when one issue needs built-in remediation guidance
+- `setup-grace-lint` for structural drift
+- `setup-grace-lint --profile autonomous` before long autonomous execution
+- `setup-grace-lint --json` when one issue needs built-in remediation guidance
 
 ## Development Workflow
 

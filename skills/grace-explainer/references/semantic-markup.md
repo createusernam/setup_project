@@ -29,8 +29,8 @@ Substantial test files should use the same structure when tests are the fastest 
 
 Optional lint-specific fields:
 
-- `ROLE` tells `bash ~/.claude/scripts/grace-lint.sh` what kind of governed file this is.
-- `MAP_MODE` tells `bash ~/.claude/scripts/grace-lint.sh` how to interpret `MODULE_MAP`.
+- `ROLE` tells `setup-grace-lint` what kind of governed file this is.
+- `MAP_MODE` tells `setup-grace-lint` how to interpret `MODULE_MAP`.
 
 Recommended defaults:
 

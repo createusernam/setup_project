@@ -17,6 +17,10 @@ later from approved artifacts.
 
 Or without args — the skill will ask for project name.
 
+`project-name` must be a 1–64 character lowercase slug using `a-z`, `0-9`, and `-`, beginning and
+ending with an alphanumeric character. Ask for a corrected name before touching the filesystem when
+it does not match.
+
 ## What it does
 
 1. Creates `~/<project-name>/` directory structure
@@ -34,6 +38,10 @@ Or without args — the skill will ask for project name.
 2. Create a GitHub remote now? (default: no)
 3. If yes: which owner and visibility (`private|public`)?
 ```
+
+The display name and accountable owner are non-empty free text. Discover valid GitHub owners from
+the authenticated account with `gh api user --jq .login` and
+`gh api user/orgs --jq '.[].login'`; do not guess an organization slug.
 
 ## Instructions
 
@@ -76,9 +84,9 @@ Generate `$PROJECT_PATH/CLAUDE.md` with the bootstrap values substituted and dec
 Deferred until architecture planning. Do not infer a stack from the project name or idea.
 
 ## Config
-- is_frontend: null
-- is_architecturally_complex: null
-- grace_mode: pending
+- is_frontend: null # null until discovery; then true|false
+- is_architecturally_complex: null # null until route selection; then true|false
+- grace_mode: pending # pending|lite|full; derive from selected route
 
 ## Pipeline
 See ~/setup/docs/human/PIPELINE.md
@@ -156,7 +164,7 @@ Key files:
   "data": {
     "project_path": "~/...",
     "github_url": "https://github.com/...",
-    "next_step": "complete neutral brief and evidence handoff → classify route → judge product-brief"
+    "next_step": "follow docs/human/PIPELINE.md#human-operator-path from discovery through route classification"
   },
   "issues": []
 }

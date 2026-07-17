@@ -8,7 +8,7 @@ set -euo pipefail
 SELF="$(readlink -f "${BASH_SOURCE[0]}")"
 ROOT="$(cd "$(dirname "$SELF")/.." && pwd)"
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" || -z "${1:-}" ]]; then
-  echo "usage: pipeline-preflight.sh <phase> [project_dir]"
+  echo "usage: setup-preflight <phase> [project_dir] [--completion]"
   exit 0
 fi
 exec python3 "$ROOT/scripts/pipeline_preflight.py" "$@" --root "$ROOT"

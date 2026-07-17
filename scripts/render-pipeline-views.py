@@ -28,19 +28,35 @@ def render(machine: dict) -> str:
         lines.append(f'    {phase_ids[phase]}["{phase} · {transition["skill"]}"]')
     for left, right in zip(ordered, ordered[1:]):
         lines.append(f"    {phase_ids[left]} --> {phase_ids[right]}")
-    lines.extend(["```", "", "| Phase | Skill | Tiers | Semantic inputs | Human gate |", "|---|---|---|---|---|"])
+    lines.extend(["```", "", "| Phase | Skill | Tiers | Run when | Entry inputs | Entry gate | Completion |", "|---|---|---|---|---|---|---|"])
     for phase, transition in transitions.items():
         inputs = []
         for requirement in transition.get("requires", []):
             semantic = requirement.get("json_pointer", "")
             expected = requirement.get("equals", requirement.get("in", ""))
-            inputs.append(f'`{requirement["artifact"]}{semantic}` {expected}'.strip())
-        lines.append(f'| {phase} | `{transition["skill"]}` | {", ".join(transition["tiers"])} | {"<br>".join(inputs) or "—"} | `{transition.get("human_gate", "—")}` |')
+            when = requirement.get("when")
+            condition = f' when {when["condition"]}={str(when["equals"]).lower()}' if when else ""
+            tiers = f' on {"/".join(requirement["tiers"])}' if requirement.get("tiers") else ""
+            inputs.append(f'`{requirement["artifact"]}{semantic}` {expected}{condition}{tiers}'.strip())
+        completion = transition.get("completion", {})
+        completion_inputs = []
+        for requirement in completion.get("requires", []):
+            semantic = requirement.get("json_pointer", "")
+            expected = requirement.get("equals", requirement.get("in", ""))
+            when = requirement.get("when")
+            condition = f' when {when["condition"]}={str(when["equals"]).lower()}' if when else ""
+            tiers = f' on {"/".join(requirement["tiers"])}' if requirement.get("tiers") else ""
+            completion_inputs.append(f'`{requirement["artifact"]}{semantic}` {expected}{condition}{tiers}'.strip())
+        completion_gate = completion.get("human_gate")
+        completion_view = "<br>".join(completion_inputs + ([f"gate `{completion_gate}`"] if completion_gate else [])) or "—"
+        when = transition.get("when")
+        when_view = f'`{when["condition"]}={str(when["equals"]).lower()}`' if when else "always on selected tier"
+        lines.append(f'| {phase} | `{transition["skill"]}` | {", ".join(transition["tiers"])} | {when_view} | {"<br>".join(inputs) or "—"} | `{transition.get("human_gate", "—")}` | {completion_view} |')
     lines.extend(["", "Risk policy: " + " · ".join(f"{tier}={data['label']}" for tier, data in machine["risk_policy"]["tiers"].items())])
     conditions = []
     for tier, data in machine["risk_policy"]["tiers"].items():
         for phase, condition in data.get("conditional_phases", {}).items():
-            conditions.append(f"{tier} phase {phase}: {condition}")
+            conditions.append(f"{tier} phase {phase}: {condition['condition']}={str(condition['equals']).lower()} — {condition['description']}")
     if conditions:
         lines.append("Conditional phases: " + " · ".join(conditions))
     lines.append("")

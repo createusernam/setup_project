@@ -13,9 +13,9 @@
 ## Config
 
 ```yaml
-is_frontend: null
-is_architecturally_complex: null
-grace_mode: "pending"   # set from the selected route after discovery and planning
+is_frontend: null                 # null until discovery; then true | false
+is_architecturally_complex: null  # null until route selection; then true | false
+grace_mode: "pending"             # pending | lite | full; derive from selected route
 ```
 
 ## Commands

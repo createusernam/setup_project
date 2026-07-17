@@ -5,34 +5,19 @@ A cross-model development harness: a canonical pipeline (Phase -1 → 7) that ta
 GRACE markup, product-brief-driven design, and independent machine, model, reviewer, and human gates.
 Works with Claude Code, Codex, OpenCode, or any terminal/API LLM as the orchestrator.
 
-## Install
+## Start here
 
-The installer is supported on Linux and Windows through WSL2. Native Windows and macOS are not
-currently validated install targets; the artifact/skill fallback remains portable. See
-[`docs/human/SETUP.md`](docs/human/SETUP.md) for the support matrix and exact installation steps.
+There are two runbooks and no duplicated command path:
 
-**Claude Code:**
-```bash
-git clone https://github.com/createusernam/setup_project.git ~/setup
-bash ~/setup/install.sh
-```
-Verify: open Claude Code, type `/startup` — should appear in the skill list.
+1. **Install or update the harness:** follow [`SETUP.md`](docs/human/SETUP.md). It is the only
+   source of truth for supported platforms, installation, runtime-specific configuration, and
+   verification.
+2. **Create or deliver a project:** follow the ordered human checklist in
+   [`PIPELINE.md`](docs/human/PIPELINE.md). It is the only source of truth for phase order, optional
+   branches, gates, and acceptance.
 
-**Codex and OpenCode:** use the same clone + `install.sh`. The installer links one canonical skill
-tree into both standard discovery roots and installs the same routing policy for every CLI. For
-OpenCode, then add the `instructions` + `mcp.playwright` block to
-`~/.config/opencode/opencode.json`. Full snippet: `docs/human/SETUP.md`.
-
-**Any terminal LLM:** clone the repo, paste a `SKILL.md`'s content into your prompt — you are
-the orchestrator.
-
-## First project
-
-After `/startup <name>`, complete discovery, classify the route, configure only the required
-`model-bindings.json` profiles, and continue with the operator loop in
-[`docs/human/PIPELINE.md`](docs/human/PIPELINE.md). If a task may move between coding CLIs, create
-its explicit identity with `workctl init <task-id> --goal "..."`; workctl does not replace pipeline
-phases or gates.
+This README is orientation only. Do not copy operational commands into it; update the owning
+runbook instead.
 
 ---
 
@@ -51,21 +36,12 @@ setup/
 ├── scripts/                # model-check · preflight · GRACE lint · skill discovery/validation
 ├── skills/                 # canonical skills → ~/.claude/skills and ~/.agents/skills
 ├── agents/                 # evaluator.md · team.md
-└── templates/project/      # copied into new projects by /startup
+└── templates/project/      # copied into new projects by the startup skill
 ```
 
-`install.sh` symlinks every skill and exposes `scripts/` at `~/.claude/scripts/`, so skills can call
-the gates from any project directory:
-
-```bash
-bash ~/.claude/scripts/pipeline-preflight.sh 6   # risk policy · semantic outcomes · attestations · models · human gate
-bash ~/.claude/scripts/grace-lint.sh --changed   # GRACE Lite markup on the diff
-bash ~/.claude/scripts/model-check.sh 5.5 .      # resolve the project's configured model binding
-python3 ~/setup/scripts/validate-skills.py --profile claude  # validate Claude skill frontmatter
-workctl doctor                                                # check cross-CLI task continuation
-workctl role-list <task-id>                                   # inspect persistent/fresh role sessions
-setup-skill-doctor                                            # check discovery + routing in every CLI
-```
+`install.sh` exposes the shared skills and runtime-neutral operator commands from one canonical
+source. Their installation, verification, and allowed inputs belong to `SETUP.md` and
+`PIPELINE.md`, not this orientation page.
 
 Model routing is provider-neutral: phases require capability profiles, while each project maps
 those profiles to concrete runtime/model IDs in `model-bindings.json`. Allowed field values and a
@@ -83,14 +59,14 @@ source; old copies are never deleted.
 
 | I need to… | Start here |
 |---|---|
-| install, select a CLI, create/adopt a project, or configure a model | [`SETUP.md`](docs/human/SETUP.md) |
-| select a risk tier, run/resume a phase, pass a gate, or register evidence | [`PIPELINE.md`](docs/human/PIPELINE.md) |
+| install the harness, select/configure a CLI, or add an optional browser evaluator | [`SETUP.md`](docs/human/SETUP.md) |
+| create/adopt a project, configure its route/models, run a phase, pass a gate, or accept delivery | [`PIPELINE.md`](docs/human/PIPELINE.md) |
 | hand an architecture decision back into the pipeline | [`ARCHITECTURE-GUIDE.md`](docs/human/ARCHITECTURE-GUIDE.md) |
 | continue one named task in another coding CLI | [`WORKCTL.md`](docs/human/WORKCTL.md) |
 | change a machine-facing contract or learn allowed config values | [`COMPAT.md`](docs/agent/COMPAT.md) and the adjacent JSON schema |
 
-`SETUP.md` owns installation and project configuration. `PIPELINE.md` owns phase operation and
-gate state; do not look for a second operator runbook.
+`SETUP.md` owns installation/runtime configuration. `PIPELINE.md` owns the project journey from
+bootstrap through acceptance; do not look for a second operator runbook.
 
 ## Attribution
 
@@ -99,5 +75,6 @@ The `grace-*` skills are adapted from [osovv/grace-marketplace](https://github.c
 
 ## Relationship to claude-config
 
-This repo extends, does not replace, `claude-config` (personal config, agents, global skills).
-Install both — see `docs/human/SETUP.md`.
+This repo can coexist with `claude-config` (personal config, agents, global skills), but that
+repository is not a setup prerequisite. Skill-path collisions still follow the fail-closed migration
+described in `SETUP.md`.

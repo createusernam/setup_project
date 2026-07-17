@@ -15,8 +15,8 @@ created: ""                 # ISO 8601
 owner: ""                   # accountable person or team
 product_type: ""            # software | service | physical | hybrid | other
 delivery_format: ""         # web | mobile | API | offline | service | hybrid | other
-is_frontend: null           # resolve from the approved proposal and user journey
-is_backend: null            # resolve before planning/contract handoff
+is_frontend: null           # null during discovery; then true | false
+is_backend: null            # null during discovery; then true | false
 validation_stage: discovery # discovery | alpha | live
 decision: alpha             # stop | alpha | delivery
 status: draft               # draft | reviewed | pipeline-ready
@@ -186,21 +186,21 @@ Downstream mapping:
 | Brief section | Consumer |
 |---|---|
 | §1 scope and outcomes | `task_plan.md`, `contract.json.scope` |
-| §2 evidence and assumptions | `/researcher`, `/grill-with-docs`, risk review |
+| §2 evidence and assumptions | `researcher`, `grill-with-docs`, risk review |
 | §2 blocking specification gaps | semantic pipeline preflight before planning/contract |
 | §3 capabilities | planning and contract criteria |
 | §5 system context | architecture handoff and `contract.json.integrations` |
 | §6 constraints and risks | ADRs, risk review, rollout plan |
-| §7 journey | `contract.json.user_flow`, `/pm-review` |
-| §8 criteria/out of scope | `contract.json.criteria[]`, `/pm-review` |
+| §7 journey | `contract.json.user_flow`, `pm-review` |
+| §8 criteria/out of scope | `contract.json.criteria[]`, `pm-review` |
 
 Next steps:
 
-1. Resolve material factual gaps with `/researcher` if needed.
-2. Run `/grill-with-docs` to align terminology and record decisions in `CONTEXT.md`/ADRs.
+1. Resolve material factual gaps with `researcher` if needed.
+2. Run `grill-with-docs` to align terminology and record decisions in `CONTEXT.md`/ADRs.
 3. Create `task_plan.md`; architecture work consumes this brief through
    `docs/human/ARCHITECTURE-GUIDE.md`.
-4. Run `/pm-review`, then the contract and build gates selected by the risk tier.
+4. Run `pm-review`, then the contract and build gates selected by the risk tier.
 
 Do not use `status: pipeline-ready` or `decision: delivery` to imply evidence that is not present in
 `evidence-handoff.json`.

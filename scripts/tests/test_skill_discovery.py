@@ -150,6 +150,16 @@ class InstallerIntegrationTests(unittest.TestCase):
             expected = (REPO / "skills" / "planning-with-files").resolve()
             self.assertEqual(stale.resolve(), expected)
             self.assertEqual((home / ".claude" / "skills" / "planning-with-files").resolve(), expected)
+            expected_commands = {
+                "workctl": REPO / "scripts" / "workctl.py",
+                "setup-skill-doctor": REPO / "scripts" / "check-skill-discovery.py",
+                "setup-pipeline": REPO / "scripts" / "pipeline-state.py",
+                "setup-preflight": REPO / "scripts" / "pipeline-preflight.sh",
+                "setup-model-check": REPO / "scripts" / "model-check.sh",
+                "setup-grace-lint": REPO / "scripts" / "grace-lint.sh",
+            }
+            for command, source in expected_commands.items():
+                self.assertEqual((bindir / command).resolve(), source.resolve())
             backups = list((home / ".setup-skill-backups").glob("*/agents/planning-with-files/keep.txt"))
             self.assertEqual(len(backups), 1)
             self.assertEqual(backups[0].read_text(encoding="utf-8"), "user data")

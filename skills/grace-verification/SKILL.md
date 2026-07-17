@@ -176,7 +176,7 @@ If any answer is no, document the gap explicitly in `docs/verification-plan.xml`
 - Prefer source-adjacent tests and narrow fakes over giant opaque harnesses
 - If verification is weak, improve observability before adding more agents
 - Prefer module-level checks during worker execution and reserve broader suites for wave or phase gates
-- Treat `bash ~/.claude/scripts/grace-lint.sh --profile autonomous` as a cheap gate for whether the current verification surface is mature enough for longer autonomous execution
+- Treat `setup-grace-lint --profile autonomous` as a cheap gate for whether the current verification surface is mature enough for longer autonomous execution
 
 ## Deliverables
 When using this skill, produce:

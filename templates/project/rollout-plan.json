@@ -1,0 +1,12 @@
+{
+  "$schema": "./rollout-plan.schema.json",
+  "version": "1",
+  "status": "draft",
+  "stages": [],
+  "rollback": {
+    "defined": false,
+    "trigger": "replace-me",
+    "action": "replace-me",
+    "owner": "replace-me"
+  }
+}

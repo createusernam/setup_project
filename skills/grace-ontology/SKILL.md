@@ -18,7 +18,7 @@ Those choices remain in `product_brief.md`, `contract.json`, ADRs and the user's
 
 ## Enforcement
 
-`bash ~/.claude/scripts/grace-lint.sh` checks the code-level vocabulary. The `--profile autonomous`
+`setup-grace-lint` checks the code-level vocabulary. The `--profile autonomous`
 profile requires the stricter function contracts and block-anchored logs. `/code-review-expert` and
 `/build-loop` consume the same checked structure; `/scaffold` creates it before implementation.
 

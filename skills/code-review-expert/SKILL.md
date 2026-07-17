@@ -63,7 +63,7 @@ If `contract.json` is missing or unattested, fall back to generic review (steps 
 ### 0b) GRACE Lite check — mechanical, runs before the human-judgment passes
 
 ```bash
-bash ~/.claude/scripts/grace-lint.sh --changed        # add --profile autonomous if /build-loop will run on this code
+setup-grace-lint --changed        # add --profile autonomous if /build-loop will run on this code
 ```
 
 **Every error is P1** (block merge; P0 if the file is on a critical path — auth, payments, data writes).
@@ -204,6 +204,11 @@ Please choose an option or provide specific instructions.
 ```
 
 **Important**: Do NOT implement any changes until user explicitly confirms. This is a review-first workflow.
+
+When this review runs in pipeline Phase 7, also save the complete current review at root
+`code-review.md`. Preserve the assessment (`APPROVE|REQUEST_CHANGES|COMMENT`), findings, checked
+scope, commands/results, uncovered areas, and residual risks. Phase completion attests this stable
+path before the human signs acceptance; a chat-only review cannot complete the pipeline.
 
 ## Resources
 

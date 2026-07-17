@@ -19,6 +19,8 @@ from typing import Any
 KNOWN_RUNTIMES = {"claude", "codex", "opencode", "api", "manual", "self-hosted"}
 SHA256 = re.compile(r"^[a-f0-9]{64}$")
 SPEC_GAP_GATE_PHASES = {"1", "2", "4"}
+LEDGER_STATUSES = {"draft", "ready", "approved", "complete", "invalidated"}
+HUMAN_GATES = {"viz_before_tickets", "contract_locked", "human_acceptance"}
 
 
 def sha256(path: Path) -> str:
@@ -44,8 +46,61 @@ def pointer(document: Any, value: str) -> Any:
     return current
 
 
-def applicable(requirement: dict[str, Any], tier: str) -> bool:
-    return tier in requirement.get("tiers", ["T0", "T1", "T2", "T3", "T4"])
+def condition_matches(rule: dict[str, Any] | None, conditions: dict[str, Any]) -> bool:
+    if not rule:
+        return True
+    return conditions.get(rule.get("condition")) == rule.get("equals")
+
+
+def applicable(requirement: dict[str, Any], tier: str, conditions: dict[str, Any]) -> bool:
+    return tier in requirement.get("tiers", ["T0", "T1", "T2", "T3", "T4"]) and condition_matches(
+        requirement.get("when"), conditions
+    )
+
+
+def artifact_semantic_errors(name: str, document: Any, tier: str) -> list[str]:
+    """Reject terminal-looking artifacts that contain no usable evidence."""
+    if not isinstance(document, dict):
+        return [f"semantic: {name} must contain a JSON object"]
+    failures: list[str] = []
+    if name == "build-evidence.json" and document.get("status") == "complete":
+        checks = document.get("checks", [])
+        if not checks or any(not isinstance(item, dict) or item.get("status") != "pass" for item in checks):
+            failures.append("semantic: complete build-evidence.json requires at least one check and every check status=pass")
+        criteria = document.get("criteria", [])
+        if tier in {"T2", "T3", "T4"} and not criteria:
+            failures.append("semantic: T2–T4 complete build-evidence.json requires criterion evidence")
+        if any(not isinstance(item, dict) or item.get("status") != "PASS" for item in criteria):
+            failures.append("semantic: complete build-evidence.json requires every criterion status=PASS")
+    elif name == "issues-manifest.json" and document.get("status") == "approved":
+        if not document.get("issues"):
+            failures.append("semantic: approved issues-manifest.json requires at least one issue")
+    elif name == "scaffold-manifest.json" and document.get("status") == "ready":
+        if not document.get("files"):
+            failures.append("semantic: ready scaffold-manifest.json requires at least one scaffolded file")
+        checks = document.get("checks", [])
+        if not checks or any(not isinstance(item, dict) or item.get("status") != "pass" for item in checks):
+            failures.append("semantic: ready scaffold-manifest.json requires at least one passing check and no failures")
+    elif name == "risk-review.json" and document.get("verdict") == "PASS":
+        risks = document.get("risks", [])
+        if not risks:
+            failures.append("semantic: PASS risk-review.json requires at least one assessed T4 risk")
+        if any(not isinstance(item, dict) or item.get("status") == "open" for item in risks):
+            failures.append("semantic: PASS risk-review.json cannot contain open risks")
+        if not document.get("rollback", {}).get("defined"):
+            failures.append("semantic: PASS risk-review.json requires a defined rollback")
+        if document.get("accepted_by") in {None, "", "replace-me"}:
+            failures.append("semantic: PASS risk-review.json requires an accountable accepted_by identity")
+    elif name == "rollout-plan.json" and document.get("status") in {"ready", "complete"}:
+        if not document.get("stages"):
+            failures.append("semantic: ready/complete rollout-plan.json requires at least one rollout stage")
+        rollback = document.get("rollback", {})
+        if not rollback.get("defined"):
+            failures.append("semantic: ready/complete rollout-plan.json requires rollback.defined=true")
+        for field in ("trigger", "action", "owner"):
+            if rollback.get(field) in {None, "", "replace-me"}:
+                failures.append(f"semantic: ready/complete rollout-plan.json requires a concrete rollback.{field}")
+    return failures
 
 
 def valid_runtime(value: Any) -> bool:
@@ -73,14 +128,23 @@ def ledger_errors(ledger: Any) -> list[str]:
     if not isinstance(ledger, dict):
         return ["ledger: .pipeline-state.json must contain a JSON object"]
     errors: list[str] = []
-    if "version" in ledger and ledger["version"] != "2":
+    if ledger.get("version") != "2":
         errors.append("ledger: version must be '2'")
+    if not isinstance(ledger.get("phase"), str) or not ledger.get("phase"):
+        errors.append("ledger: phase must be a non-empty machine phase")
     if not isinstance(ledger.get("policy"), dict):
         errors.append("ledger: policy must be an object")
     if not isinstance(ledger.get("artifacts", {}), dict):
         errors.append("ledger: artifacts must be an object")
     if not isinstance(ledger.get("human_gates", {}), dict):
         errors.append("ledger: human_gates must be an object")
+    elif set(ledger.get("human_gates", {})) != HUMAN_GATES:
+        errors.append("ledger: human_gates must contain exactly contract_locked, viz_before_tickets, and human_acceptance; run setup-pipeline migrate")
+    policy = ledger.get("policy", {})
+    if isinstance(policy, dict):
+        for obsolete in ("skipped_gates", "skip_contract"):
+            if obsolete in policy:
+                errors.append(f"ledger: obsolete policy.{obsolete} has no authority; run setup-pipeline migrate")
     bindings_file = ledger.get("model_bindings_file", "model-bindings.json")
     if not isinstance(bindings_file, str) or not bindings_file or Path(bindings_file).is_absolute() or ".." in Path(bindings_file).parts:
         errors.append("ledger: model_bindings_file must be a non-empty project-relative path")
@@ -93,6 +157,10 @@ def ledger_errors(ledger: Any) -> list[str]:
             digest = record.get("sha256")
             if digest is not None and (not isinstance(digest, str) or not SHA256.fullmatch(digest)):
                 errors.append(f"ledger: artifact {name!r} sha256 must be null or a lowercase SHA-256 digest")
+            if record.get("status") not in LEDGER_STATUSES:
+                errors.append(f"ledger: artifact {name!r} status must be one of {sorted(LEDGER_STATUSES)}")
+            if "invalidated_by" not in record or not isinstance(record.get("invalidated_by"), (str, type(None))):
+                errors.append(f"ledger: artifact {name!r} invalidated_by must be null or a string")
     return errors
 
 
@@ -145,7 +213,7 @@ def specification_gap_errors(document: Any) -> list[str]:
     return failures
 
 
-def evaluate(root: Path, project: Path, phase: str) -> tuple[list[str], list[str], dict[str, Any]]:
+def evaluate(root: Path, project: Path, phase: str, completion: bool = False) -> tuple[list[str], list[str], dict[str, Any]]:
     machine = json.loads((root / "pipeline-machine.json").read_text(encoding="utf-8"))
     routing = json.loads((root / "model-routing.json").read_text(encoding="utf-8"))
     transition = machine.get("transitions", {}).get(phase)
@@ -156,7 +224,14 @@ def evaluate(root: Path, project: Path, phase: str) -> tuple[list[str], list[str
     if not ledger_path.is_file():
         if phase != "-1":
             return [f"no ledger at {ledger_path}"], [], transition
-        ledger: dict[str, Any] = {"model_bindings_file": "model-bindings.json", "artifacts": {}, "human_gates": {}, "policy": {"risk_tier": machine["risk_policy"]["default"], "skipped_gates": []}}
+        ledger: dict[str, Any] = {
+            "version": "2",
+            "phase": "-1",
+            "model_bindings_file": "model-bindings.json",
+            "artifacts": {},
+            "human_gates": {},
+            "policy": {"risk_tier": None, "conditions": {"research_required": None, "frontend": None}},
+        }
     else:
         try:
             ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
@@ -166,12 +241,34 @@ def evaluate(root: Path, project: Path, phase: str) -> tuple[list[str], list[str
     failures: list[str] = ledger_errors(ledger)
     warnings: list[str] = []
     policy = ledger.get("policy", {})
+    conditions = policy.get("conditions", {}) if isinstance(policy.get("conditions", {}), dict) else {}
+    if ledger.get("phase") != phase:
+        failures.append(
+            f"ledger: current phase is {ledger.get('phase')!r}, requested {phase!r}; run setup-pipeline set-phase {phase}"
+        )
     tier = policy.get("risk_tier")
-    if tier not in machine["risk_policy"]["tiers"]:
+    if tier is None and phase in {"-1", "0"}:
+        tier = machine["risk_policy"]["default"]
+    elif tier not in machine["risk_policy"]["tiers"]:
         failures.append("policy.risk_tier must be explicitly set to T0, T1, T2, T3, or T4")
         tier = machine["risk_policy"]["default"]
     if tier not in transition.get("tiers", []):
         failures.append(f"policy: phase {phase} is not on the {tier} route")
+    if tier in {"T2", "T3", "T4"} and phase not in {"-1", "0"}:
+        for condition_name in ("research_required", "frontend"):
+            if conditions.get(condition_name) is None:
+                failures.append(
+                    f"policy: condition {condition_name!r} is unclassified; run setup-pipeline set-condition {condition_name} true|false"
+                )
+    transition_condition = transition.get("when")
+    if transition_condition:
+        condition_name = transition_condition["condition"]
+        if conditions.get(condition_name) is None:
+            failures.append(
+                f"policy: condition {condition_name!r} is unclassified; run setup-pipeline set-condition {condition_name} true|false"
+            )
+        elif not condition_matches(transition_condition, conditions):
+            failures.append(f"policy: phase {phase} is unnecessary because condition {condition_name!r} is false")
 
     route = routing.get("phases", {}).get(phase, {})
     configured_binding_path = ledger.get("model_bindings_file", "model-bindings.json")
@@ -213,10 +310,14 @@ def evaluate(root: Path, project: Path, phase: str) -> tuple[list[str], list[str
         if None not in values and len(set(values)) != len(values):
             failures.append(f"collegium: roles {group} must resolve to different model IDs, got {values}")
 
+    completion_contract = transition.get("completion", {}) if completion else {}
+    if completion and not completion_contract:
+        failures.append(f"completion: phase {phase} has no completion contract")
+    requirements = completion_contract.get("requires", []) if completion else transition.get("requires", [])
     records = ledger.get("artifacts", {})
     loaded_json: dict[str, Any] = {}
-    for requirement in transition.get("requires", []):
-        if not applicable(requirement, tier):
+    for requirement in requirements:
+        if not applicable(requirement, tier, conditions):
             continue
         name = requirement["artifact"]
         artifact = project / name
@@ -224,8 +325,19 @@ def evaluate(root: Path, project: Path, phase: str) -> tuple[list[str], list[str
         if not artifact.exists():
             failures.append(f"input: required artifact {name!r} missing")
             continue
+        if artifact.is_file() and artifact.stat().st_size == 0:
+            failures.append(f"input: required artifact {name!r} is empty")
+        if name == "code-review.md":
+            review_text = artifact.read_text(encoding="utf-8", errors="replace")
+            assessment = re.search(r"\*\*Overall assessment\*\*:\s*(APPROVE|REQUEST_CHANGES|COMMENT)\b", review_text)
+            if not assessment:
+                failures.append("semantic: code-review.md must contain '**Overall assessment**: APPROVE|REQUEST_CHANGES|COMMENT'")
+            elif assessment.group(1) != "APPROVE":
+                failures.append(f"semantic: code-review.md must be APPROVE before acceptance, got {assessment.group(1)}")
         if record.get("status") == "invalidated" or record.get("invalidated_by"):
             failures.append(f"input: {name!r} is invalidated by {record.get('invalidated_by', 'ledger status')}")
+        if record.get("status") == "draft":
+            failures.append(f"input: {name!r} is still draft; attest it as ready, approved, or complete")
         if requirement.get("attested"):
             expected = record.get("sha256")
             if not expected:
@@ -247,6 +359,9 @@ def evaluate(root: Path, project: Path, phase: str) -> tuple[list[str], list[str
             if "in" in requirement and actual_value not in requirement["in"]:
                 failures.append(f"semantic: {name}{requirement['json_pointer']} must be one of {requirement['in']!r}, got {actual_value!r}")
 
+    for name, document in loaded_json.items():
+        failures.extend(artifact_semantic_errors(name, document, tier))
+
     if phase in SPEC_GAP_GATE_PHASES:
         evidence = project / "evidence-handoff.json"
         if evidence.is_file():
@@ -256,15 +371,22 @@ def evaluate(root: Path, project: Path, phase: str) -> tuple[list[str], list[str
             except json.JSONDecodeError as error:
                 failures.append(f"specification_gap: cannot read evidence-handoff.json: {error}")
 
-    human_gate = transition.get("human_gate")
+    human_gate = completion_contract.get("human_gate") if completion else transition.get("human_gate")
     if human_gate:
         signature = ledger.get("human_gates", {}).get(human_gate, {})
         if not all(signature.get(key) for key in ("by", "at")):
             failures.append(f"human_gate: {human_gate!r} requires by and at")
 
-    if tier in {"T3", "T4"} and phase not in machine["risk_policy"]["tiers"][tier]["required_phases"]:
+    tier_route = machine["risk_policy"]["tiers"][tier]
+    selected_phases = set(tier_route["required_phases"])
+    selected_phases.update(
+        conditional_phase
+        for conditional_phase, rule in tier_route.get("conditional_phases", {}).items()
+        if condition_matches(rule, conditions)
+    )
+    if phase not in selected_phases and phase not in {"-1"}:
         warnings.append(f"phase {phase} is outside the canonical {tier} route")
-    return failures, warnings, {**transition, "tier": tier, "required_profile": required_profile, "resolved_models": resolved}
+    return failures, warnings, {**transition, "tier": tier, "required_profile": required_profile, "resolved_models": resolved, "completion_check": completion}
 
 
 def main() -> int:
@@ -272,9 +394,11 @@ def main() -> int:
     parser.add_argument("phase", help="pipeline phase, for example 4c or 6")
     parser.add_argument("project_dir", nargs="?", default=".")
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
+    parser.add_argument("--completion", action="store_true", help="check the phase completion contract instead of entry preconditions")
     args = parser.parse_args()
-    failures, warnings, transition = evaluate(args.root.resolve(), Path(args.project_dir).resolve(), args.phase)
-    print(f"=== preflight · phase {args.phase} · {transition.get('skill', '?')} · {transition.get('tier', '?')} ===")
+    failures, warnings, transition = evaluate(args.root.resolve(), Path(args.project_dir).resolve(), args.phase, args.completion)
+    check_kind = "completion" if args.completion else "entry"
+    print(f"=== preflight · phase {args.phase} · {check_kind} · {transition.get('skill', '?')} · {transition.get('tier', '?')} ===")
     for warning in warnings:
         print(f"WARN: {warning}")
     if failures:

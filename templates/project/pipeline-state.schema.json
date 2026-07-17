@@ -6,19 +6,30 @@
   "required": ["version", "phase", "policy", "artifacts", "human_gates", "model_bindings_file"],
   "properties": {
     "version": {"const": "2"},
-    "phase": {"type": "string", "minLength": 1},
+    "phase": {"enum": ["-1", "0", "1", "2", "2-PM", "2b", "3", "3r", "4", "4b", "4c", "5", "5.5", "6", "7"]},
     "policy": {
       "type": "object",
-      "required": ["risk_tier", "skipped_gates"],
+      "additionalProperties": false,
+      "required": ["risk_tier", "conditions"],
       "properties": {
         "risk_tier": {"enum": [null, "T0", "T1", "T2", "T3", "T4"]},
-        "skipped_gates": {"type": "array"}
+        "tier_reason": {"type": "string", "minLength": 1},
+        "conditions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["research_required", "frontend"],
+          "properties": {
+            "research_required": {"type": ["boolean", "null"]},
+            "frontend": {"type": ["boolean", "null"]}
+          }
+        }
       }
     },
     "artifacts": {
       "type": "object",
       "additionalProperties": {
         "type": "object",
+        "additionalProperties": false,
         "required": ["sha256", "status", "invalidated_by"],
         "properties": {
           "sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
@@ -29,15 +40,25 @@
     },
     "human_gates": {
       "type": "object",
-      "additionalProperties": {
-        "type": "object",
-        "required": ["by", "at"],
-        "properties": {
-          "by": {"type": ["string", "null"]},
-          "at": {"type": ["string", "null"], "format": "date-time"}
-        }
+      "required": ["viz_before_tickets", "contract_locked", "human_acceptance"],
+      "additionalProperties": false,
+      "properties": {
+        "viz_before_tickets": {"$ref": "#/$defs/signature"},
+        "contract_locked": {"$ref": "#/$defs/signature"},
+        "human_acceptance": {"$ref": "#/$defs/signature"}
       }
     },
     "model_bindings_file": {"type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+\\.json$"}
+  },
+  "$defs": {
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["by", "at"],
+      "properties": {
+        "by": {"type": ["string", "null"]},
+        "at": {"type": ["string", "null"], "format": "date-time"}
+      }
+    }
   }
 }

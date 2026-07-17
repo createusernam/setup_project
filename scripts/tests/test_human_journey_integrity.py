@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+"""Fail closed when the documented human path drifts from executable setup contracts."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+import re
+import unittest
+
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+class HumanJourneyIntegrityTests(unittest.TestCase):
+    def test_runbook_ownership_and_cross_cli_entry_are_unambiguous(self) -> None:
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        setup = (ROOT / "docs/human/SETUP.md").read_text(encoding="utf-8")
+        pipeline = (ROOT / "docs/human/PIPELINE.md").read_text(encoding="utf-8")
+        self.assertNotIn("git clone https://github.com/createusernam/setup", readme)
+        self.assertNotIn("git clone https://github.com/createusernam/setup", pipeline)
+        self.assertIn("git clone https://github.com/createusernam/setup", setup)
+        self.assertIn("single source of truth for installing", setup)
+        self.assertIn("Claude Code, Codex, OpenCode, or the terminal/API", pipeline)
+        self.assertIn("Human operator path", pipeline)
+        self.assertIn("setup-pipeline bootstrap", pipeline)
+        self.assertIn("setup-preflight 7 . --completion", pipeline)
+
+    def test_portable_docs_do_not_encode_claude_invocation_syntax(self) -> None:
+        for relative in (
+            "docs/human/PIPELINE.md",
+            "docs/human/ARCHITECTURE-GUIDE.md",
+            "templates/project/product_brief.md",
+        ):
+            text = (ROOT / relative).read_text(encoding="utf-8")
+            self.assertIsNone(re.search(r"`/[a-z]", text), relative)
+        setup = (ROOT / "docs/human/SETUP.md").read_text(encoding="utf-8")
+        for runtime in ("Claude Code", "Codex", "OpenCode", "Terminal/API"):
+            self.assertIn(runtime, setup)
+
+    def test_every_human_input_has_values_or_a_discovery_owner(self) -> None:
+        setup = (ROOT / "docs/human/SETUP.md").read_text(encoding="utf-8")
+        pipeline = (ROOT / "docs/human/PIPELINE.md").read_text(encoding="utf-8")
+        compat = (ROOT / "docs/agent/COMPAT.md").read_text(encoding="utf-8")
+        self.assertIn("setup-pipeline values", pipeline)
+        self.assertIn("schema paths", pipeline)
+        self.assertIn("set-condition research_required true", pipeline)
+        self.assertIn("set-condition frontend false", pipeline)
+        self.assertIn("T0|T1|T2|T3|T4", pipeline)
+        self.assertIn("draft|ready|approved|complete", pipeline)
+        self.assertIn("contract_locked`, `viz_before_tickets`, and `human_acceptance", pipeline)
+        self.assertIn("Find an exact model ID", setup)
+        self.assertIn("Allowed values", compat)
+
+    def test_machine_phases_conditions_and_final_gate_match_the_ledger(self) -> None:
+        machine = json.loads((ROOT / "pipeline-machine.json").read_text(encoding="utf-8"))
+        routing = json.loads((ROOT / "model-routing.json").read_text(encoding="utf-8"))
+        ledger = json.loads((ROOT / "templates/project/.pipeline-state.json").read_text(encoding="utf-8"))
+        self.assertEqual(set(machine["transitions"]), set(routing["phases"]))
+        self.assertEqual(ledger["phase"], "-1")
+        self.assertIsNone(ledger["policy"]["risk_tier"])
+        self.assertEqual(set(ledger["policy"]["conditions"]), {"research_required", "frontend"})
+        self.assertEqual(machine["transitions"]["0"]["when"], {"condition": "research_required", "equals": True})
+        self.assertEqual(machine["transitions"]["3"]["when"], {"condition": "frontend", "equals": True})
+        self.assertNotIn("human_gate", machine["transitions"]["7"])
+        self.assertEqual(machine["transitions"]["7"]["completion"]["human_gate"], "human_acceptance")
+        serialized = json.dumps(machine) + json.dumps(ledger)
+        self.assertNotIn("skipped_gates", serialized)
+        self.assertNotIn("skip_contract", serialized)
+
+    def test_machine_handoffs_have_template_schema_and_producer(self) -> None:
+        handoffs = {
+            "risk-review.json": "risk-review",
+            "rollout-plan.json": "risk-review",
+            "issues-manifest.json": "to-issues",
+            "scaffold-manifest.json": "scaffold",
+            "build-evidence.json": "tdd",
+        }
+        for artifact, producer in handoffs.items():
+            template = ROOT / "templates/project" / artifact
+            schema = template.with_name(template.stem + ".schema.json")
+            skill = ROOT / "skills" / producer / "SKILL.md"
+            self.assertTrue(template.is_file(), artifact)
+            self.assertTrue(schema.is_file(), artifact)
+            self.assertIn(artifact, skill.read_text(encoding="utf-8"), producer)
+            self.assertEqual(json.loads(template.read_text(encoding="utf-8"))["$schema"], f"./{schema.name}")
+
+        build_loop = (ROOT / "skills/build-loop/SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("build-evidence.json", build_loop)
+        judge = (ROOT / "skills/judge/SKILL.md").read_text(encoding="utf-8")
+        review = (ROOT / "skills/code-review-expert/SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("judge-report.json", judge)
+        self.assertIn("feature-judge-report.json", judge)
+        self.assertIn("code-review.md", review)
+
+
+if __name__ == "__main__":
+    unittest.main()

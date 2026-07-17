@@ -1,0 +1,4 @@
+interface:
+  display_name: "Risk Review"
+  short_description: "Review consequential delivery risks before contract lock"
+  default_prompt: "Use $risk-review to evaluate the project risks and produce the Phase 3r verdict."

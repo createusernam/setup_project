@@ -51,7 +51,7 @@ actually good at it, rather than being demanded from the weakest link in the cha
 4. If contract.json.is_frontend: design-contract.json exists and is attested
 5. Git working tree is clean — the scaffold lands as one reviewable commit
 6. You are running on the routed model for this phase:
-   bash ~/.claude/scripts/model-check.sh 5.5 .   # → configured reasoning_high binding
+   setup-model-check 5.5 .   # optional diagnostic; setup-preflight is the required phase gate
 ```
 
 Halt with a precise diagnostic if any check fails. A scaffold generated from an unattested contract
@@ -183,7 +183,7 @@ Rules while writing:
 ### 4. Verify the scaffold before handing it over
 
 ```bash
-bash ~/.claude/scripts/grace-lint.sh --profile autonomous src/   # every anchor present
+setup-grace-lint --profile autonomous src/   # every anchor present
 npm run typecheck                                                # must pass — implementer must not fix types
 grep -rn "NOT_IMPLEMENTED" src/ | wc -l                          # = number of blocks awaiting logic
 grep -rln "NOT_IMPLEMENTED" src/ | xargs grep -Ln "IMPL:"        # must be empty: no block without a directive
@@ -201,6 +201,11 @@ Write `handoff.json` (COMPAT schema): `agent_role: "architect"`, `model_used`, `
 `done` (modules scaffolded), `uncertain_about` (anything you had to assume), `next_agent:
 "implementer"`, `next_agent_goal: "fill NOT_IMPLEMENTED blocks; do not alter contracts, block names,
 or log anchors"`.
+
+Write root `scaffold-manifest.json` from the project template. Record the exact contract SHA-256,
+every scaffolded file/module/PBS leaf/block count, and the commands actually checked. Set `status`
+to `ready` only when the autonomous GRACE lint, typecheck, and unfinished-block checks above pass.
+Allowed statuses and fields are owned by `scaffold-manifest.schema.json`.
 
 ## The implementer's rules (state these in the Phase 6 prompt)
 

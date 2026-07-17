@@ -1,0 +1,11 @@
+{
+  "$schema": "./build-evidence.schema.json",
+  "version": "1",
+  "status": "incomplete",
+  "route": "tdd",
+  "contract_ref": null,
+  "checks": [],
+  "criteria": [],
+  "trace_refs": [],
+  "residual_risks": []
+}

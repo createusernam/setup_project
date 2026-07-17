@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "scaffold-manifest.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "version", "status", "contract_sha256", "files", "checks"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "version": {"const": "1"},
+    "status": {"enum": ["draft", "ready"]},
+    "contract_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "module_id", "pbs_leaf", "block_count"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "module_id": {"type": "string", "minLength": 1},
+          "pbs_leaf": {"type": "string", "minLength": 1},
+          "block_count": {"type": "integer", "minimum": 1}
+        }
+      }
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["command", "status"],
+        "properties": {"command": {"type": "string", "minLength": 1}, "status": {"enum": ["pass", "fail"]}}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "ready"}}, "required": ["status"]},
+      "then": {"properties": {
+        "contract_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "files": {"minItems": 1},
+        "checks": {"minItems": 1}
+      }}
+    }
+  ]
+}

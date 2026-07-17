@@ -11,10 +11,10 @@
 # chain. Prose is not an enforcement mechanism — this is.
 #
 # Usage:
-#   bash ~/.claude/scripts/grace-lint.sh [path ...]        # default: whole repo
-#   bash ~/.claude/scripts/grace-lint.sh --changed         # only files changed vs HEAD (pre-commit / review)
-#   bash ~/.claude/scripts/grace-lint.sh --profile autonomous   # stricter: function contracts + log anchors
-#   bash ~/.claude/scripts/grace-lint.sh --json            # machine-readable (build-loop gate)
+#   setup-grace-lint [path ...]        # default: whole repo
+#   setup-grace-lint --changed         # only files changed vs HEAD (pre-commit / review)
+#   setup-grace-lint --profile autonomous   # stricter: function contracts + log anchors
+#   setup-grace-lint --json            # machine-readable (build-loop gate)
 #
 # Profiles:
 #   lite (default) — MODULE_CONTRACT in every source file; balanced START_BLOCK/END_BLOCK.

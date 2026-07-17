@@ -47,16 +47,15 @@ Validate before any iteration starts. Halt with a clear message if any check fai
 6. If contract.json.is_frontend || contract.json.is_backend:
      6a. integrations.data_flow is non-empty
      6b. at least one of integrations.frontend_calls or integrations.backend_endpoints is non-empty
-7. Playwright MCP server is reachable
-   (Claude Code: `claude mcp list | grep playwright`
-    OpenCode:    check `~/.config/opencode/opencode.json` mcp.playwright.enabled)
+7. Playwright MCP server is reachable in the evaluator's actual runtime. Configuration and verify
+   commands for Claude Code, Codex, OpenCode, and terminal/API are in `docs/human/SETUP.md`.
 8. Dev server command runs cleanly: contract.json.verify_commands.dev_server
 9. Git working tree is clean (no uncommitted changes — restart-from-scratch needs a rollback point)
-10. Routed models available: run `bash ~/.claude/scripts/pipeline-preflight.sh 6` — implementer/
+10. Routed models available: run `setup-preflight 6` — implementer/
     implementation/test/acceptance profiles are bound in `model-bindings.json` and distinct where required.
     (Closes the "cycle stalls on a missing model" gap.)
 11. GRACE Lite markup is clean on the code the loop will edit:
-    `bash ~/.claude/scripts/grace-lint.sh --profile autonomous` exits 0.
+    `setup-grace-lint --profile autonomous` exits 0.
     Not cosmetic: the loop has no human in it. The generator navigates by MODULE_CONTRACT /
     FUNCTION_CONTRACT anchors, and the evaluator's `trace` criteria grade against the
     [Module][function][BLOCK] log anchors. Unmarked code blinds both halves of the cycle.
@@ -70,11 +69,15 @@ If any check fails, print a precise diagnostic:
   ✗ user_flow.primary_path is empty (contract.json line 23)
     Fix: re-run /contract and fill primary_path. Each step is a Playwright-executable action.
   ✗ Playwright MCP not reachable
-    Fix: claude mcp add playwright -- npx -y @playwright/mcp@latest
-         or for OpenCode, edit ~/.config/opencode/opencode.json
+    Fix: use the evaluator-runtime command in docs/human/SETUP.md, or choose tdd
 
 Cycle aborted. No code generated.
 ```
+
+At terminal PASS, update root `build-evidence.json` from the project template: set
+`route: "build-loop"`, record every executed check and criterion evidence, retain trace/screenshot
+references and residual risks, then set `status: "complete"`. Allowed values are defined by
+`build-evidence.schema.json`. Phase 7 consumes this stable artifact; iteration logs do not replace it.
 
 ## Workflow
 

@@ -38,14 +38,14 @@ Quick check:
 - Modules in verification plan vs modules in development plan
 - Missing or stale verification refs
 - Pending phases and steps that still need execution
-- Autonomy blockers from `bash ~/.claude/scripts/grace-lint.sh --profile autonomous`
+- Autonomy blockers from `setup-grace-lint --profile autonomous`
 
-Run `bash ~/.claude/scripts/grace-lint.sh <project-root>` as a fast integrity snapshot and include any
+Run `setup-grace-lint <project-root>` as a fast integrity snapshot and include any
 relevant findings in the report. It ships with this setup (`scripts/grace-lint.sh`, linked by
 `install.sh`) — no external CLI required.
 
 If the report is specifically about autonomous execution readiness, also run
-`bash ~/.claude/scripts/grace-lint.sh --profile autonomous <project-root>` and summarize blockers
+`setup-grace-lint --profile autonomous <project-root>` and summarize blockers
 versus warnings. That profile is exactly what `/build-loop` hard-gates on, so its output is the
 readiness answer, not a proxy for it.
 
@@ -62,9 +62,9 @@ Based on the status, suggest what to do next:
 - If plan exists but verification is still thin — "Run `/grace-verification`"
 - If plan and verification are ready but modules are missing — "Run `/build-loop` (autonomous) or `/tdd` (human-paced)"
 - If drift detected — "Run `/grace-refresh`"
-- If fast integrity signals are needed before deeper review — "Run `bash ~/.claude/scripts/grace-lint.sh <project-root>`"
-- If one lint code needs direct remediation guidance — "Run `bash ~/.claude/scripts/grace-lint.sh --json`"
+- If fast integrity signals are needed before deeper review — "Run `setup-grace-lint <project-root>`"
+- If one lint code needs direct remediation guidance — "Run `setup-grace-lint --json`"
 - If the next step is targeted investigation of one module or file — "Run `/grace-ask` (it navigates the knowledge graph and answers with citations)"
 - If tests or logs are too weak for autonomous work — "Run `/grace-verification`"
-- If autonomy blockers are present — "Run `bash ~/.claude/scripts/grace-lint.sh --profile autonomous <project-root>` and strengthen verification or packet quality before execution"
+- If autonomy blockers are present — "Run `setup-grace-lint --profile autonomous <project-root>` and strengthen verification or packet quality before execution"
 - If everything synced — "Project is healthy"

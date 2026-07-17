@@ -7,7 +7,9 @@ description: Break a plan, spec, or PRD into independently-grabbable issues on t
 
 Break a plan into independently-grabbable issues using vertical slices (tracer bullets).
 
-The issue tracker and triage label vocabulary should have been provided to you — run `/setup-matt-pocock-skills` if not.
+The project issue-tracker owner and label vocabulary live in `docs/agents/issue-tracker.md` and
+`docs/agents/triage-labels.md`. If either is unresolved, stop and ask for the tracker decision; do
+not invoke an unrelated setup workflow.
 
 ## Process
 
@@ -82,3 +84,11 @@ Or "None - can start immediately" if no blockers.
 </issue-template>
 
 Do NOT close or modify any parent issue.
+
+### 6. Write the machine handoff
+
+Update root `issues-manifest.json` from its project template. Set `status` to `approved` only after
+every published issue has a real ID and traces to its journey/contract criteria. Allowed issue
+types are `HITL` and `AFK`; allowed manifest statuses are `draft` and `approved` (authoritative shape:
+`issues-manifest.schema.json`). The next phase attests this stable file; a chat-only issue list is
+not a Phase 5 output.

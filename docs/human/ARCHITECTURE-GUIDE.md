@@ -153,12 +153,12 @@ For routes that require GRACE Full, use the schemas and vocabulary owned by the 
 - `docs/knowledge-graph.xml` — stable identifiers and cross-links between artifacts;
 - `docs/adr/*.md` — consequential decisions and trade-offs.
 
-Run `/grace-plan` to create or validate these formats. GRACE markup is a transfer format here; it
+Run `grace-plan` to create or validate these formats. GRACE markup is a transfer format here; it
 does not determine which architecture the user must choose.
 
 ## Quality checklist
 
-Before handing the result to `/pm-review`, confirm:
+Before handing the result to `pm-review`, confirm:
 
 - [ ] Every planned component serves at least one journey step or success criterion.
 - [ ] Every in-scope journey step and edge case has an implementation responsibility.
@@ -182,8 +182,8 @@ This checklist checks the handoff, not the private reasoning process that produc
    ```bash
    setup-pipeline attest task_plan.md
    setup-pipeline set-phase 2-PM
-   bash ~/.claude/scripts/model-check.sh 2-PM .
-   bash ~/.claude/scripts/pipeline-preflight.sh 2-PM .
+   setup-model-check 2-PM .
+   setup-preflight 2-PM .
    ```
 
 3. Invoke `pm-review` using the current runtime's skill syntax; it checks plan-to-brief

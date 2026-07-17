@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "issues-manifest.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "version", "status", "plan_ref", "contract_ref", "issues"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "version": {"const": "1"},
+    "status": {"enum": ["draft", "approved"]},
+    "plan_ref": {"type": "string", "minLength": 1},
+    "contract_ref": {"type": "string", "minLength": 1},
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title", "type", "blocked_by", "journey_refs", "criterion_refs"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "title": {"type": "string", "minLength": 1},
+          "type": {"enum": ["HITL", "AFK"]},
+          "blocked_by": {"type": "array", "items": {"type": "string"}},
+          "journey_refs": {"type": "array", "items": {"type": "string"}},
+          "criterion_refs": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    }
+  },
+  "allOf": [{
+    "if": {"properties": {"status": {"const": "approved"}}, "required": ["status"]},
+    "then": {"properties": {"issues": {"minItems": 1}}}
+  }]
+}

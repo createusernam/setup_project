@@ -135,4 +135,12 @@ Compare completed feature against `contract.json.criteria[]`:
 - **CONDITIONAL**: fix blocking_issues, re-run `/judge`
 - **FAIL**: return to artifact creation phase, specific gaps listed
 
-Write result to `docs/judge-reports/<artifact-type>-<timestamp>.json`.
+Write the current pipeline result to a stable root path:
+
+- `contract` → `judge-report.json`;
+- `feature` → `feature-judge-report.json`;
+- `product-brief` or `design` outside a machine transition →
+  `docs/judge-reports/<artifact-type>-<timestamp>.json`.
+
+An optional timestamped archive may accompany a stable pipeline report, but it never replaces the
+path required by the next preflight. Verdict values are `PASS|CONDITIONAL|FAIL`.

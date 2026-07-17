@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "risk-review.schema.json",
+  "title": "T4 risk review",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "version", "tier", "reviewed_by", "accepted_by", "verdict", "risks", "staged_rollout", "rollback", "open_questions"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "version": {"const": "1"},
+    "tier": {"const": "T4"},
+    "reviewed_by": {"type": "string", "minLength": 1},
+    "accepted_by": {"type": "string", "minLength": 1},
+    "verdict": {"enum": ["PASS", "REVISE", "STOP"]},
+    "risks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "category", "scenario", "impact", "likelihood", "mitigation", "verification_ref", "owner", "residual_risk", "status"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "category": {"enum": ["security", "privacy", "safety", "regulatory", "data_migration", "operational", "irreversibility", "other"]},
+          "scenario": {"type": "string", "minLength": 1},
+          "impact": {"enum": ["low", "medium", "high", "critical"]},
+          "likelihood": {"enum": ["low", "medium", "high"]},
+          "mitigation": {"type": "string", "minLength": 1},
+          "verification_ref": {"type": "string", "minLength": 1},
+          "owner": {"type": "string", "minLength": 1},
+          "residual_risk": {"enum": ["low", "medium", "high"]},
+          "status": {"enum": ["open", "mitigated", "accepted"]}
+        }
+      }
+    },
+    "staged_rollout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "plan_ref"],
+      "properties": {"required": {"type": "boolean"}, "plan_ref": {"type": "string", "minLength": 1}}
+    },
+    "rollback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["defined", "plan_ref"],
+      "properties": {"defined": {"type": "boolean"}, "plan_ref": {"type": "string", "minLength": 1}}
+    },
+    "open_questions": {"type": "array", "items": {"type": "string"}}
+  },
+  "allOf": [{
+    "if": {"properties": {"verdict": {"const": "PASS"}}, "required": ["verdict"]},
+    "then": {
+      "properties": {
+        "risks": {"minItems": 1},
+        "staged_rollout": {"properties": {"required": {"const": true}}},
+        "rollback": {"properties": {"defined": {"const": true}}}
+      }
+    }
+  }]
+}

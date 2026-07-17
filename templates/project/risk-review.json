@@ -1,0 +1,18 @@
+{
+  "$schema": "./risk-review.schema.json",
+  "version": "1",
+  "tier": "T4",
+  "reviewed_by": "replace-me",
+  "accepted_by": "replace-me",
+  "verdict": "REVISE",
+  "risks": [],
+  "staged_rollout": {
+    "required": true,
+    "plan_ref": "rollout-plan.json"
+  },
+  "rollback": {
+    "defined": false,
+    "plan_ref": "rollout-plan.json"
+  },
+  "open_questions": []
+}

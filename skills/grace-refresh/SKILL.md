@@ -27,7 +27,7 @@ Decide whether the refresh should be `targeted` or `full`.
 2. If no reliable scope is available, or the graph may have drifted broadly, use `full`
 3. Escalate from `targeted` to `full` when the localized scan reveals wider inconsistency
 
-When the optional `grace` CLI is available, you may use `bash ~/.claude/scripts/grace-lint.sh <project-root>` as a quick preflight before starting a broader refresh. Treat it as a hint source, not as the refresh itself.
+When the optional `grace` CLI is available, you may use `setup-grace-lint <project-root>` as a quick preflight before starting a broader refresh. Treat it as a hint source, not as the refresh itself.
 
 You may also use:
 - `grace module find <changed-path-or-query> --path <project-root>` to resolve the likely module scope from changed files or names

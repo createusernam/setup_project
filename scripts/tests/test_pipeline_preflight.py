@@ -39,6 +39,16 @@ def main() -> None:
     legacy_field = "required_" + "model"
     assert not any(legacy_field in phase for phase in routing["phases"].values()), "legacy concrete routing field present"
     known_profiles = set(routing["profiles"])
+    expected_signals = {
+        "requirement_uncertainty",
+        "knowledge_rarity",
+        "interaction_density",
+        "fidelity_need",
+        "reversibility",
+        "cost_of_error",
+    }
+    assert set(routing["task_signal_policy"]["signals"]) == expected_signals, "task signal policy drift"
+    assert routing["task_signal_policy"]["selection_rules"], "task signal policy lacks selection rules"
     referenced_profiles = {
         profile
         for phase in routing["phases"].values()
@@ -116,6 +126,43 @@ def main() -> None:
         write(project, ".pipeline-state.json", ledger)
         failures, _, _ = module.evaluate(ROOT, project, "6")
         assert any("model_bindings_file" in item and "project-relative" in item for item in failures), failures
+
+        open_gap = {
+            "id": "SG-1",
+            "kind": "ambiguity",
+            "statement": "Two user-flow interpretations remain",
+            "impact": "user_flow",
+            "materiality": "blocking",
+            "owner": "product-owner",
+            "disposition": "prototype",
+            "status": "open",
+            "resolution_ref": None,
+            "accepted_by": None,
+            "evidence_refs": [],
+        }
+        failures = module.specification_gap_errors({"spec_gaps": [open_gap]})
+        assert any("is unresolved" in item for item in failures), failures
+
+        resolved_gap = {**open_gap, "status": "resolved", "resolution_ref": "prototype/SG-1.md"}
+        assert module.specification_gap_errors({"spec_gaps": [resolved_gap]}) == []
+
+        accepted_gap = {
+            **open_gap,
+            "status": "accepted",
+            "disposition": "accept_risk",
+            "resolution_ref": "ADR-12",
+            "accepted_by": "owner@example.test",
+        }
+        assert module.specification_gap_errors({"spec_gaps": [accepted_gap]}) == []
+
+        scoped_gap = {
+            **open_gap,
+            "status": "out_of_scope",
+            "disposition": "out_of_scope",
+            "resolution_ref": "product_brief.md#out-of-scope",
+            "accepted_by": "owner@example.test",
+        }
+        assert module.specification_gap_errors({"spec_gaps": [scoped_gap]}) == []
     print("PASS pipeline semantic preflight tests")
 
 

@@ -63,6 +63,7 @@ bash ~/.claude/scripts/grace-lint.sh --changed   # GRACE Lite markup on the diff
 bash ~/.claude/scripts/model-check.sh 5.5 .      # resolve the project's configured model binding
 python3 ~/setup/scripts/validate-skills.py --profile claude  # validate Claude skill frontmatter
 workctl doctor                                                # check cross-CLI task continuation
+workctl role-list <task-id>                                   # inspect persistent/fresh role sessions
 setup-skill-doctor                                            # check discovery + routing in every CLI
 ```
 

@@ -18,6 +18,7 @@ from typing import Any
 
 KNOWN_RUNTIMES = {"claude", "codex", "opencode", "api", "manual", "self-hosted"}
 SHA256 = re.compile(r"^[a-f0-9]{64}$")
+SPEC_GAP_GATE_PHASES = {"1", "2", "4"}
 
 
 def sha256(path: Path) -> str:
@@ -95,6 +96,55 @@ def ledger_errors(ledger: Any) -> list[str]:
     return errors
 
 
+def specification_gap_errors(document: Any) -> list[str]:
+    """Reject unresolved material requirement gaps before planning or contract work."""
+    if not isinstance(document, dict):
+        return ["specification_gap: evidence-handoff.json must contain an object"]
+    gaps = document.get("spec_gaps", [])
+    if not isinstance(gaps, list):
+        return ["specification_gap: spec_gaps must be an array"]
+    failures: list[str] = []
+    seen: set[str] = set()
+    for index, gap in enumerate(gaps):
+        label = f"spec_gaps[{index}]"
+        if not isinstance(gap, dict):
+            failures.append(f"specification_gap: {label} must be an object")
+            continue
+        gap_id = gap.get("id")
+        if not isinstance(gap_id, str) or not gap_id:
+            failures.append(f"specification_gap: {label}.id must be non-empty")
+            continue
+        if gap_id in seen:
+            failures.append(f"specification_gap: duplicate id {gap_id!r}")
+        seen.add(gap_id)
+        if gap.get("materiality") != "blocking":
+            continue
+        status = gap.get("status")
+        disposition = gap.get("disposition")
+        resolution_ref = gap.get("resolution_ref")
+        accepted_by = gap.get("accepted_by")
+        if status == "open":
+            failures.append(f"specification_gap: blocking gap {gap_id!r} is unresolved")
+        elif status == "resolved":
+            if disposition not in {"answer", "prototype"} or not resolution_ref:
+                failures.append(
+                    f"specification_gap: resolved blocking gap {gap_id!r} requires answer/prototype disposition and resolution_ref"
+                )
+        elif status == "accepted":
+            if disposition != "accept_risk" or not resolution_ref or not accepted_by:
+                failures.append(
+                    f"specification_gap: accepted blocking gap {gap_id!r} requires accept_risk, resolution_ref, and accepted_by"
+                )
+        elif status == "out_of_scope":
+            if disposition != "out_of_scope" or not resolution_ref or not accepted_by:
+                failures.append(
+                    f"specification_gap: out-of-scope blocking gap {gap_id!r} requires out_of_scope, resolution_ref, and accepted_by"
+                )
+        else:
+            failures.append(f"specification_gap: blocking gap {gap_id!r} has invalid status {status!r}")
+    return failures
+
+
 def evaluate(root: Path, project: Path, phase: str) -> tuple[list[str], list[str], dict[str, Any]]:
     machine = json.loads((root / "pipeline-machine.json").read_text(encoding="utf-8"))
     routing = json.loads((root / "model-routing.json").read_text(encoding="utf-8"))
@@ -164,6 +214,7 @@ def evaluate(root: Path, project: Path, phase: str) -> tuple[list[str], list[str
             failures.append(f"collegium: roles {group} must resolve to different model IDs, got {values}")
 
     records = ledger.get("artifacts", {})
+    loaded_json: dict[str, Any] = {}
     for requirement in transition.get("requires", []):
         if not applicable(requirement, tier):
             continue
@@ -186,6 +237,7 @@ def evaluate(root: Path, project: Path, phase: str) -> tuple[list[str], list[str
         if "json_pointer" in requirement:
             try:
                 document = json.loads(artifact.read_text(encoding="utf-8"))
+                loaded_json[name] = document
                 actual_value = pointer(document, requirement["json_pointer"])
             except (json.JSONDecodeError, KeyError, IndexError, ValueError) as error:
                 failures.append(f"semantic: cannot read {name}{requirement['json_pointer']}: {error}")
@@ -194,6 +246,15 @@ def evaluate(root: Path, project: Path, phase: str) -> tuple[list[str], list[str
                 failures.append(f"semantic: {name}{requirement['json_pointer']} must equal {requirement['equals']!r}, got {actual_value!r}")
             if "in" in requirement and actual_value not in requirement["in"]:
                 failures.append(f"semantic: {name}{requirement['json_pointer']} must be one of {requirement['in']!r}, got {actual_value!r}")
+
+    if phase in SPEC_GAP_GATE_PHASES:
+        evidence = project / "evidence-handoff.json"
+        if evidence.is_file():
+            try:
+                document = loaded_json.get("evidence-handoff.json") or json.loads(evidence.read_text(encoding="utf-8"))
+                failures.extend(specification_gap_errors(document))
+            except json.JSONDecodeError as error:
+                failures.append(f"specification_gap: cannot read evidence-handoff.json: {error}")
 
     human_gate = transition.get("human_gate")
     if human_gate:
@@ -221,7 +282,7 @@ def main() -> int:
         for failure in failures:
             print(f"  ✗ {failure}")
         return 1
-    print("✓ policy ✓ models ✓ semantic inputs/attestations ✓ human gate")
+    print("✓ policy ✓ models ✓ semantic inputs/attestations ✓ specification gaps ✓ human gate")
     print(f"required profile: {transition.get('required_profile', '')}; resolved models: {transition.get('resolved_models', {})}")
     print("agent must confirm its running runtime/model matches the resolved binding for its role")
     return 0

@@ -33,6 +33,10 @@ with `python3 scripts/render-pipeline-views.py`; verify drift with `--check`.
    transition depends on a decision owned by that person. Give a recommendation and consequences;
    allow `unknown`/`deferred` when discovery or architecture has not produced the answer. Technical
    surfaces are proposed and reviewed by technical roles, not invented by the product owner.
+8. **Close material specification gaps explicitly.** `evidence-handoff.json.spec_gaps[]` records the
+   ambiguity or missing behavior, impact, owner, materiality, disposition, and resolution evidence.
+   Planning and contract preflight halt on an open blocking gap. A model may propose answers or a
+   semantic prototype; only the accountable owner may accept risk or move behavior out of scope.
 
 ## Pipeline entry contract
 
@@ -177,6 +181,10 @@ phase or component to a journey step and success criterion.
 - portable module and ADR formats;
 - PM re-entry checklist.
 
+For multi-actor or branching behavior, use the readable behavior stack defined there: end-to-end
+activity/swimlane flow → textual use cases → local sequence diagrams only for message-order
+hotspots → executable `contract.json` paths. Large all-purpose diagrams are not specifications.
+
 The user chooses the architecture method, tool, model, and working surface. The pipeline reviews the
 result, not the private reasoning technique that produced it.
 
@@ -189,6 +197,8 @@ result, not the private reasoning technique that produced it.
 - implementation tasks for edge/failure cases;
 - explicit rationale for consequential decisions;
 - owned work for material risks and assumptions.
+- no unresolved blocking specification gap and traceable behavior projections at the appropriate
+  level of detail.
 
 Generic `/judge plan` does not exist. `REVISE` returns specific gaps to planning; `APPROVE` unlocks
 the next transition permitted by the machine.
@@ -369,6 +379,14 @@ The plan owner supplies the view; a separate human reviewer approves it.
 Each project's `model-bindings.json` maps those profiles to user-selected runtimes and concrete
 model IDs. Neither file owns transition semantics.
 
+Treat the phase profile as a minimum, then route the task by recorded signals:
+`requirement_uncertainty`, `knowledge_rarity`, `interaction_density`, `fidelity_need`,
+`reversibility`, and `cost_of_error`. High uncertainty or error cost strengthens synthesis and
+independent acceptance; high rarity or fidelity can justify a stronger first implementation pass.
+Bounded, reversible, explicit work with fast test feedback may use a cheaper compatible binding.
+Do not select by the prestige of a role title, and never let task signals weaken a phase minimum or
+role-independence rule.
+
 ```bash
 bash ~/.claude/scripts/model-check.sh <phase> [project_dir]
 ```
@@ -402,6 +420,8 @@ Runtime-specific skill syntax and model-binding values are in `SETUP.md` and `..
 | Skipping the product brief | Complete the neutral template and evidence handoff first |
 | Copying discovery jargon into delivery artifacts | Translate it into plain project/domain language |
 | Treating an assumption as fact | Preserve status, references, falsifier, and open questions |
+| Letting a model plausibly fill a requirement gap | Record a typed specification gap; answer it, run a semantic prototype, accept the risk, or move it out of scope with accountable ownership |
+| One large sequence diagram for a complete journey | Use activity/swimlane overview, textual use cases, and local sequence diagrams only where message order is the review concern |
 | Choosing architecture by a prescribed public recipe | Use any suitable method; satisfy the architecture handoff contract |
 | Consequential decision without rationale | Record decision, consequences, trade-offs, and real alternatives in an ADR |
 | PM review without journey/criteria traceability | Return to the plan; do not approve orphan work or promises |

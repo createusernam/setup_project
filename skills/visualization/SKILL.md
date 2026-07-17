@@ -54,7 +54,7 @@ The concrete deliverable — for each human decision point in `docs/human/PIPELI
 | Gate | Human's concern | Cut | Scale | Notation |
 |---|---|---|---|---|
 | **-1 Discovery / PM** (`product_brief.md`) | are outcomes, users, scope and evidence status clear | goal | context | `mindmap` (goal tree); optional CLD when feedback dynamics matter |
-| **2 + 2-PM** (`task_plan.md` / PBS) | does architecture trace to journeys/criteria; are risks visible | structural + behavioral | modules | `mindmap` (PBS) + `journey` (CJM) + `flowchart` (modules, dependency edges) |
+| **2 + 2-PM** (`task_plan.md` / PBS) | does architecture trace to journeys/criteria; are risks visible | structural + behavioral | modules + end-to-end behavior | `mindmap` (PBS) + activity diagram/equivalent swimlane `flowchart` + module dependency `flowchart` |
 | **3 Design HARD STOP** (wireframe) | does the UI match intent | structural + behavioral | components | wireframe (not Mermaid) + `stateDiagram-v2` (flows) |
 | **4 + judge** (`contract.json` user_flow) | is "done" defined correctly | behavioral | scenario | `stateDiagram-v2` (step→expect = guarded transition, matches Playwright replay) + `journey` |
 | **4b→5 "viz before tickets"** *(new gate)* | **what will the AI build, before issues** | structural + behavioral | modules | `flowchart` (module/dependency) + `kanban`/`flowchart` (issue breakdown, "blocked-by") |
@@ -76,6 +76,21 @@ Mermaid offers several diagram types. Choose the smallest type that directly ans
 | **Quantitative / status** | shares, dates, board | `pie` · `xychart-beta` · `gantt` · `kanban` |
 
 Bonus mappings to setup skills: `ishikawa-beta` (fishbone) → `/diagnose` cause analysis · `wardley-beta` → strategy · `packet-beta`/`zenuml`/`venn-beta` → niche.
+
+### Behavior stack and readability budget
+
+For software behavior, use the smallest projection that answers the current question:
+
+1. end-to-end branches → UML activity view or an equivalent Mermaid flowchart with labelled
+   swimlanes;
+2. one actor goal → textual use case from `docs/behavior/use-case-template.md`;
+3. one message-order hotspot → local `sequenceDiagram` linked to a numbered use-case step;
+4. evaluator replay → `contract.json` actions, expects, errors, and trace anchors.
+
+The textual use case is canonical; a diagram is a human-review projection. One diagram keeps one
+concern and one altitude. Prefer 12–15 meaningful nodes. More than 20 nodes, more than 7 lifelines,
+or nesting deeper than 3 means `SPLIT_REQUIRED` unless the owner records why the view remains
+reviewable. This is an operational review budget, not a claim about the UML standard.
 
 ---
 
@@ -122,3 +137,4 @@ If `design-contract.json` is absent, fall back to the house defaults
 | Executor draws the human view | Architect draws it; executor stays on the GRACE track |
 | Visualize after tickets are cut | Visualize the plan **before** tickets |
 | `flowchart`+`sequence` for everything | Pick the type that fits the cut (goal→`mindmap`/CLD, status→`kanban`, …) |
+| One sequence diagram for the whole user journey | Activity/flow overview → textual use cases → local sequences only where message order matters |

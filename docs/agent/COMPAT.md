@@ -22,6 +22,7 @@ provider renamed or replaced a model.
 | Parallel work | runtime agent primitive | runtime-dependent | human/orchestrator launches calls |
 | Durable state | repository files | repository files | human saves returned artifacts |
 | Cross-runtime continuation | `workctl` | `workctl` | `workctl resume` prompt |
+| Same-runtime session affinity | `workctl --role` when supported | runtime-dependent | explicit session ID |
 | Human gates | explicit approval | explicit approval | human records signature |
 | GRACE markup | agent edits files | agent edits files | human applies/reviews output |
 
@@ -43,6 +44,27 @@ Canonical profiles live in `model-routing.json`:
 
 These are requirements, not provider recommendations. A single concrete model may satisfy several
 profiles, except where a phase declares roles distinct.
+
+## Route by task signals, not role prestige
+
+The phase profile is the minimum safe default. Before selecting a concrete binding, record the
+task's `requirement_uncertainty`, `knowledge_rarity`, `interaction_density`, `fidelity_need`,
+`reversibility`, and `cost_of_error` as low, medium, or high in the task plan, issue manifest, or
+workctl context.
+
+- High requirement uncertainty or cost of error calls for stronger synthesis, explicit gap
+  resolution, and independent acceptance. A more fluent completion of a missing requirement is not
+  evidence.
+- High knowledge rarity or fidelity need can justify the most detail-capable model on the first code
+  or UI pass. Generated code and tests may then let a cheaper compatible binding continue safely.
+- High interaction density calls for long context and structured artifacts; first split behavior
+  views that exceed the readability budget.
+- Bounded, reversible, fully specified work with fast test feedback may use the cheapest enabled
+  binding that satisfies the phase profile.
+
+Do not route by labels such as “architect” or “coder” alone. Never use task signals to weaken a
+phase's minimum capability, distinct-model rule, or isolated-review requirement. Canonical signal
+definitions and selection rules live in `model-routing.json`.
 
 ## Configure concrete bindings
 
@@ -193,6 +215,19 @@ workctl continue auth-refresh --runtime runtime-b
 `workctl` transfers task state and artifact links, not hidden model context. See
 `docs/human/WORKCTL.md`.
 
+Same-runtime continuation is a separate optimization. For OpenCode, a task role can retain an exact
+session/model/agent/variant binding:
+
+```bash
+workctl role-bind auth-refresh coder --runtime opencode \
+  --session ses_abc123 --model provider/model-id --agent build --variant high
+workctl continue auth-refresh --runtime opencode --role coder
+```
+
+This preserves prefix-cache affinity while durable files preserve recoverability. Fresh acceptance
+and test-review roles must not reuse generator sessions. Session affinity does not weaken model-ID
+separation, isolated-context, or single-writer lease requirements.
+
 ## Portable fallback
 
 When no agent primitive exists:
@@ -205,3 +240,12 @@ When no agent primitive exists:
 
 The pipeline remains portable as long as artifacts, semantic gates, and role independence are
 preserved.
+
+## Setup release documentation invariant
+
+<!-- setup:public-projection-rule -->
+When changing wider setup behavior, update its canonical public-safe rule in both `docs/human/` and
+`docs/agent/` before publishing. If the change affects the engineering conveyor, update the
+handbook's `setup-pipeline.html` only after `docs/human/PIPELINE.md`, then rebuild/validate the
+handbook package. Commit the private source before running `publish-public.sh`; never repair drift
+only in the generated public mirror. Private-only details remain in excluded owner paths.

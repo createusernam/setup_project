@@ -40,6 +40,30 @@ cross-module or high-risk change needs more detail.
 7. **Decision rationale** — why consequential choices were made, including material trade-offs and
    alternatives when they affect future work.
 
+## Readable behavior stack
+
+Do not use one large diagram as the specification. Separate the review questions and keep textual
+behavior canonical:
+
+| Level | Review question | Artifact | Preferred view |
+|---|---|---|---|
+| context | who acts, why, and where is the system boundary | `product_brief.md` | small context view |
+| end-to-end behavior | what happens from trigger to outcome, including branches | `docs/behavior/flow-<id>.md` | activity diagram or equivalent swimlane flowchart |
+| scenario contract | what does the system promise in one actor goal | `docs/behavior/uc-<id>.md` | textual use case |
+| local interaction | who sends which message in one complex fragment | section linked from the use case | local sequence diagram |
+| executable behavior | how the evaluator replays and observes the promise | `contract.json` | actions, expects, error paths, and trace anchors |
+
+Templates live under `templates/project/docs/behavior/`. A sequence diagram is not the default for
+an end-to-end user flow: use it only when message order between participants is the question. Every
+local interaction view links to a flow/use-case step, and every executable path links back to the
+textual use case or journey criterion.
+
+### Readability budget
+
+One diagram carries one concern at one altitude. Prefer no more than 12–15 meaningful nodes. More
+than 20 nodes, more than 7 lifelines, or nesting deeper than 3 triggers `SPLIT_REQUIRED`: split the
+view or record why a larger view remains reviewable. These are setup review budgets, not UML rules.
+
 The user remains responsible for choosing the architecture method and final design. Pipeline gates
 check the completeness and traceability of the result, not whether a particular design school or
 tool was used.
@@ -84,10 +108,18 @@ verification_refs:
   - tests/account_creation_test.py
 risks:
   - duplicate requests
+routing_signals:
+  requirement_uncertainty: low
+  knowledge_rarity: medium
+  interaction_density: medium
+  fidelity_need: low
+  reversibility: high
+  cost_of_error: medium
 ```
 
 Use project-native names and omit fields that genuinely do not apply. Do not copy this example's
-domain terms into a project.
+domain terms into a project. Routing signals explain capability selection; they do not replace risk
+tiering or permit weaker independent review.
 
 ### Architecture decision record
 
@@ -132,6 +164,9 @@ Before handing the result to `/pm-review`, confirm:
 - [ ] Every in-scope journey step and edge case has an implementation responsibility.
 - [ ] System boundaries, external dependencies, interfaces and owned data are explicit.
 - [ ] Assumptions and unresolved questions are labelled and retain their evidence status.
+- [ ] Every blocking specification gap has a resolution, accepted-risk owner, or explicit
+      out-of-scope decision in `evidence-handoff.json`.
+- [ ] End-to-end flows, textual use cases, local interactions, and executable contract paths agree.
 - [ ] Significant failure paths have detection, recovery, and verification.
 - [ ] Consequential decisions have a rationale and material trade-offs recorded.
 - [ ] The design stays within the brief's scope and respects existing ADRs.

@@ -177,5 +177,114 @@ class RuntimeRunTests(WorkctlTestCase):
 # END_BLOCK_RUNTIME_RUNS
 
 
+# START_BLOCK_ROLE_SESSIONS
+class RoleSessionTests(WorkctlTestCase):
+    def test_reusable_opencode_role_continues_exact_session(self) -> None:
+        task = self.init_task("alpha")
+        fake = self.fake_runtime()
+        self.configure_runtime("opencode", fake)
+        self.cli(
+            "role-bind",
+            "alpha",
+            "architect",
+            "--runtime",
+            "opencode",
+            "--session",
+            "ses_arch_01",
+            "--project-id",
+            "project-alpha",
+            "--model",
+            "provider/model-a",
+            "--agent",
+            "architect",
+            "--variant",
+            "high",
+        )
+        result = self.cli("continue", "alpha", "--role", "architect", "--print-command")
+        self.assertIn("--session ses_arch_01", result.stdout)
+        self.assertIn("--model provider/model-a", result.stdout)
+        self.assertIn("--agent architect", result.stdout)
+        self.assertIn("--variant high", result.stdout)
+        state = json.loads((task / "state.json").read_text(encoding="utf-8"))
+        self.assertEqual(state["role_sessions"]["architect"]["reuse_policy"], "resume")
+
+    def test_bound_role_rejects_runtime_and_model_drift(self) -> None:
+        self.init_task("alpha")
+        self.cli(
+            "role-bind", "alpha", "coder", "--runtime", "opencode", "--session", "ses_code_01",
+            "--model", "provider/model-a",
+        )
+        result = self.cli(
+            "continue", "alpha", "--role", "coder", "--model", "provider/model-b", "--print-command", expected=2
+        )
+        self.assertIn("model mismatch", result.stderr)
+        result = self.cli("continue", "alpha", "--role", "coder", "--runtime", "codex", "--print-command", expected=2)
+        self.assertIn("runtime mismatch", result.stderr)
+
+    def test_review_roles_are_fresh_and_cannot_bind_session(self) -> None:
+        self.init_task("alpha")
+        result = self.cli(
+            "role-bind", "alpha", "acceptor", "--runtime", "opencode", "--session", "ses_bad",
+            "--model", "provider/model-review", expected=2,
+        )
+        self.assertIn("fresh-context role", result.stderr)
+        self.cli("role-bind", "alpha", "acceptor", "--runtime", "opencode", "--model", "provider/model-review")
+        result = self.cli("continue", "alpha", "--role", "acceptor", "--print-command")
+        self.assertNotIn("--session", result.stdout)
+
+    def test_cache_and_compaction_telemetry_is_additive(self) -> None:
+        task = self.init_task("alpha")
+        self.cli(
+            "role-bind", "alpha", "coder", "--runtime", "opencode", "--session", "ses_code_01",
+            "--model", "provider/model-a",
+        )
+        self.cli("role-record", "alpha", "coder", "--cache-hit-tokens", "90", "--cache-miss-tokens", "10")
+        self.cli("role-record", "alpha", "coder", "--cache-hit-tokens", "10", "--compaction")
+        state = json.loads((task / "state.json").read_text(encoding="utf-8"))
+        role = state["role_sessions"]["coder"]
+        self.assertEqual(role["cache"]["hit_tokens"], 100)
+        self.assertEqual(role["cache"]["miss_tokens"], 10)
+        self.assertEqual(role["cache"]["compactions"], 1)
+        self.assertEqual(role["context_generation"], 2)
+
+    def test_legacy_task_without_role_sessions_remains_readable(self) -> None:
+        task = self.init_task("legacy")
+        state_path = task / "state.json"
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        state.pop("role_sessions")
+        state_path.write_text(json.dumps(state), encoding="utf-8")
+        result = self.cli("role-list", "legacy")
+        self.assertIn("no role sessions", result.stdout)
+        self.cli("status", "legacy")
+
+    def test_archived_role_cannot_continue(self) -> None:
+        self.init_task("alpha")
+        self.cli(
+            "role-bind", "alpha", "architect", "--runtime", "opencode", "--session", "ses_arch_01",
+            "--model", "provider/model-a",
+        )
+        self.cli("role-archive", "alpha", "architect")
+        result = self.cli("continue", "alpha", "--role", "architect", "--print-command", expected=2)
+        self.assertIn("archived", result.stderr)
+
+    def test_role_state_mutation_respects_task_lease(self) -> None:
+        task = self.init_task("alpha")
+        self.cli(
+            "role-bind", "alpha", "coder", "--runtime", "opencode", "--session", "ses_code_01",
+            "--model", "provider/model-a",
+        )
+        state_path = task / "state.json"
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        state["lease"] = {
+            "runtime": "opencode", "run_id": "0001", "pid": os.getpid(), "acquired_at": "now"
+        }
+        state_path.write_text(json.dumps(state), encoding="utf-8")
+        result = self.cli("role-record", "alpha", "coder", "--cache-hit-tokens", "1", expected=2)
+        self.assertIn("task is leased", result.stderr)
+        result = self.cli("role-archive", "alpha", "coder", expected=2)
+        self.assertIn("task is leased", result.stderr)
+# END_BLOCK_ROLE_SESSIONS
+
+
 if __name__ == "__main__":
     unittest.main()

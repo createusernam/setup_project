@@ -61,6 +61,9 @@ status: draft               # draft | reviewed | pipeline-ready
 - [question that could change scope, priority, or solution]
 
 Detailed claim status, evidence ceilings, and falsifiers belong in `evidence-handoff.json`.
+Material specification gaps also belong there. A blocking gap must name its owner and be answered,
+tested with a semantic/technical prototype, accepted as a recorded risk, or moved out of scope
+before planning or contract preflight can pass.
 
 ## 3. Proposed Product
 
@@ -108,6 +111,10 @@ High-level flow, if known:
 ```
 
 Unknown architecture choices stay marked as open questions for planning.
+
+For multi-actor or branching behavior, create a readable flow plus textual use cases under
+`docs/behavior/` from the project templates. Reserve sequence diagrams for local message-order
+questions; the end-to-end flow remains an activity/swimlane view.
 
 ## 6. Constraints and Risks
 
@@ -180,6 +187,7 @@ Downstream mapping:
 |---|---|
 | §1 scope and outcomes | `task_plan.md`, `contract.json.scope` |
 | §2 evidence and assumptions | `/researcher`, `/grill-with-docs`, risk review |
+| §2 blocking specification gaps | semantic pipeline preflight before planning/contract |
 | §3 capabilities | planning and contract criteria |
 | §5 system context | architecture handoff and `contract.json.integrations` |
 | §6 constraints and risks | ADRs, risk review, rollout plan |

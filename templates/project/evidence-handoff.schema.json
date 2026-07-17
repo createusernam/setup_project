@@ -26,14 +26,38 @@
     },
     "open_questions": {"type": "array"},
     "assumptions": {"type": "array"},
+    "spec_gaps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "statement", "impact", "materiality", "owner", "disposition", "status", "evidence_refs"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "kind": {"enum": ["missing_behavior", "ambiguity", "conflict", "technical_unknown"]},
+          "statement": {"type": "string", "minLength": 1},
+          "impact": {"enum": ["scope", "user_flow", "architecture", "acceptance"]},
+          "materiality": {"enum": ["blocking", "bounded", "cosmetic"]},
+          "owner": {"type": "string", "minLength": 1},
+          "disposition": {"enum": ["answer", "prototype", "accept_risk", "out_of_scope"]},
+          "status": {"enum": ["open", "resolved", "accepted", "out_of_scope"]},
+          "resolution_ref": {"type": ["string", "null"]},
+          "accepted_by": {"type": ["string", "null"]},
+          "evidence_refs": {"type": "array", "items": {"type": "string"}}
+        }
+      },
+      "default": []
+    },
     "cheapest_next_experiment": {
       "type": "object",
       "additionalProperties": false,
       "required": ["hypothesis", "prototype", "observable_result", "promotion_rule", "kill_rule"],
       "properties": {
+        "type": {"enum": ["problem", "semantic", "technical"]},
         "hypothesis": {"type": "string"},
         "prototype": {"type": "string"},
         "observable_result": {"type": "string"},
+        "comparison_questions": {"type": "array", "items": {"type": "string"}},
         "promotion_rule": {"type": "string"},
         "kill_rule": {"type": "string"}
       }

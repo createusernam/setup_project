@@ -43,10 +43,15 @@ artifacts. Ask the product owner only about unresolved outcomes, scope, and acce
 route stack/API/module questions to the named technical reviewer. A contract gap returns to its
 owning artifact rather than being silently renegotiated here.
 
+Before writing the contract, inspect `evidence-handoff.json.spec_gaps`. Halt on any open blocking
+gap. A resolved semantic prototype updates the brief/textual use case first; the contract then
+references the approved behavior instead of treating the prototype as production truth.
+
 ## Prerequisites
 
 - `task_plan.md` from `/planning-with-files` — describes the scope and phases.
 - `findings.md` if there's domain research worth referencing.
+- `docs/behavior/flow-*.md` and `docs/behavior/uc-*.md` for material branching/multi-actor behavior.
 - For frontend features: **`design-contract.json` MUST exist at project root** (from one-time `/design-rubric`).
 - For features touching APIs: existing OpenAPI spec or willingness to write one as part of this contract.
 
@@ -96,6 +101,9 @@ JTBD-framed primary path + error paths. This is what the evaluator will replay v
 ```
 
 If `linked_cjm` points to a file that doesn't exist yet, write the CJM inline as `primary_path` + `error_paths` here (`/grill-with-docs` does not guarantee a `docs/cjm/` file — `CONTEXT.md`/`domain.md` are its outputs).
+Each primary/error path should reference its textual use case when one exists. Do not derive an
+executable path from a sequence diagram alone: sequence diagrams describe local interaction order,
+not the full actor promise.
 
 ### 3. Fill integrations (any feature touching cross-boundary state)
 

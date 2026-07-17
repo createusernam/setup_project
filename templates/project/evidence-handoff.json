@@ -13,10 +13,13 @@
   ],
   "open_questions": [],
   "assumptions": [],
+  "spec_gaps": [],
   "cheapest_next_experiment": {
+    "type": "problem",
     "hypothesis": "replace-me",
     "prototype": "replace-me",
     "observable_result": "replace-me",
+    "comparison_questions": [],
     "promotion_rule": "replace-me",
     "kill_rule": "replace-me"
   }

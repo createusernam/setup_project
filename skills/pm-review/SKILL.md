@@ -58,12 +58,18 @@ or a specific REVISE list the planner can act on.
    material trade-offs when alternatives existed, and tasks for relevant risks/open assumptions.
    The gate does not prescribe how the architecture was produced.
 5. **Scope bounded.** product_brief.md §8.4 (Out of Scope) is respected — no task drifts into it.
+6. **Specification gaps stay visible.** No open blocking gap is hidden by a plausible architecture
+   assumption; dispositions and accountable owners trace to `evidence-handoff.json`.
+7. **Behavior stays readable.** End-to-end flow, textual use cases, local interaction views, and
+   executable contract references agree without one oversized diagram carrying every concern.
 </guide>
 <checklist>
 - [ ] Every arch layer → a user-journey step (product_brief §7)     [no orphan layers, no orphan steps]
 - [ ] Every phase → ≥1 measurable success criterion (product_brief §8)
 - [ ] Every edge/failure case (product_brief §7.2) has a task
 - [ ] Consequential decisions have rationale; material risks and assumptions have owners/tasks
+- [ ] Blocking specification gaps are resolved, accepted by an accountable owner, or explicitly out of scope
+- [ ] Behavior projections use the correct altitude and trace to journey/criteria
 - [ ] No task drifts into Out of Scope (product_brief §8.4)
 - [ ] GRACE Full decision recorded if ≥2/4 criteria met (PIPELINE Branch A)
 </checklist>

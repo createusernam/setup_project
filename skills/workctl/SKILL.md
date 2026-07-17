@@ -5,7 +5,7 @@ description: Continue one specific coding task safely across Claude Code, Codex,
 
 # Workctl
 
-Use `workctl` as the task-level control plane when a conversation may move between coding CLIs. Repository phase artifacts remain canonical for specification and gates; `.workctl/tasks/<task-id>/` is canonical for task identity, current execution state, and runtime provenance. A model's private session is only temporary context.
+Use `workctl` as the task-level control plane when a conversation may move between coding CLIs. Repository phase artifacts remain canonical for specification and gates; `.workctl/tasks/<task-id>/` is canonical for task identity, current execution state, and runtime provenance. A reusable model session is an optional cache resource, never the source of truth.
 
 When the setup pipeline is present, do not copy or redefine root `product_brief.md`, `task_plan.md`,
 `contract.json`, or other phase outputs inside the task files. Reference their paths from
@@ -62,6 +62,26 @@ workctl continue auth-refresh --runtime opencode
 
 `start` and `continue` both build a task-specific prompt, capture pre/post Git checkpoints, record run provenance, and hold a task lease while the child CLI runs. The prompt begins with `CONTINUE TASK <id> ONLY` and names the canonical files by absolute path.
 
+For iterative OpenCode work, bind a stable role to an existing provider session:
+
+```bash
+workctl role-bind auth-refresh coder --runtime opencode \
+  --session ses_abc123 --model provider/model-id --agent build --variant high
+workctl continue auth-refresh --runtime opencode --role coder
+```
+
+The task, repository, runtime, session, model, agent, and variant form one exact binding. Stop on
+runtime/model drift. Use `role-list` to inspect bindings and `role-archive` before deliberate
+rotation. The task lease remains the single-writer boundary across every role.
+
+Reviewer roles (`review_test`, `review_acceptance`, `reviewer`, `evaluator`, `acceptor`) require
+fresh context and reject reusable sessions. Bind them with `--fresh`. Session reuse is a cache
+optimization; it never proves reviewer independence.
+
+When the provider exposes token-cache data, append it with `role-record`. A compaction increments
+the role's context generation but does not replace the task artifacts. Rotate a role when its model,
+runtime, responsibility, or context quality changes.
+
 When a runtime limit is reached, update the durable task files if possible, exit that CLI, then run `workctl continue <id> --runtime <next-runtime>`. Interactive CLIs do not expose a portable “quota exhausted” exit reason, so do not silently chain into another provider.
 
 Use `--non-interactive` only when unattended execution is intended. It can classify common rate-limit output, but it gives the agent authority to run without an interactive checkpoint.
@@ -99,6 +119,7 @@ Use `--takeover` only when the recorded process is gone or the user intentionall
 workctl status
 workctl status auth-refresh --json
 workctl runs auth-refresh
+workctl role-list auth-refresh
 workctl doctor
 workctl continue auth-refresh --runtime codex --print-command
 ```

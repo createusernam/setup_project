@@ -36,6 +36,14 @@ CANONICAL_ARTIFACTS = (
     "checks.json",
 )
 RUNTIME_NAMES = ("claude", "codex", "opencode")
+FRESH_CONTEXT_ROLES = {
+    "acceptor",
+    "evaluator",
+    "reviewer",
+    "review_acceptance",
+    "review_test",
+    "test_owner",
+}
 LIMIT_PATTERNS = (
     "rate limit",
     "usage limit",
@@ -224,7 +232,7 @@ def default_config() -> dict[str, Any]:
         "runtimes": {
             "claude": {"command": "claude", "model": None},
             "codex": {"command": "codex", "model": None, "sandbox": "workspace-write"},
-            "opencode": {"command": "opencode", "model": None, "agent": None},
+            "opencode": {"command": "opencode", "model": None, "agent": None, "variant": None},
         },
     }
 
@@ -298,6 +306,10 @@ def build_runtime_command(
         args.extend(["--model", str(model)])
     if settings.get("agent"):
         args.extend(["--agent", str(settings["agent"])])
+    if settings.get("variant"):
+        args.extend(["--variant", str(settings["variant"])])
+    if settings.get("session_id"):
+        args.extend(["--session", str(settings["session_id"])])
     args.append(prompt)
     return args
 
@@ -346,6 +358,14 @@ def live_lease(state: dict[str, Any]) -> dict[str, Any] | None:
     if not isinstance(lease, dict):
         return None
     return lease if pid_alive(lease.get("pid")) else None
+
+
+def require_unleased(state: dict[str, Any], action: str) -> None:
+    active = live_lease(state)
+    if active:
+        raise WorkctlError(
+            f"cannot {action} while task is leased by {active.get('runtime')} pid={active.get('pid')}"
+        )
 
 
 def acquire_lease(
@@ -425,6 +445,7 @@ def render_resume(
     runtime: str,
     drift: dict[str, Any],
     snapshot: dict[str, Any],
+    role: str | None = None,
 ) -> str:
     files = [name for name in CANONICAL_ARTIFACTS if (directory / name).exists()]
     handoff = (directory / "handoff.md").read_text(encoding="utf-8") if (directory / "handoff.md").exists() else "No authored handoff is available; reconstruct from state and git evidence."
@@ -435,6 +456,7 @@ def render_resume(
 ## Runtime
 
 - target runtime: `{runtime}`
+- role: `{role or 'portable-handoff'}`
 - task revision: `{state.get('revision')}`
 - repository: `{state.get('workspace', {}).get('repo_path')}`
 - branch at checkpoint: `{snapshot.get('branch')}`
@@ -464,7 +486,7 @@ def render_resume(
 """
 
 
-def render_agent_prompt(directory: Path, state: dict[str, Any], runtime: str, resume_path: Path) -> str:
+def render_agent_prompt(directory: Path, state: dict[str, Any], runtime: str, resume_path: Path, role: str | None = None) -> str:
     return f"""CONTINUE TASK {state['task_id']} ONLY.
 
 You are taking over an existing task from another coding CLI. Do not choose a different task from nearby files and do not restart this task from scratch.
@@ -473,6 +495,7 @@ Repository: {state.get('workspace', {}).get('repo_path')}
 Task state: {directory / 'state.json'}
 Resume package: {resume_path}
 Current revision: {state.get('revision')}
+Assigned role: {role or 'portable handoff'}
 
 Before changing files:
 1. Read the resume package and every canonical file it lists.
@@ -486,15 +509,16 @@ Target runtime for this handoff: {runtime}.
 """
 
 
-def prepare_resume(repo: Path, directory: Path, state: dict[str, Any], runtime: str) -> tuple[Path, str]:
+def prepare_resume(repo: Path, directory: Path, state: dict[str, Any], runtime: str, role: str | None = None) -> tuple[Path, str]:
     drift = artifact_drift(directory, state)
     recovery_dir = directory / "runs" / "recovery"
     snapshot = git_snapshot(repo, recovery_dir, f"resume-r{state.get('revision', 0)}")
-    resume_text = render_resume(directory, state, runtime, drift, snapshot)
+    resume_text = render_resume(directory, state, runtime, drift, snapshot, role)
     resume_path = directory / "resume.md"
     atomic_write(resume_path, resume_text)
-    prompt = render_agent_prompt(directory, state, runtime, resume_path)
-    prompt_path = directory / "prompts" / f"resume-r{state.get('revision', 0)}-{runtime}.md"
+    prompt = render_agent_prompt(directory, state, runtime, resume_path, role)
+    role_suffix = f"-{role}" if role else ""
+    prompt_path = directory / "prompts" / f"resume-r{state.get('revision', 0)}-{runtime}{role_suffix}.md"
     atomic_write(prompt_path, prompt)
     return prompt_path, prompt
 # END_BLOCK_PROMPTS
@@ -556,6 +580,7 @@ def command_init(args: argparse.Namespace) -> int:
         "target_runtime": None,
         "lease": None,
         "runs": [],
+        "role_sessions": {},
         "artifacts": {},
     }
     save_state(directory, state, bump=True)
@@ -575,6 +600,7 @@ def task_summary(repo: Path, task_id: str) -> dict[str, Any]:
         "branch": state.get("workspace", {}).get("branch"),
         "last_runtime": state.get("last_runtime"),
         "target_runtime": state.get("target_runtime"),
+        "role_sessions": sorted(state.get("role_sessions", {})) if isinstance(state.get("role_sessions", {}), dict) else [],
         "lease": f"{lease.get('runtime')} pid={lease.get('pid')}" if lease else None,
         "next_action": state.get("next_action"),
         "drift": sorted(artifact_drift(directory, state)),
@@ -598,6 +624,7 @@ def command_status(args: argparse.Namespace) -> int:
     for item in summaries:
         print(f"{item['task']}  stage={item['stage']}  rev={item['revision']}  branch={item['branch'] or '-'}")
         print(f"  runtime={item['last_runtime'] or '-'}  target={item['target_runtime'] or '-'}  lease={item['lease'] or '-'}")
+        print(f"  role sessions: {', '.join(item['role_sessions']) or '-'}")
         print(f"  next: {item['next_action']}")
         if item["drift"]:
             print(f"  artifact drift: {', '.join(item['drift'])}")
@@ -622,6 +649,142 @@ def command_bind(args: argparse.Namespace) -> int:
     state["workspace"]["branch"] = branch
     save_state(directory, state, bump=True)
     print(f"Bound {args.task_id}: {previous or '-'} → {branch}")
+    return 0
+
+
+def validate_role(role: str) -> None:
+    if not TASK_ID.fullmatch(role):
+        raise WorkctlError("role must be 1-64 letters, digits, dots, underscores, or hyphens")
+
+
+def get_role_session(state: dict[str, Any], role: str) -> dict[str, Any]:
+    validate_role(role)
+    sessions = state.get("role_sessions", {})
+    if not isinstance(sessions, dict):
+        raise WorkctlError("role_sessions in task state must be an object")
+    record = sessions.get(role)
+    if not isinstance(record, dict):
+        raise WorkctlError(f"role {role!r} is not bound; run `workctl role-bind <task> {role} ...`")
+    if record.get("status") != "active":
+        raise WorkctlError(f"role {role!r} session is {record.get('status')!r}; bind a new session before continuing")
+    return record
+
+
+def command_role_bind(args: argparse.Namespace) -> int:
+    repo = discover_repo(args.repo)
+    directory, state = load_state(repo, args.task_id)
+    require_matching_workspace(repo, state, args.task_id)
+    validate_role(args.role)
+    require_unleased(state, "bind a role")
+    settings = runtime_settings(repo, args.runtime, args.model)
+    model = settings.get("model")
+    fresh = args.fresh or args.role in FRESH_CONTEXT_ROLES
+    if fresh and args.session:
+        raise WorkctlError(f"fresh-context role {args.role!r} cannot bind a reusable session ID")
+    if not fresh:
+        if args.runtime != "opencode":
+            raise WorkctlError("reusable role sessions are currently supported only for the OpenCode runtime")
+        if not args.session:
+            raise WorkctlError("reusable role session requires --session")
+        if not model:
+            raise WorkctlError("reusable role session requires an explicit --model or configured runtime model")
+    created = now_iso()
+    sessions = state.setdefault("role_sessions", {})
+    if not isinstance(sessions, dict):
+        raise WorkctlError("role_sessions in task state must be an object")
+    previous = sessions.get(args.role)
+    context_generation = int(previous.get("context_generation", 0)) + 1 if isinstance(previous, dict) else 1
+    sessions[args.role] = {
+        "runtime": args.runtime,
+        "session_id": None if fresh else args.session,
+        "project_id": args.project_id,
+        "repo_path": str(repo),
+        "model_id": model,
+        "agent": args.agent or settings.get("agent") or args.role,
+        "variant": args.variant or settings.get("variant"),
+        "title": args.title or f"{args.task_id}-{args.role}",
+        "reuse_policy": "fresh" if fresh else "resume",
+        "created_at": created,
+        "last_used_at": None,
+        "context_generation": context_generation,
+        "cache": {
+            "hit_tokens": 0,
+            "miss_tokens": 0,
+            "last_hit_ratio": None,
+            "compactions": 0,
+            "updated_at": None,
+        },
+        "status": "active",
+    }
+    save_state(directory, state, bump=True)
+    print(
+        f"Bound role {args.role} for {args.task_id}: runtime={args.runtime} "
+        f"policy={sessions[args.role]['reuse_policy']} session={sessions[args.role]['session_id'] or '-'}"
+    )
+    return 0
+
+
+def command_role_list(args: argparse.Namespace) -> int:
+    repo = discover_repo(args.repo)
+    task_id = resolve_task(repo, args.task_id)
+    _, state = load_state(repo, task_id)
+    sessions = state.get("role_sessions", {})
+    if not isinstance(sessions, dict):
+        raise WorkctlError("role_sessions in task state must be an object")
+    if args.json:
+        print(json.dumps(sessions, indent=2, ensure_ascii=False))
+        return 0
+    if not sessions:
+        print(f"{task_id}: no role sessions bound")
+        return 0
+    for role, record in sorted(sessions.items()):
+        print(
+            f"{role}  status={record.get('status')}  policy={record.get('reuse_policy')}  "
+            f"runtime={record.get('runtime')}  model={record.get('model_id') or '-'}  "
+            f"session={record.get('session_id') or '-'}"
+        )
+    return 0
+
+
+def command_role_archive(args: argparse.Namespace) -> int:
+    repo = discover_repo(args.repo)
+    directory, state = load_state(repo, args.task_id)
+    require_matching_workspace(repo, state, args.task_id)
+    require_unleased(state, "archive a role")
+    record = get_role_session(state, args.role)
+    record["status"] = "archived"
+    record["archived_at"] = now_iso()
+    save_state(directory, state, bump=True)
+    print(f"Archived role session {args.task_id}/{args.role}")
+    return 0
+
+
+def command_role_record(args: argparse.Namespace) -> int:
+    repo = discover_repo(args.repo)
+    directory, state = load_state(repo, args.task_id)
+    require_matching_workspace(repo, state, args.task_id)
+    require_unleased(state, "record role telemetry")
+    record = get_role_session(state, args.role)
+    cache = record.setdefault("cache", {})
+    if not isinstance(cache, dict):
+        raise WorkctlError("role cache telemetry must be an object")
+    hit = int(args.cache_hit_tokens or 0)
+    miss = int(args.cache_miss_tokens or 0)
+    if hit < 0 or miss < 0:
+        raise WorkctlError("cache token increments must be non-negative")
+    cache["hit_tokens"] = int(cache.get("hit_tokens", 0)) + hit
+    cache["miss_tokens"] = int(cache.get("miss_tokens", 0)) + miss
+    total = cache["hit_tokens"] + cache["miss_tokens"]
+    cache["last_hit_ratio"] = cache["hit_tokens"] / total if total else None
+    if args.compaction:
+        cache["compactions"] = int(cache.get("compactions", 0)) + 1
+        record["context_generation"] = int(record.get("context_generation", 1)) + 1
+    cache["updated_at"] = now_iso()
+    save_state(directory, state, bump=True)
+    print(
+        f"Recorded {args.task_id}/{args.role}: hit={cache['hit_tokens']} miss={cache['miss_tokens']} "
+        f"ratio={cache['last_hit_ratio']} compactions={cache.get('compactions', 0)}"
+    )
     return 0
 
 
@@ -728,9 +891,31 @@ def command_launch(args: argparse.Namespace, mode: str) -> int:
     task_id = resolve_task(repo, args.task_id)
     directory, state = load_state(repo, task_id)
     require_matching_workspace(repo, state, task_id)
-    runtime = args.runtime or state.get("target_runtime") or "claude"
-    settings = runtime_settings(repo, runtime, args.model)
-    prompt_path, prompt = prepare_resume(repo, directory, state, runtime)
+    role = args.role
+    role_record: dict[str, Any] | None = None
+    if role:
+        role_record = get_role_session(state, role)
+        expected_repo = role_record.get("repo_path")
+        if expected_repo and Path(expected_repo).resolve() != repo.resolve():
+            raise WorkctlError(f"role {role!r} is bound to repository {expected_repo!r}; rotate or rebind it")
+        role_runtime = role_record.get("runtime")
+        if args.runtime and args.runtime != role_runtime:
+            raise WorkctlError(f"role {role!r} runtime mismatch: bound {role_runtime!r}, requested {args.runtime!r}")
+        runtime = str(role_runtime)
+        role_model = role_record.get("model_id")
+        if args.model and args.model != role_model:
+            raise WorkctlError(f"role {role!r} model mismatch: bound {role_model!r}, requested {args.model!r}")
+        settings = runtime_settings(repo, runtime, str(role_model) if role_model else None)
+        settings["agent"] = role_record.get("agent")
+        settings["variant"] = role_record.get("variant")
+        if role_record.get("reuse_policy") == "resume":
+            if runtime != "opencode" or not role_record.get("session_id"):
+                raise WorkctlError(f"role {role!r} has an invalid reusable session binding; rotate or rebind it")
+            settings["session_id"] = role_record["session_id"]
+    else:
+        runtime = args.runtime or state.get("target_runtime") or "claude"
+        settings = runtime_settings(repo, runtime, args.model)
+    prompt_path, prompt = prepare_resume(repo, directory, state, runtime, role)
     run_id = next_run_id(state)
     run_dir = directory / "runs" / run_id
     output_path = run_dir / "last-message.txt"
@@ -753,7 +938,10 @@ def command_launch(args: argparse.Namespace, mode: str) -> int:
         "id": run_id,
         "mode": mode,
         "runtime": runtime,
+        "role": role,
         "model": settings.get("model"),
+        "session_id": settings.get("session_id"),
+        "variant": settings.get("variant"),
         "started_at": now_iso(),
         "ended_at": None,
         "command": command,
@@ -768,6 +956,8 @@ def command_launch(args: argparse.Namespace, mode: str) -> int:
     state["target_runtime"] = None
     save_state(directory, state, bump=True)
     print(f"Starting {runtime} for task {task_id} (run {run_id})")
+    if role:
+        print(f"Role: {role} ({role_record.get('reuse_policy')})")
     print(f"Task root: {directory}")
 
     captured = ""
@@ -819,6 +1009,10 @@ def command_launch(args: argparse.Namespace, mode: str) -> int:
                 item["exit_reason"] = classify_exit(code, captured)
                 break
         state["last_runtime"] = runtime
+        if role:
+            current_role = state.get("role_sessions", {}).get(role, {})
+            if isinstance(current_role, dict):
+                current_role["last_used_at"] = now_iso()
         save_state(directory, state, bump=True)
         release_lease(directory, state, run_id)
     print(f"Run {run_id} ended: {classify_exit(code, captured)} (exit {code})")
@@ -841,6 +1035,7 @@ def add_launch_arguments(parser: argparse.ArgumentParser) -> None:
     add_repo_argument(parser)
     parser.add_argument("--runtime", choices=RUNTIME_NAMES)
     parser.add_argument("--model", help="runtime-specific model id; OpenCode expects provider/model")
+    parser.add_argument("--role", help="bound role session to use; reusable sessions stay task- and role-specific")
     parser.add_argument("--non-interactive", action="store_true")
     parser.add_argument("--print-command", action="store_true", help="prepare and print without launching")
     parser.add_argument("--takeover", action="store_true", help="supersede a confirmed live lease")
@@ -868,6 +1063,41 @@ def build_parser() -> argparse.ArgumentParser:
     add_task_argument(bind, required=True)
     add_repo_argument(bind)
     bind.set_defaults(handler=command_bind)
+
+    role_bind = sub.add_parser("role-bind", help="bind a persistent or fresh-context runtime role")
+    add_task_argument(role_bind, required=True)
+    role_bind.add_argument("role")
+    add_repo_argument(role_bind)
+    role_bind.add_argument("--runtime", required=True, choices=RUNTIME_NAMES)
+    role_bind.add_argument("--session", help="OpenCode session ID; forbidden for fresh-context roles")
+    role_bind.add_argument("--project-id", help="optional runtime-native project identifier for audit")
+    role_bind.add_argument("--model", help="exact runtime model ID")
+    role_bind.add_argument("--agent", help="runtime agent name; defaults to the role name")
+    role_bind.add_argument("--variant", help="provider/runtime-specific effort variant")
+    role_bind.add_argument("--title", help="stable human-readable session title")
+    role_bind.add_argument("--fresh", action="store_true", help="force a fresh context on every launch")
+    role_bind.set_defaults(handler=command_role_bind)
+
+    role_list = sub.add_parser("role-list", help="list role-session bindings for a task")
+    add_task_argument(role_list)
+    add_repo_argument(role_list)
+    role_list.add_argument("--json", action="store_true")
+    role_list.set_defaults(handler=command_role_list)
+
+    role_archive = sub.add_parser("role-archive", help="archive one role-session binding")
+    add_task_argument(role_archive, required=True)
+    role_archive.add_argument("role")
+    add_repo_argument(role_archive)
+    role_archive.set_defaults(handler=command_role_archive)
+
+    role_record = sub.add_parser("role-record", help="record cache/compaction telemetry for a role")
+    add_task_argument(role_record, required=True)
+    role_record.add_argument("role")
+    add_repo_argument(role_record)
+    role_record.add_argument("--cache-hit-tokens", type=int, default=0)
+    role_record.add_argument("--cache-miss-tokens", type=int, default=0)
+    role_record.add_argument("--compaction", action="store_true")
+    role_record.set_defaults(handler=command_role_record)
 
     handoff = sub.add_parser("handoff", help="checkpoint and target another runtime")
     add_task_argument(handoff)

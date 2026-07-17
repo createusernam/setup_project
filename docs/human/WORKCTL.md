@@ -7,8 +7,9 @@ progress, checks, Git snapshots, and the exact next action.
 ## Why it exists
 
 Session history belongs to one CLI and model. A repository may contain several active tasks, so a
-generic instruction such as “continue the work” is ambiguous. `workctl` gives each task an explicit
-address:
+generic instruction such as “continue the work” is ambiguous. Durable task files remain the source
+of truth; a reusable model session is an optional cache resource, not a replacement for them.
+`workctl` gives each task an explicit address:
 
 ```text
 .workctl/tasks/auth-refresh/
@@ -78,6 +79,41 @@ The receiving runtime gets an explicit `CONTINUE TASK auth-refresh ONLY` prompt,
 task material, and an instruction to read state before acting. Each launch records pre/post Git
 snapshots and exit information under `runs/` and `state.json`.
 
+## Persistent role sessions
+
+For repeated work in OpenCode, bind a named role to an existing session instead of starting from an
+empty context on every iteration:
+
+```bash
+workctl role-bind auth-refresh coder \
+  --runtime opencode \
+  --session ses_abc123 \
+  --model provider/model-id \
+  --agent build \
+  --variant high
+workctl continue auth-refresh --runtime opencode --role coder
+```
+
+The binding is exact: task, repository, runtime, session ID, model, agent, and variant are checked
+before launch. Runtime or model drift stops execution. `role-list` shows active bindings;
+`role-archive` rotates one deliberately. A task lease still guarantees one controller for the task,
+including all of its role sessions.
+
+Review and acceptance roles are fresh-context roles. Bind them with `--fresh`; `workctl` rejects a
+reusable session for `review_test`, `review_acceptance`, `reviewer`, `evaluator`, or `acceptor`.
+Session reuse improves prefix-cache affinity but does not satisfy reviewer independence.
+
+Record provider telemetry when available:
+
+```bash
+workctl role-record auth-refresh coder --cache-hit-tokens 95000 --cache-miss-tokens 5000
+workctl role-record auth-refresh coder --compaction
+```
+
+Counters are additive. Compaction increments the context generation; it does not erase durable task
+state. Archive and bind a new session when context quality degrades, the model/runtime changes, the
+role changes, or an independent review begins.
+
 ## Selecting among multiple tasks
 
 Use the task ID explicitly:
@@ -134,6 +170,7 @@ workctl status auth-refresh --json       # machine-readable status
 workctl handoff auth-refresh --to codex  # update handoff.md and resume.md
 workctl resume auth-refresh              # print the continuation prompt without launching
 workctl runs auth-refresh                # show launch history
+workctl role-list auth-refresh           # show persistent/fresh role bindings
 workctl doctor                           # check Claude, Codex, and OpenCode availability
 workctl continue auth-refresh --runtime codex --print-command
 ```
@@ -153,14 +190,15 @@ Transferred:
 - known uncertainty, risks, and blockers;
 - exact next action and runtime history.
 
-Not transferred:
+Not transferred between runtimes:
 
 - hidden model context;
 - an internal reasoning trace;
 - full chat history.
 
 Continuation quality therefore depends on current task files and correct links to pipeline
-artifacts.
+artifacts. A same-runtime role binding may resume one provider session, but that affinity is local
+to the declared runtime/model and remains subordinate to the durable artifacts.
 
 `workctl` does not automatically switch providers after an interactive launch. Coding CLIs do not
 expose one reliable cross-runtime signal for “provider limit reached.” An explicit

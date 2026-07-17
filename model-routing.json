@@ -3,6 +3,43 @@
   "_description": "Provider-neutral capability routing for pipeline phases. Concrete runtime/model IDs are selected separately in each project's model-bindings.json.",
   "_enforcement": "Run 'bash scripts/model-check.sh <phase> [project_dir]'. The script resolves capability profiles through model-bindings.json. The running agent must confirm its actual model matches the resolved binding; a shell cannot detect the generating model.",
   "_state_ledger_note": "This file owns model capability and role-independence policy only. pipeline-machine.json owns transition semantics. model-bindings.json owns provider/runtime/model selection.",
+  "task_signal_policy": {
+    "_description": "Phase profiles are safe defaults. Before binding a concrete model, record task signals as low, medium, or high and select the cheapest enabled binding that satisfies the resulting capability need. Roles and independence constraints still apply.",
+    "signals": {
+      "requirement_uncertainty": {
+        "question": "How much consequential behavior is missing, ambiguous, or conflicting?",
+        "escalate_when": "High uncertainty requires stronger synthesis or a semantic prototype before implementation; a plausible completion is not evidence."
+      },
+      "knowledge_rarity": {
+        "question": "How uncommon, version-sensitive, or detail-heavy is the required domain/framework knowledge?",
+        "escalate_when": "High rarity favors a profile with stronger detail retention or a bounded research pass."
+      },
+      "interaction_density": {
+        "question": "How many components, states, branches, and external contracts interact?",
+        "escalate_when": "High density favors long context and structured reasoning; split unreadable behavior views before escalating model size."
+      },
+      "fidelity_need": {
+        "question": "How exact must UI, protocol, framework, or generated-code details be on the first pass?",
+        "escalate_when": "High fidelity favors the most detail-capable implementation binding, especially for the first executable scaffold or UI pass."
+      },
+      "reversibility": {
+        "question": "How cheaply can an incorrect decision be detected and undone?",
+        "escalate_when": "Low reversibility raises the required reasoning and review capability."
+      },
+      "cost_of_error": {
+        "question": "What is the impact of a plausible but wrong requirement or implementation?",
+        "escalate_when": "High cost requires stronger reasoning plus independent acceptance, not only a more capable generator."
+      }
+    },
+    "selection_rules": [
+      "Do not select by role title alone; architecture can use a balanced profile when constraints are standard and explicit.",
+      "Escalate requirement work when requirement_uncertainty or cost_of_error is high; resolve blocking specification gaps before code.",
+      "Escalate the first implementation pass when knowledge_rarity or fidelity_need is high; later continuation may use a cheaper compatible binding with the generated code as evidence.",
+      "De-escalate bounded, reversible, well-specified work when all consequential signals are low and tests provide fast feedback.",
+      "Never de-escalate a role below its phase profile or bypass distinct-role and isolated-context requirements."
+    ],
+    "record_in": ["task_plan.md", "issue manifest", ".workctl/tasks/<task-id>/context.md"]
+  },
   "profiles": {
     "reasoning_high": {
       "purpose": "Architecture, contracts, difficult decomposition, and high-consequence synthesis",

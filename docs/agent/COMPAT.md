@@ -240,7 +240,8 @@ When no agent primitive exists:
 1. enter the next applicable phase atomically with `setup-pipeline enter PHASE`;
 2. resolve the phase profile with `setup-model-check` and confirm the actual runtime/model;
 3. run `setup-pipeline guard PHASE` immediately before the first phase-owned write;
-4. load the relevant skill and required artifacts;
+4. load the relevant skill and required artifacts; when it owns extra durable state, bind its
+   trusted read-only validator once with `setup-pipeline set-process PHASE SKILL`;
 5. save, validate, and attest the structured output from the producer phase;
 6. run `setup-pipeline status` and return `continue_now`, `waiting_for_human`, or `complete`;
 7. continue machine-owned work immediately, or reproduce the complete machine-rendered HumanRequest
@@ -248,9 +249,10 @@ When no agent primitive exists:
    file+schema or inline response format, allowed responses, consequences, and resume action;
 8. use a separate configured model/context for review when required.
 
-The pipeline remains portable as long as artifacts, semantic gates, and role independence are
-preserved. `set-phase` remains only a deprecated atomic alias for `enter`; it never restores the old
-mutation-before-validation behavior.
+The pipeline remains portable as long as artifacts, semantic gates, phase-process validation, and
+role independence are preserved. Every declared producer output must be a checked downstream input;
+the machine contract rejects orphan outputs. `set-phase` remains only a deprecated atomic alias for
+`enter`; it never restores the old mutation-before-validation behavior.
 
 ## Setup release documentation invariant
 

@@ -25,6 +25,32 @@ SPEC.loader.exec_module(module)
 
 # START_BLOCK_PIPELINE_STATE_CASES
 class PipelineStateTests(unittest.TestCase):
+    def _install_test_process(self, root: Path, *, exit_code: int = 1) -> None:
+        (root / "scripts").mkdir(parents=True, exist_ok=True)
+        (root / "scripts" / "pipeline_preflight.py").write_bytes(
+            (ROOT / "scripts/pipeline_preflight.py").read_bytes()
+        )
+        skill = root / "skills" / "sample-process"
+        (skill / "scripts").mkdir(parents=True)
+        (skill / "pipeline-validator.json").write_text(
+            json.dumps(
+                {
+                    "version": "1",
+                    "runner": "python",
+                    "script": "scripts/validate-state.py",
+                    "arguments": ["--project", "{project}"],
+                    "read_only": True,
+                    "timeout_seconds": 10,
+                    "failure_next": "repair the saved phase-process state, then rerun status",
+                }
+            ),
+            encoding="utf-8",
+        )
+        (skill / "scripts" / "validate-state.py").write_text(
+            "import sys\nprint(\"missing required field 'input_digest'\")\nraise SystemExit(%d)\n" % exit_code,
+            encoding="utf-8",
+        )
+
     def test_bootstrap_adopts_existing_project_without_overwrite(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             project = Path(raw)
@@ -52,6 +78,94 @@ class PipelineStateTests(unittest.TestCase):
             self.assertIn("complete discovery artifacts", rendered)
             self.assertIn("current check: setup-preflight -1", rendered)
             self.assertNotIn("next entry check", rendered)
+
+    def test_phase_process_validator_overrides_false_ready_status(self) -> None:
+        with tempfile.TemporaryDirectory() as raw_root, tempfile.TemporaryDirectory() as raw_project:
+            root = Path(raw_root)
+            project = Path(raw_project)
+            (root / "templates" / "project").mkdir(parents=True)
+            (root / "templates" / "project" / ".pipeline-state.json").write_bytes(
+                (ROOT / "templates/project/.pipeline-state.json").read_bytes()
+            )
+            (root / "pipeline-machine.json").write_bytes((ROOT / "pipeline-machine.json").read_bytes())
+            (root / "model-routing.json").write_bytes((ROOT / "model-routing.json").read_bytes())
+            self._install_test_process(root)
+            module.command_init(SimpleNamespace(force=False), root, project)
+            module.command_set_process(SimpleNamespace(phase="-1", skill="sample-process"), root, project)
+
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                module.command_status(SimpleNamespace(), root, project)
+            rendered = output.getvalue()
+
+            self.assertIn("phase process: sample-process", rendered)
+            self.assertIn("model routing: DEFERRED", rendered)
+            self.assertIn("readiness: BLOCKED", rendered)
+            self.assertIn("missing required field 'input_digest'", rendered)
+            self.assertIn("repair the saved phase-process state", rendered)
+            self.assertNotIn("readiness: READY", rendered)
+
+    def test_phase_process_binding_is_available_for_every_machine_phase(self) -> None:
+        with tempfile.TemporaryDirectory() as raw_root, tempfile.TemporaryDirectory() as raw_project:
+            root = Path(raw_root)
+            project = Path(raw_project)
+            (root / "templates" / "project").mkdir(parents=True)
+            (root / "templates" / "project" / ".pipeline-state.json").write_bytes(
+                (ROOT / "templates/project/.pipeline-state.json").read_bytes()
+            )
+            (root / "pipeline-machine.json").write_bytes((ROOT / "pipeline-machine.json").read_bytes())
+            self._install_test_process(root, exit_code=0)
+            module.command_init(SimpleNamespace(force=False), root, project)
+
+            for phase in json.loads((root / "pipeline-machine.json").read_text())["transitions"]:
+                module.command_set_process(SimpleNamespace(phase=phase, skill="sample-process"), root, project)
+
+            ledger = json.loads((project / ".pipeline-state.json").read_text(encoding="utf-8"))
+            self.assertEqual(set(ledger["phase_processes"]), set(json.loads((root / "pipeline-machine.json").read_text())["transitions"]))
+
+    def test_failed_phase_process_blocks_forward_exit_but_not_in_phase_guard(self) -> None:
+        with tempfile.TemporaryDirectory() as raw_root, tempfile.TemporaryDirectory() as raw_project:
+            root = Path(raw_root)
+            project = Path(raw_project)
+            (root / "templates" / "project").mkdir(parents=True)
+            (root / "templates" / "project" / ".pipeline-state.json").write_bytes(
+                (ROOT / "templates/project/.pipeline-state.json").read_bytes()
+            )
+            (root / "pipeline-machine.json").write_bytes((ROOT / "pipeline-machine.json").read_bytes())
+            (root / "model-routing.json").write_bytes((ROOT / "model-routing.json").read_bytes())
+            self._install_test_process(root)
+            module.command_init(SimpleNamespace(force=False), root, project)
+            module.command_set_process(SimpleNamespace(phase="-1", skill="sample-process"), root, project)
+            module.command_set_tier(SimpleNamespace(tier="T0", reason="targeted deterministic repair"), root, project)
+
+            with self.assertRaisesRegex(ValueError, "cannot leave phase -1.*process validator is blocked"):
+                module.command_enter(SimpleNamespace(phase="7"), root, project)
+
+            failures, _, _ = module.load_preflight(root).evaluate(root, project, "-1")
+            self.assertFalse(any("phase_process" in failure for failure in failures))
+
+    def test_phase_process_rejects_validator_path_escape(self) -> None:
+        with tempfile.TemporaryDirectory() as raw_root, tempfile.TemporaryDirectory() as raw_project:
+            root = Path(raw_root)
+            project = Path(raw_project)
+            skill = root / "skills" / "sample-process"
+            skill.mkdir(parents=True)
+            (skill / "pipeline-validator.json").write_text(
+                json.dumps({"version": "1", "runner": "python", "script": "../escape.py", "arguments": [], "read_only": True}),
+                encoding="utf-8",
+            )
+            (root / "templates" / "project").mkdir(parents=True)
+            (root / "templates" / "project" / ".pipeline-state.json").write_bytes(
+                (ROOT / "templates/project/.pipeline-state.json").read_bytes()
+            )
+            (root / "pipeline-machine.json").write_bytes((ROOT / "pipeline-machine.json").read_bytes())
+            (root / "scripts").mkdir()
+            (root / "scripts" / "pipeline_preflight.py").write_bytes(
+                (ROOT / "scripts/pipeline_preflight.py").read_bytes()
+            )
+            module.command_init(SimpleNamespace(force=False), root, project)
+            with self.assertRaisesRegex(ValueError, "inside the skill"):
+                module.command_set_process(SimpleNamespace(phase="-1", skill="sample-process"), root, project)
 
     def test_values_lists_human_inputs_and_schema_owners(self) -> None:
         output = io.StringIO()

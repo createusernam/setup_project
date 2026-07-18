@@ -62,6 +62,8 @@ class HumanJourneyIntegrityTests(unittest.TestCase):
         self.assertIn("Do you need workctl?", workctl)
         self.assertIn("no workctl task is created", workctl)
         self.assertIn("Do not mutate the ledger", skill)
+        self.assertIn("phase-process failure overrides global READY", skill)
+        self.assertIn("checked downstream requirement", skill)
 
     def test_every_human_input_has_values_or_a_discovery_owner(self) -> None:
         setup = (ROOT / "docs/human/SETUP.md").read_text(encoding="utf-8")

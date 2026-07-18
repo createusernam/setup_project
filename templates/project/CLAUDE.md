@@ -31,8 +31,8 @@ test:  pending
 See `~/setup/docs/human/PIPELINE.md` for full process.
 
 When the user asks what stage the project is at, what comes next, where work stopped, or to continue,
-in any language, use the `pipeline-status` skill. Read `.pipeline-state.json` and run the
-current preflight behind the scenes; never infer phase from chat history. Answer with the stage,
+in any language, use the `pipeline-status` skill. Read `.pipeline-state.json` and run the current
+preflight plus its bound phase-process validator behind the scenes; never infer phase from chat history. Answer with the stage,
 readiness/blockers, and one next action. The human does not need to remember pipeline commands.
 
 Key reminders:
@@ -53,6 +53,9 @@ Key reminders:
    evidence/instruction paths, exact file+schema or inline response format, allowed responses,
    consequences, and resume action. Never replace it with an underspecified chat question or wait
    for the human to ask what comes next.
+9. Core preflight applies to every phase. If a selected skill owns additional durable state, bind
+   its trusted validator once with `setup-pipeline set-process PHASE SKILL`. A validator failure
+   overrides READY. Every declared phase output must remain a checked downstream input.
 
 ## GRACE Lite (mandatory)
 

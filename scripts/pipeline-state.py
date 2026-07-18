@@ -214,6 +214,9 @@ def command_migrate(args: argparse.Namespace, root: Path, project: Path) -> int:
             del policy[legacy]
             changes.append(f"archived obsolete policy.{legacy}")
     gates = ledger.setdefault("human_gates", {})
+    if "phase_processes" not in ledger:
+        ledger["phase_processes"] = {}
+        changes.append("added phase_processes registry")
     if "stakeholder_input_confirmed" in gates:
         del gates["stakeholder_input_confirmed"]
         changes.append("archived obsolete stakeholder_input_confirmed gate")
@@ -275,6 +278,21 @@ def command_set_condition(args: argparse.Namespace, root: Path, project: Path) -
     ledger["updated_at"] = timestamp()
     write_json(path, ledger)
     print(f"condition {args.condition}: {args.value}")
+    return 0
+
+
+def command_set_process(args: argparse.Namespace, root: Path, project: Path) -> int:
+    """Bind a trusted skill-owned validator to any machine phase."""
+    machine = read_json(root / "pipeline-machine.json")
+    if args.phase not in machine.get("transitions", {}):
+        raise ValueError(f"unknown phase {args.phase!r}")
+    preflight = load_preflight(root)
+    preflight.load_phase_process_descriptor(root, args.skill)
+    path, ledger = load_ledger(project)
+    ledger.setdefault("phase_processes", {})[args.phase] = {"skill": args.skill}
+    ledger["updated_at"] = timestamp()
+    write_json(path, ledger)
+    print(f"phase process {args.phase}: {args.skill}")
     return 0
 
 
@@ -364,6 +382,13 @@ def command_enter(args: argparse.Namespace, root: Path, project: Path) -> int:
     candidate = copy.deepcopy(ledger)
     candidate["phase"] = args.phase
     preflight = load_preflight(root)
+    _, current_process_failures, current_process_next = preflight.phase_process_check(root, project, current, ledger)
+    if current_process_failures and not is_rework:
+        rendered = "\n  - ".join(current_process_failures)
+        raise ValueError(
+            f"cannot leave phase {current}; its process validator is blocked:\n  - {rendered}\n"
+            f"next action: {current_process_next}"
+        )
     failures, warnings, _ = preflight.evaluate(root, project, args.phase, ledger_override=candidate)
     if failures:
         rendered = "\n  - ".join(failures)
@@ -530,6 +555,42 @@ def command_status(args: argparse.Namespace, root: Path, project: Path) -> int:
     for name, signature in sorted(ledger.get("human_gates", {}).items()):
         signature = signature if isinstance(signature, dict) else {}
         print(f"  {name}: {signature.get('by') or 'unsigned'} · {signature.get('at') or '—'}")
+    preflight = load_preflight(root)
+    process_skill, process_failures, process_next = preflight.phase_process_check(root, project, phase, ledger)
+    print(f"phase process: {process_skill or transition.get('skill', 'unknown process')}")
+    if process_failures:
+        if policy.get("risk_tier") is None:
+            provisional = next_selected_phase(machine, ledger)
+            if provisional == "0":
+                routing_readiness, missing_profiles, routing_issues = model_routing_readiness(root, project, ["0"])
+                print(f"model routing: {routing_readiness} (provisional research only)")
+                if missing_profiles:
+                    print("missing required profiles: " + ", ".join(missing_profiles))
+                for issue in routing_issues:
+                    print(f"model routing issue: {issue}")
+            else:
+                print("model routing: DEFERRED — route not classified")
+        else:
+            route_policy = machine["risk_policy"]["tiers"][policy["risk_tier"]]
+            routed = set(route_policy["required_phases"])
+            for routed_phase, rule in route_policy.get("conditional_phases", {}).items():
+                if conditions.get(rule["condition"]) == rule["equals"]:
+                    routed.add(routed_phase)
+            ordered_route = [item for item in machine["transitions"] if item in routed]
+            routing_readiness, missing_profiles, routing_issues = model_routing_readiness(root, project, ordered_route)
+            print(f"model routing: {routing_readiness}")
+            if missing_profiles:
+                print("missing required profiles: " + ", ".join(missing_profiles))
+            for issue in routing_issues:
+                print(f"model routing issue: {issue}")
+        print("readiness: BLOCKED")
+        print("transition: continue_now")
+        print("phase-process blockers:")
+        for failure in process_failures:
+            print(f"  - {failure}")
+        print(f"next action: {process_next}")
+        print(f"current check: setup-preflight {phase} {project}")
+        return 0
     if policy.get("risk_tier") is None:
         provisional_next = next_selected_phase(machine, ledger)
         if phase == "0":
@@ -745,6 +806,11 @@ def build_parser() -> argparse.ArgumentParser:
     condition.add_argument("condition", choices=CONDITIONS)
     condition.add_argument("value", choices=("true", "false"))
     condition.set_defaults(handler=command_set_condition)
+
+    process = subparsers.add_parser("set-process", help="bind a trusted skill validator to a machine phase")
+    process.add_argument("phase")
+    process.add_argument("skill")
+    process.set_defaults(handler=command_set_process)
 
     attest = subparsers.add_parser("attest", help="register current artifact hashes and invalidate stale consumers")
     attest.add_argument("artifacts", nargs="+")

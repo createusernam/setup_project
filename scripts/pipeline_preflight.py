@@ -13,6 +13,8 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import subprocess
+import sys
 from typing import Any
 
 
@@ -141,6 +143,19 @@ def ledger_errors(ledger: Any) -> list[str]:
         errors.append("ledger: human_gates must be an object")
     elif set(ledger.get("human_gates", {})) != HUMAN_GATES:
         errors.append("ledger: human_gates must contain exactly contract_locked, viz_before_tickets, and human_acceptance; run setup-pipeline migrate")
+    phase_processes = ledger.get("phase_processes", {})
+    if not isinstance(phase_processes, dict):
+        errors.append("ledger: phase_processes must be an object")
+    else:
+        for phase, binding in phase_processes.items():
+            if not isinstance(phase, str) or not phase:
+                errors.append("ledger: every phase_processes key must be a non-empty phase")
+            if not isinstance(binding, dict) or set(binding) != {"skill"}:
+                errors.append(f"ledger: phase_processes[{phase!r}] must contain exactly skill")
+                continue
+            skill = binding.get("skill")
+            if not isinstance(skill, str) or not re.fullmatch(r"[a-z0-9][a-z0-9._-]*", skill):
+                errors.append(f"ledger: phase_processes[{phase!r}].skill must be a lowercase skill slug")
     policy = ledger.get("policy", {})
     if isinstance(policy, dict):
         for obsolete in ("skipped_gates", "skip_contract"):
@@ -163,6 +178,85 @@ def ledger_errors(ledger: Any) -> list[str]:
             if "invalidated_by" not in record or not isinstance(record.get("invalidated_by"), (str, type(None))):
                 errors.append(f"ledger: artifact {name!r} invalidated_by must be null or a string")
     return errors
+
+
+def load_phase_process_descriptor(root: Path, skill: str) -> tuple[Path, dict[str, Any]]:
+    """Load a trusted, skill-owned read-only validator without accepting project commands."""
+    if not re.fullmatch(r"[a-z0-9][a-z0-9._-]*", skill):
+        raise ValueError("phase-process skill must be a lowercase slug")
+    skills_root = (root / "skills").resolve()
+    skill_dir = (skills_root / skill).resolve()
+    try:
+        skill_dir.relative_to(skills_root)
+    except ValueError as error:
+        raise ValueError("phase-process skill must resolve inside setup skills") from error
+    descriptor_path = skill_dir / "pipeline-validator.json"
+    if not descriptor_path.is_file():
+        raise ValueError(f"skill {skill!r} has no pipeline-validator.json")
+    try:
+        descriptor = json.loads(descriptor_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(f"cannot read phase-process descriptor for {skill!r}: {error}") from error
+    if not isinstance(descriptor, dict) or descriptor.get("version") != "1":
+        raise ValueError(f"phase-process descriptor for {skill!r} must use version '1'")
+    if descriptor.get("runner") != "python" or descriptor.get("read_only") is not True:
+        raise ValueError(f"phase-process descriptor for {skill!r} must declare python and read_only=true")
+    raw_script = descriptor.get("script")
+    if not isinstance(raw_script, str) or not raw_script or Path(raw_script).is_absolute():
+        raise ValueError(f"phase-process validator for {skill!r} must be a relative script path")
+    script = (skill_dir / raw_script).resolve()
+    try:
+        script.relative_to(skill_dir)
+    except ValueError as error:
+        raise ValueError(f"phase-process validator for {skill!r} must stay inside the skill") from error
+    if not script.is_file():
+        raise ValueError(f"phase-process validator script is missing: {script}")
+    arguments = descriptor.get("arguments", [])
+    if not isinstance(arguments, list) or any(not isinstance(item, str) for item in arguments):
+        raise ValueError(f"phase-process arguments for {skill!r} must be an array of strings")
+    timeout = descriptor.get("timeout_seconds", 30)
+    if not isinstance(timeout, int) or not 1 <= timeout <= 120:
+        raise ValueError(f"phase-process timeout for {skill!r} must be 1..120 seconds")
+    failure_next = descriptor.get("failure_next")
+    if not isinstance(failure_next, str) or not failure_next.strip():
+        raise ValueError(f"phase-process descriptor for {skill!r} requires failure_next")
+    return script, descriptor
+
+
+def phase_process_check(
+    root: Path, project: Path, phase: str, ledger: dict[str, Any]
+) -> tuple[str | None, list[str], str | None]:
+    """Run the validator bound to a phase and return skill, blockers, and recovery action."""
+    binding = ledger.get("phase_processes", {}).get(phase)
+    if binding is None:
+        return None, [], None
+    if not isinstance(binding, dict) or not isinstance(binding.get("skill"), str):
+        return None, [f"phase_process: malformed binding for phase {phase}"], "repair .pipeline-state.json, then rerun status"
+    skill = binding["skill"]
+    try:
+        script, descriptor = load_phase_process_descriptor(root, skill)
+    except ValueError as error:
+        return skill, [f"phase_process[{skill}]: {error}"], "install or repair the named phase-process skill, then rerun status"
+    arguments = [item.replace("{project}", str(project)) for item in descriptor.get("arguments", [])]
+    try:
+        result = subprocess.run(
+            [sys.executable, str(script), *arguments],
+            cwd=project,
+            text=True,
+            capture_output=True,
+            timeout=descriptor.get("timeout_seconds", 30),
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return skill, [f"phase_process[{skill}]: validator timed out"], descriptor["failure_next"]
+    if result.returncode == 0:
+        return skill, [], None
+    combined = "\n".join(part for part in (result.stdout.strip(), result.stderr.strip()) if part)
+    lines = [line.strip() for line in combined.splitlines() if line.strip()][:20]
+    failures = [f"phase_process[{skill}]: {line[:500]}" for line in lines]
+    if not failures:
+        failures = [f"phase_process[{skill}]: validator exited {result.returncode} without diagnostics"]
+    return skill, failures, descriptor["failure_next"]
 
 
 def specification_gap_errors(document: Any) -> list[str]:
@@ -373,6 +467,7 @@ def evaluate(
             "model_bindings_file": "model-bindings.json",
             "artifacts": {},
             "human_gates": {},
+            "phase_processes": {},
             "policy": {"risk_tier": None, "conditions": {"research_required": None, "frontend": None}},
         }
     else:

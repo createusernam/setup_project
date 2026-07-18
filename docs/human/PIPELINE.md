@@ -23,7 +23,8 @@ Claude Code, Codex, or OpenCode in the project directory and ask an ordinary que
 
 Equivalent wording such as “where did we stop?”, “let's continue the project”, or the same question
 in another language works too. The shared `pipeline-status` skill must inspect
-`.pipeline-state.json` and the current read-only preflight behind the scenes. It answers with:
+`.pipeline-state.json`, the current read-only preflight, and any specialized validator bound to the
+current phase behind the scenes. A specialized validator failure overrides global READY. It answers with:
 
 1. the current phase and what it means;
 2. READY, BLOCKED, or COMPLETE plus the relevant missing evidence or decision;
@@ -176,6 +177,8 @@ phase you now enter:
 setup-pipeline enter PHASE
 setup-pipeline guard PHASE
 # invoke the skill named in the Phase execution table
+# if it owns additional durable state, bind its read-only validator once with:
+# setup-pipeline set-process PHASE SKILL
 # review its stable output and resolve any REVISE/FAIL/STOP branch
 setup-pipeline attest OUTPUT... --status ready
 setup-pipeline status
@@ -188,6 +191,12 @@ path in the execution table. `--status` accepts `draft|ready|approved|complete`;
 not remain `draft`. `setup-preflight` already resolves model bindings, so `setup-model-check` is an
 optional focused diagnostic, not another mandatory gate. The running agent must still confirm that
 its actual runtime/model matches the resolved binding.
+
+Core preflight applies to every phase. `set-process` adds a trusted skill-owned validator for the
+named phase and records only the skill ID; the project cannot inject a shell command. The binding is
+durable across sessions and CLIs. Setup also rejects a machine definition where a declared phase
+output has no checked downstream requirement, while runtime preflight verifies the actual artifact,
+attestation, semantic verdict, and invalidation state before its consumer proceeds.
 
 The canonical routes are:
 
@@ -548,6 +557,7 @@ Use `setup-pipeline` to update it; do not hand-calculate or paste hashes. Run
 setup-pipeline enter 4b
 setup-pipeline attest contract.json
 setup-pipeline set-condition frontend false
+setup-pipeline set-process -1 SELECTED_DISCOVERY_SKILL
 setup-pipeline sign contract_locked --by "name-or-account"
 setup-pipeline status
 ```
@@ -566,6 +576,10 @@ The evaluator checks:
 - invalidation state;
 - semantic JSON pointers and expected verdict/stage values;
 - human gate signatures (`by` and `at`).
+
+`setup-pipeline status` additionally runs the trusted read-only validator bound to the current
+phase, when present. It is a readiness/exit check, not an entry guard: a failed validator tells the
+agent what to repair inside the current phase and prevents leaving it, without deadlocking the repair.
 
 The running agent must still confirm its actual model: the script validates the declared availability
 manifest, not the process identity.

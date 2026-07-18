@@ -7,9 +7,8 @@ Works with Claude Code, Codex, OpenCode, or any terminal/API LLM as the orchestr
 
 ## What setup is
 
-Setup is a runtime-neutral development harness and control plane for agents. It is not itself an
-agent or a model: supported LLMs are interchangeable workers operating inside its durable rules,
-state, and human authority boundaries.
+Setup is a runtime-neutral development harness and control plane for agents. Supported LLMs are
+interchangeable workers operating inside its durable rules, state, and human authority boundaries.
 
 - `pipeline-machine.json` — declarative phases, gates, artifact dependencies, and HumanRequest contracts;
 - `scripts/pipeline-state.py` and preflight — the executable state and transition controller;

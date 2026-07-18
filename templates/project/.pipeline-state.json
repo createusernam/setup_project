@@ -18,6 +18,7 @@
     "contract_locked": {"by": null, "at": null},
     "human_acceptance": {"by": null, "at": null}
   },
+  "phase_processes": {},
   "model_bindings_file": "model-bindings.json",
   "updated_at": null,
   "_note": "Discovery begins before route classification. Record both boolean route conditions, then set risk_tier from reversibility, blast radius, uncertainty, boundary count, and cost of error. Artifact hashes and semantic verdicts are checked before each transition; invalidated artifacts fail closed. Run setup-pipeline values for allowed phases, tiers, conditions, gates, statuses, profiles, runtimes, and schema owners."

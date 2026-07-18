@@ -5,6 +5,20 @@ A cross-model development harness: a canonical pipeline (Phase -1 → 7) that ta
 GRACE markup, product-brief-driven design, and independent machine, model, reviewer, and human gates.
 Works with Claude Code, Codex, OpenCode, or any terminal/API LLM as the orchestrator.
 
+## What setup is
+
+Setup is a runtime-neutral development harness and control plane for agents. It is not itself an
+agent or a model: supported LLMs are interchangeable workers operating inside its durable rules,
+state, and human authority boundaries.
+
+- `pipeline-machine.json` — declarative phases, gates, artifact dependencies, and HumanRequest contracts;
+- `scripts/pipeline-state.py` and preflight — the executable state and transition controller;
+- `skills/` — specialized working procedures for LLMs;
+- `model-routing.json` — capability roles and independent-review policy, mapped to concrete models per project;
+- `templates/` and adjacent schemas — portable project memory and exchange formats;
+- human gates — decisions that automation is not authorized to make;
+- `workctl` — durable continuation of named work across models, CLIs, and sessions.
+
 ## Start here
 
 There are two runbooks and no duplicated command path:

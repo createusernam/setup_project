@@ -179,8 +179,9 @@ existing command without inspecting or backing it up.
 ## Setup ends; the project path begins
 
 Once `setup-skill-doctor` passes and the chosen CLI can load `startup` and `pipeline-status`, stop
-using this guide. In the project directory ask the agent “What stage are we at, and what should we do next?”
-For a new project, ask it to use `startup`; for an existing repository, ask it to adopt the repository
+using this guide. For a new project, ask it to use `startup`; startup reports partial readiness and
+continues directly into Phase -1 from product facts already supplied in the conversation. For an
+existing repository, ask the agent for its stage/next action so `pipeline-status` can adopt it
 into the setup pipeline. [`PIPELINE.md`](PIPELINE.md) remains the reference for allowed values,
 route decisions, gates, diagnostics, and final acceptance, but it is not required daily reading.
 

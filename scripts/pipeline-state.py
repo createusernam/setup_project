@@ -9,7 +9,10 @@
 from __future__ import annotations
 
 import argparse
+import copy
+import fnmatch
 import hashlib
+import importlib.util
 import json
 import os
 from datetime import datetime, timezone
@@ -78,6 +81,62 @@ def load_ledger(project: Path) -> tuple[Path, dict[str, Any]]:
     if not path.is_file():
         raise ValueError(f"no ledger at {path}; run `setup-pipeline --project {project} init`")
     return path, read_json(path)
+
+
+def selected_route(machine: dict[str, Any], ledger: dict[str, Any]) -> list[str]:
+    tier = ledger.get("policy", {}).get("risk_tier")
+    if tier is None:
+        provisional = ["-1"]
+        if ledger.get("policy", {}).get("conditions", {}).get("research_required") is True:
+            provisional.append("0")
+        return provisional
+    route = machine.get("risk_policy", {}).get("tiers", {}).get(tier)
+    if not isinstance(route, dict):
+        return []
+    selected = set(route.get("required_phases", []))
+    conditions = ledger.get("policy", {}).get("conditions", {})
+    for phase, rule in route.get("conditional_phases", {}).items():
+        if conditions.get(rule.get("condition")) == rule.get("equals"):
+            selected.add(phase)
+    return [phase for phase in machine.get("transitions", {}) if phase in selected]
+
+
+def next_selected_phase(machine: dict[str, Any], ledger: dict[str, Any]) -> str | None:
+    route = selected_route(machine, ledger)
+    current = ledger.get("phase")
+    if current in route:
+        index = route.index(current) + 1
+        return route[index] if index < len(route) else None
+    if current == "-1" and route:
+        return route[0]
+    return None
+
+
+def load_preflight(root: Path) -> Any:
+    spec = importlib.util.spec_from_file_location("setup_pipeline_preflight", root / "scripts" / "pipeline_preflight.py")
+    if spec is None or spec.loader is None:
+        raise ValueError("cannot load pipeline preflight evaluator")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def owner_for_artifact(machine: dict[str, Any], name: str) -> str | None:
+    for pattern, ownership in machine.get("artifact_owners", {}).items():
+        if fnmatch.fnmatch(name, pattern):
+            return ownership.get("producer_phase")
+    return None
+
+
+def matching_policy_values(mapping: dict[str, Any], name: str) -> list[str]:
+    """Return de-duplicated values from exact or glob policy keys matching an artifact path."""
+    values: list[str] = []
+    for pattern, configured in mapping.items():
+        if fnmatch.fnmatch(name, pattern):
+            for value in configured:
+                if value not in values:
+                    values.append(value)
+    return values
 
 
 def invalidate_after_policy_change(ledger: dict[str, Any], source: str) -> None:
@@ -191,7 +250,9 @@ def command_set_tier(args: argparse.Namespace, root: Path, project: Path) -> int
     previous = policy.get("risk_tier")
     if previous is not None and previous != args.tier:
         invalidate_after_policy_change(ledger, "policy.risk_tier")
+        ledger["phase"] = "-1"
         print(f"invalidated downstream evidence and human gates: risk tier changed from {previous} to {args.tier}")
+        print("reset current phase to -1; re-enter the newly selected route atomically")
     policy["risk_tier"] = args.tier
     policy["tier_reason"] = args.reason
     ledger["updated_at"] = timestamp()
@@ -207,7 +268,9 @@ def command_set_condition(args: argparse.Namespace, root: Path, project: Path) -
     previous = conditions.get(args.condition)
     if previous is not None and previous != selected:
         invalidate_after_policy_change(ledger, f"policy.conditions.{args.condition}")
+        ledger["phase"] = "-1"
         print(f"invalidated downstream evidence and human gates: condition {args.condition} changed")
+        print("reset current phase to -1; re-enter the newly selected route atomically")
     conditions[args.condition] = selected
     ledger["updated_at"] = timestamp()
     write_json(path, ledger)
@@ -223,6 +286,12 @@ def command_attest(args: argparse.Namespace, root: Path, project: Path) -> int:
     refreshed: set[str] = set()
     for raw_name in args.artifacts:
         artifact, name = project_artifact(project, raw_name)
+        owner = owner_for_artifact(machine, name)
+        if owner is not None and ledger.get("phase") != owner:
+            raise ValueError(
+                f"artifact {name!r} belongs to phase {owner}; current phase is {ledger.get('phase')!r}. "
+                f"Run `setup-pipeline enter {owner}` and the phase guard before producing or attesting it."
+            )
         if not artifact.is_file():
             raise ValueError(f"artifact not found: {artifact}")
         current = sha256(artifact)
@@ -236,13 +305,13 @@ def command_attest(args: argparse.Namespace, root: Path, project: Path) -> int:
         print(f"attested {name}: sha256:{current}")
 
     for source in changed_sources:
-        for consumer in machine.get("invalidations", {}).get(source, []):
+        for consumer in matching_policy_values(machine.get("invalidations", {}), source):
             record = records.get(consumer)
             if isinstance(record, dict) and record.get("sha256") and consumer not in refreshed:
                 record["status"] = "invalidated"
                 record["invalidated_by"] = source
                 print(f"invalidated {consumer}: upstream {source} changed")
-        for gate in machine.get("gate_invalidations", {}).get(source, []):
+        for gate in matching_policy_values(machine.get("gate_invalidations", {}), source):
             signature = ledger.setdefault("human_gates", {}).get(gate)
             if isinstance(signature, dict) and (signature.get("by") or signature.get("at")):
                 ledger["human_gates"][gate] = {"by": None, "at": None}
@@ -256,6 +325,10 @@ def command_sign(args: argparse.Namespace, root: Path, project: Path) -> int:
     if not args.by.strip():
         raise ValueError("--by must be a non-empty person or account identity")
     path, ledger = load_ledger(project)
+    machine = read_json(root / "pipeline-machine.json")
+    owner = machine.get("gate_owners", {}).get(args.gate)
+    if owner is not None and ledger.get("phase") != owner:
+        raise ValueError(f"human gate {args.gate!r} is owned by phase {owner}; current phase is {ledger.get('phase')!r}")
     gates = ledger.setdefault("human_gates", {})
     if args.gate not in gates:
         known = ", ".join(sorted(gates)) or "none"
@@ -267,17 +340,110 @@ def command_sign(args: argparse.Namespace, root: Path, project: Path) -> int:
     return 0
 
 
-def command_set_phase(args: argparse.Namespace, root: Path, project: Path) -> int:
+def command_enter(args: argparse.Namespace, root: Path, project: Path) -> int:
     machine = read_json(root / "pipeline-machine.json")
     if args.phase not in machine.get("transitions", {}):
         known = ", ".join(machine.get("transitions", {}))
         raise ValueError(f"unknown phase {args.phase!r}; known: {known}")
     path, ledger = load_ledger(project)
-    ledger["phase"] = args.phase
-    ledger["updated_at"] = timestamp()
-    write_json(path, ledger)
-    print(f"current phase: {args.phase}")
+    route = selected_route(machine, ledger)
+    expected = next_selected_phase(machine, ledger)
+    current = ledger.get("phase")
+    if args.phase == current:
+        raise ValueError(f"phase {args.phase!r} is already current; use `setup-pipeline guard {args.phase}`")
+    is_rework = args.phase == "-1" or (
+        args.phase in route and current in route and route.index(args.phase) < route.index(current)
+    )
+    if expected is None and not is_rework:
+        if ledger.get("policy", {}).get("risk_tier") is None:
+            raise ValueError("route classification is incomplete; finish discovery and set the evidence-based risk tier first")
+        raise ValueError(f"no next phase is available from current phase {ledger.get('phase')!r}")
+    if args.phase != expected and not is_rework:
+        raise ValueError(f"next applicable phase is {expected!r}, not {args.phase!r}; forward jumps are forbidden")
+
+    candidate = copy.deepcopy(ledger)
+    candidate["phase"] = args.phase
+    preflight = load_preflight(root)
+    failures, warnings, _ = preflight.evaluate(root, project, args.phase, ledger_override=candidate)
+    if failures:
+        rendered = "\n  - ".join(failures)
+        raise ValueError(f"cannot enter phase {args.phase}; ledger unchanged:\n  - {rendered}")
+    for warning in warnings:
+        print(f"WARN: {warning}")
+    candidate["updated_at"] = timestamp()
+    write_json(path, candidate)
+    print(f"entered phase {args.phase} atomically{' for rework' if is_rework else ''}")
+    print(f"guard before the first phase-owned write: setup-pipeline --project {project} guard {args.phase}")
     return 0
+
+
+def command_set_phase(args: argparse.Namespace, root: Path, project: Path) -> int:
+    """Backward-compatible name with atomic entry semantics."""
+    print("DEPRECATED: set-phase is an atomic alias; use `setup-pipeline enter`", file=sys.stderr)
+    return command_enter(args, root, project)
+
+
+def command_guard(args: argparse.Namespace, root: Path, project: Path) -> int:
+    _, ledger = load_ledger(project)
+    if ledger.get("phase") != args.phase:
+        raise ValueError(f"phase guard denied: ledger is {ledger.get('phase')!r}, requested {args.phase!r}")
+    preflight = load_preflight(root)
+    failures, warnings, _ = preflight.evaluate(root, project, args.phase)
+    if failures:
+        rendered = "\n  - ".join(failures)
+        raise ValueError(f"phase guard denied for {args.phase}:\n  - {rendered}")
+    for warning in warnings:
+        print(f"WARN: {warning}")
+    print(f"phase guard PASS: {args.phase}")
+    return 0
+
+
+def required_route_profiles(root: Path, route: list[str]) -> set[str]:
+    routing = read_json(root / "model-routing.json")
+    profiles: set[str] = set()
+    for phase in route:
+        phase_route = routing.get("phases", {}).get(phase, {})
+        if phase_route.get("profile"):
+            profiles.add(phase_route["profile"])
+        profiles.update(phase_route.get("roles", {}).values())
+    return profiles
+
+
+def model_routing_readiness(root: Path, project: Path, route: list[str]) -> tuple[str, list[str], list[str]]:
+    required = required_route_profiles(root, route)
+    if not required:
+        return "READY", [], []
+    binding_path = project / "model-bindings.json"
+    if not binding_path.is_file():
+        return "UNCONFIGURED", sorted(required), []
+    try:
+        document = read_json(binding_path)
+    except ValueError as error:
+        return "PARTIALLY_CONFIGURED", sorted(required), [str(error)]
+    bindings = document.get("bindings", {})
+    preflight = load_preflight(root)
+    ready = {
+        profile
+        for profile in required
+        if preflight.resolve_binding(bindings, profile) is not None
+    }
+    missing = sorted(required - ready)
+    issues: list[str] = []
+    routing = read_json(root / "model-routing.json")
+    for phase in route:
+        phase_route = routing.get("phases", {}).get(phase, {})
+        for group in phase_route.get("distinct_roles", []):
+            model_ids = []
+            for role in group:
+                profile = phase_route.get("roles", {}).get(role)
+                binding = preflight.resolve_binding(bindings, profile) if profile else None
+                if binding is not None:
+                    model_ids.append(binding[1])
+            if len(model_ids) == len(group) and len(set(model_ids)) != len(model_ids):
+                issues.append(f"phase {phase} roles {group} must use distinct model IDs")
+    if not ready:
+        return "UNCONFIGURED", missing, issues
+    return ("READY", [], []) if not missing and not issues else ("PARTIALLY_CONFIGURED", missing, issues)
 
 
 def command_status(args: argparse.Namespace, root: Path, project: Path) -> int:
@@ -307,7 +473,58 @@ def command_status(args: argparse.Namespace, root: Path, project: Path) -> int:
         signature = signature if isinstance(signature, dict) else {}
         print(f"  {name}: {signature.get('by') or 'unsigned'} · {signature.get('at') or '—'}")
     if policy.get("risk_tier") is None:
-        print("next action: complete discovery artifacts, then select the evidence-based risk tier")
+        provisional_next = next_selected_phase(machine, ledger)
+        if phase == "0":
+            record = ledger.get("artifacts", {}).get("docs/research-state.json", {})
+            ready = isinstance(record, dict) and bool(record.get("sha256")) and record.get("status") != "draft"
+            print("model routing: DEFERRED — final route not classified")
+            print(f"readiness: {'READY' if ready else 'BLOCKED'}")
+            print("transition: continue_now")
+            if ready:
+                print("next phase: -1")
+                print(f"next action: setup-pipeline --project {project} enter -1, then classify the evidence-based route")
+            else:
+                print("next action: complete and attest docs/research-state.json before returning to discovery")
+        elif provisional_next == "0":
+            readiness, missing_profiles, routing_issues = model_routing_readiness(root, project, ["0"])
+            print(f"model routing: {readiness} (provisional research only)")
+            if missing_profiles:
+                print("missing required profiles: " + ", ".join(missing_profiles))
+            for issue in routing_issues:
+                print(f"model routing issue: {issue}")
+            if missing_profiles or routing_issues:
+                print("readiness: BLOCKED")
+                print("transition: waiting_for_human")
+                print("next action: configure the Phase 0 model profiles, then rerun setup-pipeline status")
+            else:
+                candidate = copy.deepcopy(ledger)
+                candidate["phase"] = "0"
+                preflight = load_preflight(root)
+                failures, _, _ = preflight.evaluate(root, project, "0", ledger_override=candidate)
+                print(f"readiness: {'BLOCKED' if failures else 'READY'}")
+                print("transition: continue_now")
+                if failures:
+                    print("next-phase blockers:")
+                    for failure in failures:
+                        print(f"  - {failure}")
+                    print("next action: resolve the listed blockers, then rerun setup-pipeline status")
+                else:
+                    print(f"next action: setup-pipeline --project {project} enter 0")
+        else:
+            print("model routing: DEFERRED — route not classified")
+            preflight = load_preflight(root)
+            failures, _, _ = preflight.evaluate(root, project, ledger.get("phase"))
+            if failures:
+                print("readiness: BLOCKED")
+                print("transition: continue_now")
+                print("current-phase blockers:")
+                for failure in failures:
+                    print(f"  - {failure}")
+                print("next action: resolve the listed current-phase blockers, then continue discovery")
+            else:
+                print("readiness: READY")
+                print("transition: continue_now")
+                print("next action: complete discovery artifacts, then select the evidence-based risk tier")
         print(f"current check: setup-preflight {phase} {project}")
     else:
         tier = policy["risk_tier"]
@@ -324,10 +541,45 @@ def command_status(args: argparse.Namespace, root: Path, project: Path) -> int:
         print(f"route: {' -> '.join(ordered)}")
         if unresolved:
             print("route incomplete: classify conditions with setup-pipeline set-condition: " + ", ".join(sorted(set(unresolved))))
-        print(f"next entry check: setup-preflight {ledger.get('phase', '<phase>')} {project}")
-        print(f"after a passing check: use {transition.get('skill', 'the phase process')}")
-        if ledger.get("phase") == "7":
-            print(f"after review + human signature: setup-preflight 7 {project} --completion")
+        next_phase = next_selected_phase(machine, ledger)
+        readiness, missing_profiles, routing_issues = model_routing_readiness(root, project, ordered)
+        print(f"model routing: {readiness}")
+        if missing_profiles:
+            print("missing required profiles: " + ", ".join(missing_profiles))
+        for issue in routing_issues:
+            print(f"model routing issue: {issue}")
+        if next_phase is None:
+            preflight = load_preflight(root)
+            failures, _, _ = preflight.evaluate(root, project, ledger.get("phase"), completion=True)
+            print("next phase: none")
+            if failures:
+                human_blocked = any(item.startswith("human_gate:") for item in failures)
+                print(f"transition: {'waiting_for_human' if human_blocked else 'continue_now'}")
+                print("completion blockers:")
+                for failure in failures:
+                    print(f"  - {failure}")
+                print("next action: complete the listed review evidence or human acceptance, then rerun setup-pipeline status")
+            else:
+                print("transition: complete")
+        else:
+            print(f"next phase: {next_phase}")
+            if missing_profiles or routing_issues:
+                print("transition: waiting_for_human")
+                print("next action: configure required model profiles in model-bindings.json, then rerun setup-pipeline status")
+            else:
+                candidate = copy.deepcopy(ledger)
+                candidate["phase"] = next_phase
+                preflight = load_preflight(root)
+                failures, _, _ = preflight.evaluate(root, project, next_phase, ledger_override=candidate)
+                human_blocked = any(item.startswith("human_gate:") for item in failures)
+                print(f"transition: {'waiting_for_human' if human_blocked else 'continue_now'}")
+                if failures:
+                    print("next-phase blockers:")
+                    for failure in failures:
+                        print(f"  - {failure}")
+                    print("next action: resolve the listed blockers, then rerun setup-pipeline status")
+                else:
+                    print(f"next action: setup-pipeline --project {project} enter {next_phase}")
     return 0
 
 
@@ -421,7 +673,15 @@ def build_parser() -> argparse.ArgumentParser:
     sign.add_argument("--by", required=True)
     sign.set_defaults(handler=command_sign)
 
-    phase = subparsers.add_parser("set-phase", help="record the current machine phase")
+    enter = subparsers.add_parser("enter", help="atomically validate and enter the next applicable phase")
+    enter.add_argument("phase")
+    enter.set_defaults(handler=command_enter)
+
+    guard = subparsers.add_parser("guard", help="fail closed unless the current phase and its entry preflight are valid")
+    guard.add_argument("phase")
+    guard.set_defaults(handler=command_guard)
+
+    phase = subparsers.add_parser("set-phase", help="deprecated atomic alias for enter")
     phase.add_argument("phase")
     phase.set_defaults(handler=command_set_phase)
 

@@ -1,13 +1,16 @@
-# Handoff Protocol
+# Role Handoff Protocol
 
-Every agent call ends with a handoff. The next agent reads this file before starting.
+Use this record only when responsibility actually changes between implementation/review roles or
+when a named task must cross a runtime/session boundary. Ordinary calls do not create a standalone
+`handoff.json`: pipeline phase exits use `setup-pipeline status`, while cross-CLI task continuity is
+owned by `.workctl/tasks/<task-id>/`. `CONTINUITY.md` is fallback-only; never maintain both.
 
 **Why**: a durable handoff lets the next agent resume from explicit facts, decisions, uncertainty,
 checks, and file references instead of reconstructing them from chat history.
 
 ---
 
-## handoff.json — Schema
+## Role handoff record
 
 ```json
 {

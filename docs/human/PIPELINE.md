@@ -88,8 +88,7 @@ The copied ledger starts at Phase `-1` with `risk_tier: null`; this is intention
 binding is required for Phase -1, so any supported CLI and suitable discovery process may begin:
 
 ```bash
-setup-pipeline set-phase -1
-setup-preflight -1 .
+setup-pipeline guard -1
 ```
 
 Produce or update `product_brief.md` and `evidence-handoff.json`. The key allowed values are:
@@ -125,8 +124,8 @@ When material factual gaps remain, Phase 0 may run before final tier selection. 
 required profiles in `model-bindings.json`, then:
 
 ```bash
-setup-pipeline set-phase 0
-setup-preflight 0 .
+setup-pipeline enter 0
+setup-pipeline guard 0
 ```
 
 Invoke `researcher`, update the brief/evidence, then attest `docs/research-state.json` and the changed
@@ -174,15 +173,17 @@ unfinished; do not repeat a phase unless its inputs changed or an invalidation r
 phase you now enter:
 
 ```bash
-setup-pipeline set-phase PHASE
-setup-preflight PHASE .
+setup-pipeline enter PHASE
+setup-pipeline guard PHASE
 # invoke the skill named in the Phase execution table
 # review its stable output and resolve any REVISE/FAIL/STOP branch
 setup-pipeline attest OUTPUT... --status ready
 setup-pipeline status
 ```
 
-Replace `PHASE` only with a value printed by `setup-pipeline values`. Replace `OUTPUT` with the stable
+`enter` validates route order, target preconditions, models, attestations and human gates before it
+changes the ledger; failure is atomic. `guard` repeats the same check immediately before the first
+phase-owned write. Replace `PHASE` only with a value printed by `setup-pipeline values`. Replace `OUTPUT` with the stable
 path in the execution table. `--status` accepts `draft|ready|approved|complete`; required inputs may
 not remain `draft`. `setup-preflight` already resolves model bindings, so `setup-model-check` is an
 optional focused diagnostic, not another mandatory gate. The running agent must still confirm that
@@ -199,7 +200,15 @@ The canonical routes are:
 | T4 | optional 0 → 1 → 2 → 2-PM → 2b → optional 3 → 3r → 4 → 4b → 4c → 5 → 5.5 → 6 → 7 |
 
 “Optional” means its stated condition is false; required phases and gates cannot be waived by a
-skip note. A conditional phase that runs uses the same set-phase/preflight/attest loop.
+skip note. A conditional phase that runs uses the same enter/guard/attest loop.
+
+Every phase exit has one explicit continuation state:
+
+- `continue_now` — the next transition is machine-owned; the agent performs the next action printed
+  by `setup-pipeline status` without making the human ask again;
+- `waiting_for_human` — a named human authority must decide or provide evidence; show the evidence,
+  consequences and one question, then pause;
+- `complete` — the selected route and its acceptance contract are complete.
 
 ### 5. Record the three human decisions at the correct time
 
@@ -285,7 +294,7 @@ decision is a valid outcome, but it is not permission to enter a delivery route.
 | File or state | Owner | How it changes |
 |---|---|---|
 | `product_brief.md`, `evidence-handoff.json`, `model-bindings.json` | human/project owner | Edit deliberately; validate against the adjacent schema where provided. |
-| `.pipeline-state.json` | `setup-pipeline` | Use `bootstrap`/`migrate`/`init`, `set-condition`, `set-tier`, `set-phase`, `attest`, `sign`, `status`, and `values`; do not hand-edit hashes or signatures. Its adjacent `pipeline-state.schema.json` defines the ledger shape. |
+| `.pipeline-state.json` | `setup-pipeline` | Use `bootstrap`/`migrate`/`init`, `set-condition`, `set-tier`, `enter`, `guard`, `attest`, `sign`, `status`, and `values`; do not hand-edit hashes or signatures. `set-phase` is a deprecated atomic alias for `enter`, not an unsafe override. Its adjacent `pipeline-state.schema.json` defines the ledger shape. |
 | phase artifacts such as plans, contracts, reviews, design and build evidence | producing skill | Run the phase, review its result, then attest the exact files. |
 | `pipeline-machine.json`, `model-routing.json`, their schemas and generated machine view | setup maintainer | Change only as a versioned setup-contract update; never edit a project copy to bypass a gate. |
 
@@ -434,10 +443,17 @@ the next transition permitted by the machine.
 
 For routes that require it, `grace-init` and `grace-plan` produce:
 
+- `docs/requirements.xml` — approved use cases and product requirements;
+- `docs/technology.xml` — implementation stack and operational constraints;
 - `docs/development-plan.xml` — module responsibilities, dependencies, interfaces, and flows;
 - `docs/verification-plan.xml` — checks and critical-flow references;
 - `docs/knowledge-graph.xml` — stable identifiers and cross-links;
+- `docs/operational-packets.xml` — execution, delta, and failure packet shapes;
 - ADRs for consequential choices.
+
+Phase 4 requires and attests this complete GRACE set on T3/T4 routes. The contract must reference
+its requirements, architecture, and verification decisions; producing XML that the contract does
+not consume is a machine error.
 
 GRACE is a transfer format. Product intent links into it through stable actor/journey/criterion/ADR
 references; GRACE does not impose a product or architecture methodology.
@@ -456,8 +472,9 @@ When `is_frontend: true`:
 4. `contract` references the approved design/API artifacts.
 
 Backend-only work skips the frontend design phase when the machine route permits it.
-For frontend work, attest `design-contract.json`, `api-contract.json`, and the approved wireframe
-path printed by the skill; Phase 4 machine-checks both stable contracts.
+For frontend work, attest `design-contract.json`, `.design-contract-attestation`,
+`api-contract.json`, and the approved wireframe path printed by the skill. Phase 4 requires all
+four, verifies the portable hash marker, and consumes them when writing the delivery contract.
 
 ## Phase 3r: T4 risk review
 
@@ -519,7 +536,7 @@ Use `setup-pipeline` to update it; do not hand-calculate or paste hashes. Run
 `setup-pipeline values` whenever an allowed value or schema owner is unclear:
 
 ```bash
-setup-pipeline set-phase 4b
+setup-pipeline enter 4b
 setup-pipeline attest contract.json
 setup-pipeline set-condition frontend false
 setup-pipeline sign contract_locked --by "name-or-account"
@@ -554,12 +571,11 @@ From the project root, use the same loop whether beginning or resuming work:
 
 ```bash
 setup-pipeline status
-setup-pipeline set-phase 2
-setup-model-check 2 .
-setup-preflight 2 .
+setup-pipeline enter 2
+setup-pipeline guard 2
 ```
 
-If preflight passes, invoke the phase skill in the current runtime. Register every required artifact
+If the guard passes, invoke the phase skill in the current runtime. Register every required artifact
 after the skill produces it; this records its exact bytes and invalidates registered downstream
 artifacts if an upstream hash changed.
 
@@ -581,9 +597,9 @@ setup-pipeline sign viz_before_tickets --by "name-or-account"
 | 2 | `planning-with-files` | `task_plan.md` and its JSON mirror |
 | 2-PM | `pm-review` in an independent context | `pm-review.json` |
 | 2b | `grace-init`, then `grace-plan` | required GRACE XML files |
-| 3 | `design-rubric` when needed, then `design-first` for frontend work | `design-contract.json`, `api-contract.json`, and the approved `docs/wireframe-<feature>.md` path returned by the skill |
+| 3 | `design-rubric` when needed, then `design-first` for frontend work | `design-contract.json`, `.design-contract-attestation`, `api-contract.json`, and the approved `docs/wireframe-<feature>.md` path returned by the skill |
 | 3r | `risk-review` for T4 | `risk-review.json`, `rollout-plan.json`; continue only on `PASS` |
-| 4 | `contract` | `contract.json` (the skill also creates its lock file) |
+| 4 | `contract` | `contract.json` |
 | 4b | `judge contract` in an independent context | `judge-report.json` |
 | 4c | `visualization` | `SUPERVISION.md` and the review view |
 | 5 | `to-issues` after `viz_before_tickets` is signed | `issues-manifest.json` with status `approved` |

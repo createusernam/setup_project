@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
+# START_MODULE_CONTRACT
+# PURPOSE: Regression-test the documented human journey against executable pipeline contracts.
+# SCOPE: Cross-check setup runbooks, project templates, machine routes, handoffs, and continuation rules.
+# DEPENDS: Python unittest and repository documentation/configuration files.
+# END_MODULE_CONTRACT
 """Fail closed when the documented human path drifts from executable setup contracts."""
 
 from __future__ import annotations
 
 import json
+import fnmatch
 from pathlib import Path
 import re
 import unittest
@@ -87,6 +93,20 @@ class HumanJourneyIntegrityTests(unittest.TestCase):
         self.assertNotIn("skipped_gates", serialized)
         self.assertNotIn("skip_contract", serialized)
 
+    def test_atomic_entry_and_phase_exit_contract_are_global(self) -> None:
+        agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+        template = (ROOT / "templates/project/CLAUDE.md").read_text(encoding="utf-8")
+        pipeline = (ROOT / "docs/human/PIPELINE.md").read_text(encoding="utf-8")
+        startup = (ROOT / "skills/startup/SKILL.md").read_text(encoding="utf-8")
+
+        for text in (agents, template, pipeline):
+            self.assertIn("continue_now", text)
+            self.assertIn("waiting_for_human", text)
+            self.assertIn("setup-pipeline enter", text)
+        self.assertNotIn("setup-pipeline set-phase PHASE", pipeline)
+        self.assertIn("PARTIALLY_CONFIGURED", startup)
+        self.assertNotIn("ask the agent what stage", startup)
+
     def test_machine_handoffs_have_template_schema_and_producer(self) -> None:
         handoffs = {
             "risk-review.json": "risk-review",
@@ -111,6 +131,22 @@ class HumanJourneyIntegrityTests(unittest.TestCase):
         self.assertIn("judge-report.json", judge)
         self.assertIn("feature-judge-report.json", judge)
         self.assertIn("code-review.md", review)
+
+    def test_every_machine_artifact_has_one_producer_phase(self) -> None:
+        machine = json.loads((ROOT / "pipeline-machine.json").read_text(encoding="utf-8"))
+        referenced = {
+            requirement["artifact"]
+            for transition in machine["transitions"].values()
+            for requirement in transition.get("requires", []) + transition.get("completion", {}).get("requires", [])
+        }
+        referenced.update(machine["invalidations"])
+        referenced.update(consumer for consumers in machine["invalidations"].values() for consumer in consumers)
+        owners = machine["artifact_owners"]
+        missing = sorted(
+            artifact for artifact in referenced if not any(fnmatch.fnmatch(artifact, pattern) for pattern in owners)
+        )
+        self.assertEqual(missing, [], f"machine artifacts without producer phase: {missing}")
+        self.assertEqual(set(machine["gate_owners"]), {"contract_locked", "viz_before_tickets", "human_acceptance"})
 
 
 if __name__ == "__main__":

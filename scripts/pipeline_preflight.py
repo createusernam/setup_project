@@ -23,6 +23,7 @@ LEDGER_STATUSES = {"draft", "ready", "approved", "complete", "invalidated"}
 HUMAN_GATES = {"viz_before_tickets", "contract_locked", "human_acceptance"}
 
 
+# START_BLOCK_RULE_HELPERS
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
@@ -211,9 +212,88 @@ def specification_gap_errors(document: Any) -> list[str]:
         else:
             failures.append(f"specification_gap: blocking gap {gap_id!r} has invalid status {status!r}")
     return failures
+# END_BLOCK_RULE_HELPERS
 
 
-def evaluate(root: Path, project: Path, phase: str, completion: bool = False) -> tuple[list[str], list[str], dict[str, Any]]:
+# START_BLOCK_TRANSITION_EVALUATION
+def artifact_ownership_errors(
+    root: Path, project: Path, phase: str, ledger: dict[str, Any], machine: dict[str, Any]
+) -> list[str]:
+    """Reject unregistered phase-owned output outside its producer phase.
+
+    Bootstrap templates are allowed while byte-identical to their canonical scaffold. Once changed,
+    they become producer output and require the owning phase plus ledger attestation.
+    """
+    failures: list[str] = []
+    records = ledger.get("artifacts", {}) if isinstance(ledger.get("artifacts", {}), dict) else {}
+    for pattern, ownership in machine.get("artifact_owners", {}).items():
+        owner = ownership.get("producer_phase")
+        if owner == phase:
+            continue
+        for artifact in project.glob(pattern):
+            if not artifact.is_file():
+                continue
+            name = artifact.relative_to(project).as_posix()
+            record = records.get(name, {}) if isinstance(records.get(name, {}), dict) else {}
+            recorded_hash = record.get("sha256")
+            if recorded_hash:
+                if recorded_hash == sha256(artifact):
+                    continue
+                failures.append(
+                    f"artifact_ownership: {name!r} changed outside producer phase {owner}; "
+                    f"ledger phase is {phase} and the recorded attestation no longer matches"
+                )
+                continue
+            template_name = ownership.get("template")
+            if template_name:
+                template = root / template_name
+                if template.is_file() and sha256(template) == sha256(artifact):
+                    continue
+            failures.append(
+                f"artifact_ownership: {name!r} belongs to phase {owner}, but ledger phase is {phase}; "
+                f"treat it as an unapproved draft and enter phase {owner} before writing or attesting it"
+            )
+    return failures
+
+
+def artifact_flow_errors(machine: dict[str, Any]) -> list[str]:
+    """Ensure every declared phase output is a checked input downstream.
+
+    Completion requirements count as the terminal consumer for final review artifacts. Keeping this
+    invariant executable prevents phases from producing ceremonial files that later work ignores.
+    """
+    transitions = machine.get("transitions", {})
+    phase_position = {phase: index for index, phase in enumerate(transitions)}
+    failures: list[str] = []
+    for pattern, ownership in machine.get("artifact_owners", {}).items():
+        owner = ownership.get("producer_phase")
+        consumers: list[str] = []
+        for phase, transition in transitions.items():
+            requirements = list(transition.get("requires", []))
+            requirements.extend(transition.get("completion", {}).get("requires", []))
+            if any(requirement.get("artifact") == pattern for requirement in requirements):
+                consumers.append(phase)
+        if not consumers:
+            failures.append(
+                f"artifact_flow: output {pattern!r} from phase {owner} has no downstream requirement"
+            )
+        elif owner not in phase_position or all(
+            phase_position.get(consumer, -1) < phase_position[owner] for consumer in consumers
+        ):
+            failures.append(
+                f"artifact_flow: output {pattern!r} from phase {owner} is only consumed by earlier phases {consumers}"
+            )
+    return failures
+
+
+def evaluate(
+    root: Path,
+    project: Path,
+    phase: str,
+    completion: bool = False,
+    *,
+    ledger_override: dict[str, Any] | None = None,
+) -> tuple[list[str], list[str], dict[str, Any]]:
     machine = json.loads((root / "pipeline-machine.json").read_text(encoding="utf-8"))
     routing = json.loads((root / "model-routing.json").read_text(encoding="utf-8"))
     transition = machine.get("transitions", {}).get(phase)
@@ -221,7 +301,9 @@ def evaluate(root: Path, project: Path, phase: str, completion: bool = False) ->
         return [f"phase '{phase}' unknown"], [], {}
 
     ledger_path = project / ".pipeline-state.json"
-    if not ledger_path.is_file():
+    if ledger_override is not None:
+        ledger = ledger_override
+    elif not ledger_path.is_file():
         if phase != "-1":
             return [f"no ledger at {ledger_path}"], [], transition
         ledger: dict[str, Any] = {
@@ -239,13 +321,15 @@ def evaluate(root: Path, project: Path, phase: str, completion: bool = False) ->
             return [f"ledger: cannot read {ledger_path}: {error}"], [], transition
 
     failures: list[str] = ledger_errors(ledger)
+    failures.extend(artifact_flow_errors(machine))
     warnings: list[str] = []
     policy = ledger.get("policy", {})
     conditions = policy.get("conditions", {}) if isinstance(policy.get("conditions", {}), dict) else {}
     if ledger.get("phase") != phase:
         failures.append(
-            f"ledger: current phase is {ledger.get('phase')!r}, requested {phase!r}; run setup-pipeline set-phase {phase}"
+            f"ledger: current phase is {ledger.get('phase')!r}, requested {phase!r}; run setup-pipeline enter {phase}"
         )
+    failures.extend(artifact_ownership_errors(root, project, phase, ledger, machine))
     tier = policy.get("risk_tier")
     if tier is None and phase in {"-1", "0"}:
         tier = machine["risk_policy"]["default"]
@@ -271,12 +355,14 @@ def evaluate(root: Path, project: Path, phase: str, completion: bool = False) ->
             failures.append(f"policy: phase {phase} is unnecessary because condition {condition_name!r} is false")
 
     route = routing.get("phases", {}).get(phase, {})
+    required_profile = route.get("profile", "")
+    requires_binding = bool(required_profile or route.get("roles"))
     configured_binding_path = ledger.get("model_bindings_file", "model-bindings.json")
     binding_path = project / configured_binding_path if isinstance(configured_binding_path, str) else project / "model-bindings.json"
     bindings: dict[str, Any] = {}
-    if not binding_path.is_file():
+    if not binding_path.is_file() and requires_binding:
         failures.append(f"model: binding file missing at {binding_path}")
-    else:
+    elif binding_path.is_file():
         try:
             binding_document = json.loads(binding_path.read_text(encoding="utf-8"))
             if binding_document.get("version") != "1":
@@ -292,7 +378,6 @@ def evaluate(root: Path, project: Path, phase: str, completion: bool = False) ->
             failures.append(f"model: cannot read bindings at {binding_path}: {error}")
 
     resolved: dict[str, str] = {}
-    required_profile = route.get("profile", "")
     if required_profile:
         binding = resolve_binding(bindings, required_profile)
         if binding is None:
@@ -319,45 +404,56 @@ def evaluate(root: Path, project: Path, phase: str, completion: bool = False) ->
     for requirement in requirements:
         if not applicable(requirement, tier, conditions):
             continue
-        name = requirement["artifact"]
-        artifact = project / name
-        record = records.get(name, {}) if isinstance(records.get(name, {}), dict) else {}
-        if not artifact.exists():
-            failures.append(f"input: required artifact {name!r} missing")
+        pattern = requirement["artifact"]
+        matches = sorted(
+            artifact for artifact in project.glob(pattern) if artifact.is_file()
+        ) if any(character in pattern for character in "*?[") else [project / pattern]
+        if not matches or not all(artifact.exists() for artifact in matches):
+            failures.append(f"input: required artifact {pattern!r} missing")
             continue
-        if artifact.is_file() and artifact.stat().st_size == 0:
-            failures.append(f"input: required artifact {name!r} is empty")
-        if name == "code-review.md":
-            review_text = artifact.read_text(encoding="utf-8", errors="replace")
-            assessment = re.search(r"\*\*Overall assessment\*\*:\s*(APPROVE|REQUEST_CHANGES|COMMENT)\b", review_text)
-            if not assessment:
-                failures.append("semantic: code-review.md must contain '**Overall assessment**: APPROVE|REQUEST_CHANGES|COMMENT'")
-            elif assessment.group(1) != "APPROVE":
-                failures.append(f"semantic: code-review.md must be APPROVE before acceptance, got {assessment.group(1)}")
-        if record.get("status") == "invalidated" or record.get("invalidated_by"):
-            failures.append(f"input: {name!r} is invalidated by {record.get('invalidated_by', 'ledger status')}")
-        if record.get("status") == "draft":
-            failures.append(f"input: {name!r} is still draft; attest it as ready, approved, or complete")
-        if requirement.get("attested"):
-            expected = record.get("sha256")
-            if not expected:
-                failures.append(f"input: {name!r} has no sha256 attestation in the ledger")
-            else:
-                actual = sha256(artifact)
-                if actual != expected:
-                    failures.append(f"input: {name!r} changed since attested (ledger {expected[:12]}…, actual {actual[:12]}…)")
-        if "json_pointer" in requirement:
-            try:
-                document = json.loads(artifact.read_text(encoding="utf-8"))
-                loaded_json[name] = document
-                actual_value = pointer(document, requirement["json_pointer"])
-            except (json.JSONDecodeError, KeyError, IndexError, ValueError) as error:
-                failures.append(f"semantic: cannot read {name}{requirement['json_pointer']}: {error}")
-                continue
-            if "equals" in requirement and actual_value != requirement["equals"]:
-                failures.append(f"semantic: {name}{requirement['json_pointer']} must equal {requirement['equals']!r}, got {actual_value!r}")
-            if "in" in requirement and actual_value not in requirement["in"]:
-                failures.append(f"semantic: {name}{requirement['json_pointer']} must be one of {requirement['in']!r}, got {actual_value!r}")
+        for artifact in matches:
+            name = artifact.relative_to(project).as_posix()
+            record = records.get(name, {}) if isinstance(records.get(name, {}), dict) else {}
+            if artifact.stat().st_size == 0:
+                failures.append(f"input: required artifact {name!r} is empty")
+            if name == "code-review.md":
+                review_text = artifact.read_text(encoding="utf-8", errors="replace")
+                assessment = re.search(r"\*\*Overall assessment\*\*:\s*(APPROVE|REQUEST_CHANGES|COMMENT)\b", review_text)
+                if not assessment:
+                    failures.append("semantic: code-review.md must contain '**Overall assessment**: APPROVE|REQUEST_CHANGES|COMMENT'")
+                elif assessment.group(1) != "APPROVE":
+                    failures.append(f"semantic: code-review.md must be APPROVE before acceptance, got {assessment.group(1)}")
+            if record.get("status") == "invalidated" or record.get("invalidated_by"):
+                failures.append(f"input: {name!r} is invalidated by {record.get('invalidated_by', 'ledger status')}")
+            if record.get("status") == "draft":
+                failures.append(f"input: {name!r} is still draft; attest it as ready, approved, or complete")
+            if requirement.get("attested"):
+                expected = record.get("sha256")
+                if not expected:
+                    failures.append(f"input: {name!r} has no sha256 attestation in the ledger")
+                else:
+                    actual = sha256(artifact)
+                    if actual != expected:
+                        failures.append(f"input: {name!r} changed since attested (ledger {expected[:12]}…, actual {actual[:12]}…)")
+            if "sha256_of" in requirement:
+                source = project / requirement["sha256_of"]
+                marker = artifact.read_text(encoding="utf-8", errors="replace").strip()
+                if not source.is_file() or marker != sha256(source):
+                    failures.append(
+                        f"semantic: {name!r} must contain the sha256 of {requirement['sha256_of']!r}"
+                    )
+            if "json_pointer" in requirement:
+                try:
+                    document = json.loads(artifact.read_text(encoding="utf-8"))
+                    loaded_json[name] = document
+                    actual_value = pointer(document, requirement["json_pointer"])
+                except (json.JSONDecodeError, KeyError, IndexError, ValueError) as error:
+                    failures.append(f"semantic: cannot read {name}{requirement['json_pointer']}: {error}")
+                    continue
+                if "equals" in requirement and actual_value != requirement["equals"]:
+                    failures.append(f"semantic: {name}{requirement['json_pointer']} must equal {requirement['equals']!r}, got {actual_value!r}")
+                if "in" in requirement and actual_value not in requirement["in"]:
+                    failures.append(f"semantic: {name}{requirement['json_pointer']} must be one of {requirement['in']!r}, got {actual_value!r}")
 
     for name, document in loaded_json.items():
         failures.extend(artifact_semantic_errors(name, document, tier))
@@ -387,8 +483,10 @@ def evaluate(root: Path, project: Path, phase: str, completion: bool = False) ->
     if phase not in selected_phases and phase not in {"-1"}:
         warnings.append(f"phase {phase} is outside the canonical {tier} route")
     return failures, warnings, {**transition, "tier": tier, "required_profile": required_profile, "resolved_models": resolved, "completion_check": completion}
+# END_BLOCK_TRANSITION_EVALUATION
 
 
+# START_BLOCK_CLI
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("phase", help="pipeline phase, for example 4c or 6")
@@ -414,3 +512,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+# END_BLOCK_CLI

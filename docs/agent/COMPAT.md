@@ -237,14 +237,19 @@ separation, isolated-context, or single-writer lease requirements.
 
 When no agent primitive exists:
 
-1. resolve the phase profile with `setup-model-check`;
-2. start the configured runtime/model manually;
-3. load the relevant skill and required artifacts;
-4. save the structured output to the expected state file;
-5. use a separate configured model/context for review when required.
+1. enter the next applicable phase atomically with `setup-pipeline enter PHASE`;
+2. resolve the phase profile with `setup-model-check` and confirm the actual runtime/model;
+3. run `setup-pipeline guard PHASE` immediately before the first phase-owned write;
+4. load the relevant skill and required artifacts;
+5. save, validate, and attest the structured output from the producer phase;
+6. run `setup-pipeline status` and return `continue_now`, `waiting_for_human`, or `complete`;
+7. continue machine-owned work immediately, or ask one evidence-backed question when named human
+   authority is required;
+8. use a separate configured model/context for review when required.
 
 The pipeline remains portable as long as artifacts, semantic gates, and role independence are
-preserved.
+preserved. `set-phase` remains only a deprecated atomic alias for `enter`; it never restores the old
+mutation-before-validation behavior.
 
 ## Setup release documentation invariant
 

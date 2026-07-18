@@ -148,9 +148,11 @@ Print summary:
 ✓ GRACE Lite: mandatory; GRACE Full: pending route classification
 ✓ AGENTS.md → CLAUDE.md (OpenCode ready)
 ✓ product_brief.md: metadata initialized
-✓ model-bindings.json + schema: created; profiles remain disabled until the route is known
+△ Overall readiness: PARTIALLY_CONFIGURED
+△ Model routing: DEFERRED — model-bindings.json is valid but profiles remain disabled until the route is known
 ✓ Product shape, stack, commands, risk tier, and GRACE mode: deferred
-✓ Next step: ask the agent “What stage are we at, and what should we do next?”
+→ Continuation: continue_now — use the user's initial product input to begin Phase -1 discovery now;
+  if no product outcome was supplied, ask exactly one missing discovery question
 
 Key files:
   ~/[project-name]/product_brief.md        ← portable discovery-to-delivery handoff
@@ -164,11 +166,13 @@ Key files:
 
 ```json
 {
-  "status": "success",
+  "status": "PARTIALLY_CONFIGURED",
   "data": {
     "project_path": "~/...",
     "github_url": "https://github.com/...",
-    "next_step": "ask the agent what stage the project is at and what to do next; it must use pipeline-status"
+    "model_routing": "deferred_until_route_classification",
+    "continuation": "continue_now|waiting_for_human",
+    "next_step": "begin Phase -1 discovery from already supplied input, or ask one missing discovery question"
   },
   "issues": []
 }

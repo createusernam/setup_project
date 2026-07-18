@@ -57,6 +57,15 @@ configuration and the `AGENTS.md → CLAUDE.md` link; do not replace that link m
 Apply to every agent in every phase:
 
 - **Model routing.** `model-routing.json` declares provider-neutral capability profiles and role independence; each project maps profiles to concrete runtime/model IDs in `model-bindings.json`. Before a phase, run `setup-model-check <phase> <project>`. Confirm the running identity matches the resolved binding and STOP on mismatch. A shell cannot detect the generating model. Collegium phases also require the configured roles to resolve to different model IDs.
+- **Atomic phase entry.** Never mutate `.pipeline-state.json` by hand or begin a phase with the
+  deprecated mutation-first sequence. Run `setup-pipeline enter PHASE`, then
+  `setup-pipeline guard PHASE` immediately before the first phase-owned write. Artifact attestation
+  is producer-phase restricted. A failed entry or guard leaves the ledger unchanged.
+- **Phase exit is part of every skill.** After stable outputs are validated and attested, run
+  `setup-pipeline status` and return exactly one continuation state: `continue_now` (perform the
+  printed machine-owned next action now), `waiting_for_human` (show evidence/consequences and ask
+  one authority-owned question), or `complete`. Never make the human ask “what next?” between
+  machine-owned phases.
 - **Route skills before tools.** Apply `docs/agent/SKILL-ROUTING.md` in every CLI. A named or clearly matching skill is mandatory. In particular, load `planning-with-files` when the user asks to save and execute a plan, calls the work a large task, the task likely needs 5+ tool calls, or it must survive a CLI/provider switch.
 - **Ask only at the knowledge boundary.** Inspect code and approved artifacts before asking. Ask only
   for a decision that is necessary for the next transition and owned by the respondent; give a

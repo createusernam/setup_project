@@ -5,6 +5,13 @@ description: "Wireframe-first frontend design flow: generate wireframe → human
 
 # /design-first — Wireframe → API Contract → Design Gate
 
+## Mandatory phase guard
+
+Before generating a wireframe or writing any design/API artifact, run `setup-pipeline guard 3` from
+the project root. If it fails, stop without writes. Enter Phase 3 only through
+`setup-pipeline enter 3`; a conversation label such as “semantic prototype” does not authorize a
+Phase 3 artifact.
+
 Design-first flow for frontend features. Forces wireframe agreement BEFORE API design and coding.
 
 **Principle**: API is derived from UX, not the other way around.
@@ -169,13 +176,17 @@ product owner to choose a framework inside the design gate.
 
 1. Save wireframe to `docs/wireframe-<feature>.md`
 2. Save API contract to `api-contract.json`
-3. Report to user:
+3. Attest `design-contract.json`, `.design-contract-attestation`, `api-contract.json`, and the
+   concrete wireframe path while still in Phase 3.
+4. Run `setup-pipeline enter 4`. If it passes, invoke `/contract` immediately in the same session;
+   if it blocks, report `waiting_for_human` only when the blocker is a real human decision.
+5. Report the transition state to the user:
 
 ```
 ✓ Wireframe: docs/wireframe-<feature>.md
 ✓ API contract: api-contract.json (<N> endpoints)
 
-Next: run /contract with: inherits: ["design-contract.json", "api-contract.json"]
+Continuation: continue_now → /contract with inherits: ["design-contract.json", "api-contract.json"]
 ```
 
 ## Output
@@ -189,6 +200,7 @@ Next: run /contract with: inherits: ["design-contract.json", "api-contract.json"
     "endpoints_count": 0,
     "approved_by_human": true
   },
+    "continuation": "continue_now",
     "next_action": "/contract"
 }
 ```

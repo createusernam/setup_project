@@ -11,6 +11,12 @@ metadata:
 
 # /design-rubric — Design System as Contract (Project-Level)
 
+## Mandatory phase guard
+
+Before reading or writing `design-contract.json`, run `setup-pipeline guard 3` from the project
+root. If it fails, stop without creating, changing, or attesting any design artifact. Enter Phase 3
+only through `setup-pipeline enter 3`; never change the ledger first and validate afterward.
+
 ## Why this skill exists
 
 Your design principles (Arutyunov IDS, Birman, UI copy) live in prose at `~/.claude/design-guidelines.md`, if you keep such a file. Prose is unenforceable. Neither the design-prototyper agent (drawing the mockup) nor the evaluator in `/build-loop` (grading the implementation) can mechanically check against prose.

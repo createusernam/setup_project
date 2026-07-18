@@ -27,10 +27,15 @@ def write(project: Path, name: str, value: object) -> str:
     return hashlib.sha256(content.encode()).hexdigest()
 
 
+# START_BLOCK_SEMANTIC_PREFLIGHT_CASES
 def main() -> None:
     machine = json.loads((ROOT / "pipeline-machine.json").read_text(encoding="utf-8"))
     routing = json.loads((ROOT / "model-routing.json").read_text(encoding="utf-8"))
     assert set(machine["transitions"]) == set(routing["phases"]), "machine/model phase drift"
+    assert not module.artifact_flow_errors(machine), "every declared phase output must feed a checked downstream input"
+    broken_flow = json.loads(json.dumps(machine))
+    broken_flow["artifact_owners"]["orphan-output.json"] = {"producer_phase": "2"}
+    assert any("orphan-output.json" in item for item in module.artifact_flow_errors(broken_flow)), "orphan output was not detected"
     assert machine["transitions"]["-1"]["skill"] == "discovery process", "public phase -1 must not require a private skill"
     assert not any("requires" in phase or "human_gate" in phase for phase in routing["phases"].values()), "transition truth leaked back into model routing"
     serialized_routing = json.dumps(routing).lower()
@@ -63,6 +68,66 @@ def main() -> None:
         write(discovery_project, "model-bindings.json", json.loads((ROOT / "templates/project/model-bindings.json").read_text(encoding="utf-8")))
         failures, _, _ = module.evaluate(ROOT, discovery_project, "-1")
         assert not failures, f"unclassified discovery must be runnable from any CLI: {failures}"
+
+        write(discovery_project, "design-contract.json", {"version": "premature"})
+        failures, _, _ = module.evaluate(ROOT, discovery_project, "-1")
+        assert any("artifact_ownership" in item and "phase 3" in item for item in failures), failures
+
+        design_hash = write(discovery_project, "design-contract.json", {"version": "approved"})
+        ledger = json.loads((discovery_project / ".pipeline-state.json").read_text(encoding="utf-8"))
+        ledger["artifacts"]["design-contract.json"] = {
+            "sha256": design_hash, "status": "approved", "invalidated_by": None
+        }
+        write(discovery_project, ".pipeline-state.json", ledger)
+        write(discovery_project, "design-contract.json", {"version": "changed-outside-phase"})
+        failures, _, _ = module.evaluate(ROOT, discovery_project, "-1")
+        assert any("changed outside producer phase 3" in item for item in failures), failures
+    with tempfile.TemporaryDirectory() as raw:
+        frontend_project = Path(raw)
+        write(frontend_project, "model-bindings.json", {
+            "version": "1",
+            "bindings": {
+                "reasoning_high": {"runtime": "claude", "model_id": "model-reasoning-high", "enabled": True}
+            },
+        })
+        artifacts = {
+            "task_plan.md": "plan\n",
+            "evidence-handoff.json": {"decision": "delivery", "spec_gaps": []},
+            "design-contract.json": {"version": "1"},
+            "api-contract.json": {"version": "1"},
+            "docs/wireframe-home.md": "approved wireframe\n",
+        }
+        records = {}
+        for name, value in artifacts.items():
+            records[name] = {"sha256": write(frontend_project, name, value), "status": "approved", "invalidated_by": None}
+        design_sha = records["design-contract.json"]["sha256"]
+        records[".design-contract-attestation"] = {
+            "sha256": write(frontend_project, ".design-contract-attestation", design_sha + "\n"),
+            "status": "approved",
+            "invalidated_by": None,
+        }
+        ledger = {
+            "version": "2",
+            "phase": "4",
+            "policy": {"risk_tier": "T2", "conditions": {"research_required": False, "frontend": True}},
+            "model_bindings_file": "model-bindings.json",
+            "artifacts": records,
+            "human_gates": {
+                "contract_locked": {"by": None, "at": None},
+                "viz_before_tickets": {"by": None, "at": None},
+                "human_acceptance": {"by": None, "at": None},
+            },
+        }
+        write(frontend_project, ".pipeline-state.json", ledger)
+        failures, _, _ = module.evaluate(ROOT, frontend_project, "4")
+        assert not failures, f"phase 4 must consume every approved frontend output: {failures}"
+        write(frontend_project, ".design-contract-attestation", "wrong\n")
+        records[".design-contract-attestation"]["sha256"] = write(
+            frontend_project, ".design-contract-attestation", "wrong\n"
+        )
+        write(frontend_project, ".pipeline-state.json", ledger)
+        failures, _, _ = module.evaluate(ROOT, frontend_project, "4")
+        assert any("must contain the sha256" in item for item in failures), failures
     with tempfile.TemporaryDirectory() as raw:
         project = Path(raw)
         write(project, "model-bindings.json", {
@@ -246,6 +311,7 @@ def main() -> None:
         }
         assert module.specification_gap_errors({"spec_gaps": [scoped_gap]}) == []
     print("PASS pipeline semantic preflight tests")
+# END_BLOCK_SEMANTIC_PREFLIGHT_CASES
 
 
 if __name__ == "__main__":

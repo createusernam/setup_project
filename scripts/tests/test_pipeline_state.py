@@ -23,6 +23,7 @@ module = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(module)
 
 
+# START_BLOCK_PIPELINE_STATE_CASES
 class PipelineStateTests(unittest.TestCase):
     def test_bootstrap_adopts_existing_project_without_overwrite(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
@@ -80,21 +81,134 @@ class PipelineStateTests(unittest.TestCase):
             self.assertIn("route: -1 -> 0 -> 1 -> 2 -> 2-PM -> 2b -> 4", rendered)
             self.assertNotIn("-> 3 ->", rendered)
 
-            module.command_set_phase(SimpleNamespace(phase="2"), ROOT, project)
+            ledger_path = project / ".pipeline-state.json"
+            ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+            ledger["phase"] = "2"
+            ledger_path.write_text(json.dumps(ledger), encoding="utf-8")
             output = io.StringIO()
             with contextlib.redirect_stdout(output):
                 module.command_status(SimpleNamespace(), ROOT, project)
             rendered = output.getvalue()
             self.assertIn("current stage: 2 — planning-with-files", rendered)
-            self.assertIn("after a passing check: use planning-with-files", rendered)
+            self.assertIn("next phase: 2-PM", rendered)
+            self.assertIn("transition: waiting_for_human", rendered)
 
             (project / "task_plan.md").write_text("plan\n", encoding="utf-8")
             module.command_attest(SimpleNamespace(artifacts=["task_plan.md"], status="ready"), ROOT, project)
+            ledger_path = project / ".pipeline-state.json"
+            ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+            ledger["phase"] = "4b"
+            ledger_path.write_text(json.dumps(ledger), encoding="utf-8")
             module.command_sign(SimpleNamespace(gate="contract_locked", by="owner"), ROOT, project)
             module.command_set_condition(SimpleNamespace(condition="frontend", value="true"), ROOT, project)
             ledger = json.loads((project / ".pipeline-state.json").read_text(encoding="utf-8"))
             self.assertEqual(ledger["artifacts"]["task_plan.md"]["status"], "invalidated")
             self.assertIsNone(ledger["human_gates"]["contract_locked"]["by"])
+            self.assertEqual(ledger["phase"], "-1")
+
+    def test_atomic_enter_rejects_a_jump_and_preserves_ledger_bytes(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            project = Path(raw)
+            module.command_init(SimpleNamespace(force=False), ROOT, project)
+            ledger_path = project / ".pipeline-state.json"
+            before = ledger_path.read_bytes()
+
+            with self.assertRaisesRegex(ValueError, "route|next|classification"):
+                module.command_enter(SimpleNamespace(phase="3"), ROOT, project)
+
+            self.assertEqual(ledger_path.read_bytes(), before)
+
+    def test_atomic_enter_commits_only_after_target_preflight_passes(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            project = Path(raw)
+            module.command_bootstrap(SimpleNamespace(), ROOT, project)
+            (project / "product_brief.md").write_text("# Approved brief\n", encoding="utf-8")
+            (project / "evidence-handoff.json").write_text(
+                json.dumps({"decision": "delivery", "spec_gaps": []}) + "\n", encoding="utf-8"
+            )
+            (project / "business_model.md").write_text("# Approved business model\n", encoding="utf-8")
+            module.command_attest(
+                SimpleNamespace(
+                    artifacts=["product_brief.md", "evidence-handoff.json", "business_model.md"],
+                    status="approved",
+                ),
+                ROOT,
+                project,
+            )
+            bindings_path = project / "model-bindings.json"
+            bindings = json.loads(bindings_path.read_text(encoding="utf-8"))
+            bindings["bindings"]["reasoning_balanced"] = {
+                "runtime": "codex", "model_id": "provider/reasoning-balanced", "enabled": True
+            }
+            bindings_path.write_text(json.dumps(bindings), encoding="utf-8")
+            module.command_set_condition(SimpleNamespace(condition="research_required", value="false"), ROOT, project)
+            module.command_set_condition(SimpleNamespace(condition="frontend", value="false"), ROOT, project)
+            module.command_set_tier(SimpleNamespace(tier="T2", reason="small reversible feature"), ROOT, project)
+
+            module.command_enter(SimpleNamespace(phase="1"), ROOT, project)
+            ledger = json.loads((project / ".pipeline-state.json").read_text(encoding="utf-8"))
+            self.assertEqual(ledger["phase"], "1")
+            self.assertEqual(module.command_guard(SimpleNamespace(phase="1"), ROOT, project), 0)
+
+            ledger["phase"] = "7"
+            (project / ".pipeline-state.json").write_text(json.dumps(ledger), encoding="utf-8")
+            module.command_enter(SimpleNamespace(phase="1"), ROOT, project)
+            reworked = json.loads((project / ".pipeline-state.json").read_text(encoding="utf-8"))
+            self.assertEqual(reworked["phase"], "1")
+
+    def test_status_reports_actual_next_phase_and_model_readiness(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            project = Path(raw)
+            module.command_bootstrap(SimpleNamespace(), ROOT, project)
+            module.command_set_condition(SimpleNamespace(condition="research_required", value="false"), ROOT, project)
+            module.command_set_condition(SimpleNamespace(condition="frontend", value="false"), ROOT, project)
+            module.command_set_tier(SimpleNamespace(tier="T3", reason="cross-module"), ROOT, project)
+
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                module.command_status(SimpleNamespace(), ROOT, project)
+            rendered = output.getvalue()
+            self.assertIn("next phase: 1", rendered)
+            self.assertIn("model routing: UNCONFIGURED", rendered)
+            self.assertIn("next action: configure required model profiles", rendered)
+
+    def test_provisional_research_can_enter_before_final_tier_selection(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            project = Path(raw)
+            module.command_bootstrap(SimpleNamespace(), ROOT, project)
+            (project / "product_brief.md").write_text("# Discovery brief\n", encoding="utf-8")
+            (project / "evidence-handoff.json").write_text(json.dumps({"decision": "alpha"}) + "\n", encoding="utf-8")
+            module.command_attest(
+                SimpleNamespace(artifacts=["product_brief.md", "evidence-handoff.json"], status="ready"), ROOT, project
+            )
+            bindings_path = project / "model-bindings.json"
+            bindings = json.loads(bindings_path.read_text(encoding="utf-8"))
+            bindings["bindings"]["reasoning_balanced"] = {
+                "runtime": "codex", "model_id": "provider/reasoning-balanced", "enabled": True
+            }
+            bindings["bindings"]["research_worker"] = {
+                "runtime": "codex", "model_id": "provider/research-worker", "enabled": True
+            }
+            bindings_path.write_text(json.dumps(bindings), encoding="utf-8")
+            module.command_set_condition(SimpleNamespace(condition="research_required", value="true"), ROOT, project)
+
+            module.command_enter(SimpleNamespace(phase="0"), ROOT, project)
+            ledger = json.loads((project / ".pipeline-state.json").read_text(encoding="utf-8"))
+            self.assertEqual(ledger["phase"], "0")
+            self.assertIsNone(ledger["policy"]["risk_tier"])
+
+    def test_status_surfaces_premature_artifact_as_current_blocker(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            project = Path(raw)
+            module.command_bootstrap(SimpleNamespace(), ROOT, project)
+            (project / "design-contract.json").write_text("{}\n", encoding="utf-8")
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                module.command_status(SimpleNamespace(), ROOT, project)
+            rendered = output.getvalue()
+            self.assertIn("readiness: BLOCKED", rendered)
+            self.assertIn("artifact_ownership", rendered)
+            self.assertIn("resolve the listed current-phase blockers", rendered)
 
     def test_migrate_upgrades_legacy_v2_ledger_with_backup(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
@@ -123,22 +237,34 @@ class PipelineStateTests(unittest.TestCase):
             (project / "product_brief.md").write_text("v1\n", encoding="utf-8")
             (project / "task_plan.md").write_text("plan\n", encoding="utf-8")
 
-            module.command_attest(SimpleNamespace(artifacts=["product_brief.md", "task_plan.md"], status="ready"), ROOT, project)
+            module.command_attest(SimpleNamespace(artifacts=["product_brief.md"], status="ready"), ROOT, project)
             ledger_path = project / ".pipeline-state.json"
+            ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+            ledger["phase"] = "2"
+            ledger_path.write_text(json.dumps(ledger), encoding="utf-8")
+            module.command_attest(SimpleNamespace(artifacts=["task_plan.md"], status="ready"), ROOT, project)
             ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
             self.assertEqual(ledger["artifacts"]["task_plan.md"]["status"], "ready")
 
             (project / "product_brief.md").write_text("v2\n", encoding="utf-8")
+            ledger["phase"] = "-1"
+            ledger_path.write_text(json.dumps(ledger), encoding="utf-8")
             module.command_attest(SimpleNamespace(artifacts=["product_brief.md"], status="approved"), ROOT, project)
             ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
             self.assertEqual(ledger["artifacts"]["task_plan.md"]["status"], "invalidated")
             self.assertEqual(ledger["artifacts"]["task_plan.md"]["invalidated_by"], "product_brief.md")
 
+            ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+            ledger["phase"] = "4b"
+            ledger_path.write_text(json.dumps(ledger), encoding="utf-8")
             module.command_sign(SimpleNamespace(gate="contract_locked", by="owner@example.test"), ROOT, project)
             ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
             self.assertEqual(ledger["human_gates"]["contract_locked"]["by"], "owner@example.test")
 
             (project / "product_brief.md").write_text("v3\n", encoding="utf-8")
+            ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+            ledger["phase"] = "-1"
+            ledger_path.write_text(json.dumps(ledger), encoding="utf-8")
             module.command_attest(SimpleNamespace(artifacts=["product_brief.md"], status="approved"), ROOT, project)
             ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
             self.assertIsNone(ledger["human_gates"]["contract_locked"]["by"])
@@ -149,6 +275,7 @@ class PipelineStateTests(unittest.TestCase):
             module.command_init(SimpleNamespace(force=False), ROOT, project)
             with self.assertRaisesRegex(ValueError, "inside the project"):
                 module.command_attest(SimpleNamespace(artifacts=["../outside"], status="ready"), ROOT, project)
+# END_BLOCK_PIPELINE_STATE_CASES
 
 
 if __name__ == "__main__":

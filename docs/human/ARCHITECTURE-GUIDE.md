@@ -181,7 +181,7 @@ This checklist checks the handoff, not the private reasoning process that produc
 
    ```bash
    setup-pipeline attest task_plan.md
-   setup-pipeline set-phase 2-PM
+   setup-pipeline enter 2-PM
    setup-model-check 2-PM .
    setup-preflight 2-PM .
    ```

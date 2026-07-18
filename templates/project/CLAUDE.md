@@ -49,8 +49,10 @@ Key reminders:
    switching or hand-edit the ledger.
 8. Every skill exit runs `setup-pipeline status` and returns `continue_now`,
    `waiting_for_human`, or `complete`. Continue machine-owned work immediately; at a human boundary
-   show evidence and consequences and ask one question. Never wait for the human to ask what comes
-   next.
+   reproduce the complete HumanRequest printed by status: authority, one question, why, resolvable
+   evidence/instruction paths, exact file+schema or inline response format, allowed responses,
+   consequences, and resume action. Never replace it with an underspecified chat question or wait
+   for the human to ask what comes next.
 
 ## GRACE Lite (mandatory)
 

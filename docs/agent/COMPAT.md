@@ -243,8 +243,9 @@ When no agent primitive exists:
 4. load the relevant skill and required artifacts;
 5. save, validate, and attest the structured output from the producer phase;
 6. run `setup-pipeline status` and return `continue_now`, `waiting_for_human`, or `complete`;
-7. continue machine-owned work immediately, or ask one evidence-backed question when named human
-   authority is required;
+7. continue machine-owned work immediately, or reproduce the complete machine-rendered HumanRequest
+   when named human authority is required; preserve its local evidence/instruction paths, exact
+   file+schema or inline response format, allowed responses, consequences, and resume action;
 8. use a separate configured model/context for review when required.
 
 The pipeline remains portable as long as artifacts, semantic gates, and role independence are

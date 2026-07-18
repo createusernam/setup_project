@@ -61,6 +61,8 @@ class PipelineStateTests(unittest.TestCase):
         self.assertIn("phases: -1, 0, 1, 2", rendered)
         self.assertIn("risk tiers:", rendered)
         self.assertIn("human gates:", rendered)
+        self.assertIn("human request contracts:", rendered)
+        self.assertIn("model_bindings: authority=project_owner, response=file", rendered)
         self.assertIn("route conditions: research_required=true|false, frontend=true|false", rendered)
         self.assertIn("artifact statuses:", rendered)
         self.assertIn("runtimes: claude, codex, opencode", rendered)
@@ -92,6 +94,13 @@ class PipelineStateTests(unittest.TestCase):
             self.assertIn("current stage: 2 — planning-with-files", rendered)
             self.assertIn("next phase: 2-PM", rendered)
             self.assertIn("transition: waiting_for_human", rendered)
+            self.assertIn("human request: model_bindings", rendered)
+            self.assertIn("authority: project_owner", rendered)
+            self.assertIn(str(project / "model-bindings.json"), rendered)
+            self.assertIn(str(project / "model-bindings.schema.json"), rendered)
+            self.assertIn(str(ROOT / "docs/agent/COMPAT.md"), rendered)
+            self.assertIn("response format: file", rendered)
+            self.assertIn("missing profiles:", rendered)
 
             (project / "task_plan.md").write_text("plan\n", encoding="utf-8")
             module.command_attest(SimpleNamespace(artifacts=["task_plan.md"], status="ready"), ROOT, project)
@@ -105,6 +114,30 @@ class PipelineStateTests(unittest.TestCase):
             self.assertEqual(ledger["artifacts"]["task_plan.md"]["status"], "invalidated")
             self.assertIsNone(ledger["human_gates"]["contract_locked"]["by"])
             self.assertEqual(ledger["phase"], "-1")
+
+    def test_human_gate_wait_renders_inline_response_and_evidence_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            project = Path(raw)
+            request = json.loads((ROOT / "pipeline-machine.json").read_text(encoding="utf-8"))[
+                "human_requests"
+            ]["viz_before_tickets"]
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                module.render_human_request(
+                    ROOT,
+                    project,
+                    "viz_before_tickets",
+                    request,
+                    context=["human_gate: viz_before_tickets requires by and at"],
+                )
+            rendered = output.getvalue()
+            self.assertIn("human request: viz_before_tickets", rendered)
+            self.assertIn("authority: product_owner", rendered)
+            self.assertIn(str(project / "SUPERVISION.md"), rendered)
+            self.assertIn("response format: inline", rendered)
+            self.assertIn('"action": "approve|revise"', rendered)
+            self.assertIn("consequences:", rendered)
+            self.assertIn("resume:", rendered)
 
     def test_atomic_enter_rejects_a_jump_and_preserves_ledger_bytes(self) -> None:
         with tempfile.TemporaryDirectory() as raw:

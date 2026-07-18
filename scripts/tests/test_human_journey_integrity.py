@@ -93,6 +93,22 @@ class HumanJourneyIntegrityTests(unittest.TestCase):
         self.assertNotIn("skipped_gates", serialized)
         self.assertNotIn("skip_contract", serialized)
 
+    def test_waiting_for_human_has_machine_owned_request_contracts(self) -> None:
+        machine = json.loads((ROOT / "pipeline-machine.json").read_text(encoding="utf-8"))
+        requests = machine["human_requests"]
+        self.assertEqual(set(requests), {"model_bindings", *machine["gate_owners"]})
+        for request_id, request in requests.items():
+            self.assertTrue(request["authority"], request_id)
+            self.assertTrue(request["evidence_refs"], request_id)
+            self.assertTrue(request["allowed_responses"], request_id)
+            self.assertIn(request["response"]["mode"], {"file", "inline"}, request_id)
+        pipeline = (ROOT / "docs/human/PIPELINE.md").read_text(encoding="utf-8")
+        compat = (ROOT / "docs/agent/COMPAT.md").read_text(encoding="utf-8")
+        template = (ROOT / "templates/project/CLAUDE.md").read_text(encoding="utf-8")
+        for text in (pipeline, compat, template):
+            self.assertIn("HumanRequest", text)
+            self.assertIn("response format", text)
+
     def test_atomic_entry_and_phase_exit_contract_are_global(self) -> None:
         agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
         template = (ROOT / "templates/project/CLAUDE.md").read_text(encoding="utf-8")

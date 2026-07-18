@@ -1,5 +1,5 @@
 {
-  "version": "1.1",
+  "version": "1.2",
   "description": "Executable transition contract for the setup pipeline. Prose explains transitions; this file authorizes them.",
   "risk_policy": {
     "default": "T3",
@@ -178,6 +178,80 @@
     "contract_locked": "4b",
     "viz_before_tickets": "4c",
     "human_acceptance": "7"
+  },
+  "human_requests": {
+    "model_bindings": {
+      "authority": "project_owner",
+      "question": "Which concrete runtime/model IDs should be used for every capability profile required by the selected route?",
+      "why_needed": "The pipeline cannot verify capability coverage or independent review roles until project-owned bindings are explicit.",
+      "evidence_refs": ["model-bindings.json", "product_brief.md"],
+      "setup_refs": ["docs/agent/COMPAT.md", "docs/human/SETUP.md"],
+      "response": {
+        "mode": "file",
+        "path": "model-bindings.json",
+        "schema": "model-bindings.schema.json"
+      },
+      "allowed_responses": ["configure_required_profiles", "defer_with_reason"],
+      "consequences": {
+        "on_submit": "The agent validates the exact IDs and role separation, then resumes the selected route.",
+        "on_defer": "The ledger remains unchanged and no model-bound phase starts."
+      },
+      "resume_action": "Validate model-bindings.json, then rerun setup-pipeline status."
+    },
+    "contract_locked": {
+      "authority": "product_owner",
+      "question": "Does the judged contract correctly lock scope, user flow, integrations, risks, and acceptance criteria for implementation?",
+      "why_needed": "Implementation must not start until the accountable product owner accepts the reviewed delivery contract.",
+      "evidence_refs": ["contract.json", "judge-report.json", "product_brief.md"],
+      "setup_refs": ["docs/human/PIPELINE.md"],
+      "response": {
+        "mode": "inline",
+        "format": {"action": "approve|revise", "comment": "required when revise"},
+        "record_command": "setup-pipeline sign contract_locked --by <person-or-account>"
+      },
+      "allowed_responses": ["approve", "revise"],
+      "consequences": {
+        "on_approve": "Phase 6 may begin after the remaining machine preconditions pass.",
+        "on_revise": "Return to the owning upstream phase, update evidence, and invalidate downstream approvals."
+      },
+      "resume_action": "Record contract_locked only after approve, then rerun setup-pipeline status."
+    },
+    "viz_before_tickets": {
+      "authority": "product_owner",
+      "question": "Does the supervision view accurately show the approved plan, dependencies, human gates, and implementation slices before tickets are created?",
+      "why_needed": "Ticket slicing commits the team to a delivery decomposition that the product owner must be able to supervise.",
+      "evidence_refs": ["SUPERVISION.md", "contract.json", "judge-report.json", "task_plan.md"],
+      "setup_refs": ["docs/human/PIPELINE.md"],
+      "response": {
+        "mode": "inline",
+        "format": {"action": "approve|revise", "comment": "required when revise"},
+        "record_command": "setup-pipeline sign viz_before_tickets --by <person-or-account>"
+      },
+      "allowed_responses": ["approve", "revise"],
+      "consequences": {
+        "on_approve": "Issue creation may begin after the remaining machine preconditions pass.",
+        "on_revise": "Revise the plan, contract, or supervision view and invalidate dependent approvals."
+      },
+      "resume_action": "Record viz_before_tickets only after approve, then rerun setup-pipeline status."
+    },
+    "human_acceptance": {
+      "authority": "accountable_acceptor",
+      "question": "Do the delivered behavior and independent review evidence satisfy the accepted contract in the real acceptance context?",
+      "why_needed": "Automated and model reviews cannot substitute for accountable delivery acceptance.",
+      "evidence_refs": ["build-evidence.json", "feature-judge-report.json", "code-review.md", "contract.json"],
+      "setup_refs": ["docs/human/PIPELINE.md"],
+      "response": {
+        "mode": "inline",
+        "format": {"action": "accept|reject", "comment": "required when reject"},
+        "record_command": "setup-pipeline sign human_acceptance --by <person-or-account>"
+      },
+      "allowed_responses": ["accept", "reject"],
+      "consequences": {
+        "on_accept": "The selected route may become complete after completion preflight passes.",
+        "on_reject": "Delivery stays incomplete; record the failed acceptance evidence and reopen the owning phase."
+      },
+      "resume_action": "Record human_acceptance only after accept, then run the Phase 7 completion check."
+    }
   },
   "invalidations": {
     "product_brief.md": ["docs/research-state.json", "CONTEXT.md", "task_plan.md", "pm-review.json", "docs/requirements.xml", "docs/technology.xml", "docs/development-plan.xml", "docs/verification-plan.xml", "docs/knowledge-graph.xml", "docs/operational-packets.xml", "risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "build-evidence.json"],

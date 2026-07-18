@@ -446,6 +446,64 @@ def model_routing_readiness(root: Path, project: Path, route: list[str]) -> tupl
     return ("READY", [], []) if not missing and not issues else ("PARTIALLY_CONFIGURED", missing, issues)
 
 
+def blocking_human_request_id(failures: list[str]) -> str | None:
+    """Resolve a named gate failure to its HumanRequest catalog ID."""
+    prefix = "human_gate: '"
+    for failure in failures:
+        if failure.startswith(prefix):
+            return failure[len(prefix):].split("'", 1)[0]
+    return None
+
+
+def model_binding_request_context(missing_profiles: list[str], routing_issues: list[str]) -> list[str]:
+    context = list(routing_issues)
+    if missing_profiles:
+        context.insert(0, "missing profiles: " + ", ".join(missing_profiles))
+    return context
+
+
+def render_human_request(
+    root: Path,
+    project: Path,
+    request_id: str,
+    request: dict[str, Any],
+    *,
+    context: list[str] | None = None,
+) -> None:
+    """Render one self-contained human pause with resolvable local references."""
+    print(f"human request: {request_id}")
+    print(f"authority: {request['authority']}")
+    print(f"question: {request['question']}")
+    print(f"why needed: {request['why_needed']}")
+    if context:
+        print("current context:")
+        for item in context:
+            print(f"  - {item}")
+    print("evidence files:")
+    for relative in request.get("evidence_refs", []):
+        path = project / relative
+        print(f"  - {path} [{'exists' if path.exists() else 'missing'}]")
+    if request.get("setup_refs"):
+        print("instructions:")
+        for relative in request["setup_refs"]:
+            path = root / relative
+            print(f"  - {path} [{'exists' if path.exists() else 'missing'}]")
+    response = request["response"]
+    print(f"response format: {response['mode']}")
+    if response["mode"] == "file":
+        print(f"  file: {project / response['path']}")
+        print(f"  schema: {project / response['schema']}")
+    else:
+        print("  " + json.dumps(response["format"], ensure_ascii=False, sort_keys=True))
+        if response.get("record_command"):
+            print(f"  record accepted response: {response['record_command']}")
+    print("allowed responses: " + ", ".join(request["allowed_responses"]))
+    print("consequences:")
+    for outcome, consequence in request["consequences"].items():
+        print(f"  {outcome}: {consequence}")
+    print(f"resume: {request['resume_action']}")
+
+
 def command_status(args: argparse.Namespace, root: Path, project: Path) -> int:
     _, ledger = load_ledger(project)
     machine = read_json(root / "pipeline-machine.json")
@@ -496,6 +554,13 @@ def command_status(args: argparse.Namespace, root: Path, project: Path) -> int:
                 print("readiness: BLOCKED")
                 print("transition: waiting_for_human")
                 print("next action: configure the Phase 0 model profiles, then rerun setup-pipeline status")
+                render_human_request(
+                    root,
+                    project,
+                    "model_bindings",
+                    machine["human_requests"]["model_bindings"],
+                    context=model_binding_request_context(missing_profiles, routing_issues),
+                )
             else:
                 candidate = copy.deepcopy(ledger)
                 candidate["phase"] = "0"
@@ -553,12 +618,16 @@ def command_status(args: argparse.Namespace, root: Path, project: Path) -> int:
             failures, _, _ = preflight.evaluate(root, project, ledger.get("phase"), completion=True)
             print("next phase: none")
             if failures:
-                human_blocked = any(item.startswith("human_gate:") for item in failures)
-                print(f"transition: {'waiting_for_human' if human_blocked else 'continue_now'}")
+                request_id = blocking_human_request_id(failures)
+                print(f"transition: {'waiting_for_human' if request_id else 'continue_now'}")
                 print("completion blockers:")
                 for failure in failures:
                     print(f"  - {failure}")
                 print("next action: complete the listed review evidence or human acceptance, then rerun setup-pipeline status")
+                if request_id:
+                    render_human_request(
+                        root, project, request_id, machine["human_requests"][request_id], context=failures
+                    )
             else:
                 print("transition: complete")
         else:
@@ -566,18 +635,29 @@ def command_status(args: argparse.Namespace, root: Path, project: Path) -> int:
             if missing_profiles or routing_issues:
                 print("transition: waiting_for_human")
                 print("next action: configure required model profiles in model-bindings.json, then rerun setup-pipeline status")
+                render_human_request(
+                    root,
+                    project,
+                    "model_bindings",
+                    machine["human_requests"]["model_bindings"],
+                    context=model_binding_request_context(missing_profiles, routing_issues),
+                )
             else:
                 candidate = copy.deepcopy(ledger)
                 candidate["phase"] = next_phase
                 preflight = load_preflight(root)
                 failures, _, _ = preflight.evaluate(root, project, next_phase, ledger_override=candidate)
-                human_blocked = any(item.startswith("human_gate:") for item in failures)
-                print(f"transition: {'waiting_for_human' if human_blocked else 'continue_now'}")
+                request_id = blocking_human_request_id(failures)
+                print(f"transition: {'waiting_for_human' if request_id else 'continue_now'}")
                 if failures:
                     print("next-phase blockers:")
                     for failure in failures:
                         print(f"  - {failure}")
                     print("next action: resolve the listed blockers, then rerun setup-pipeline status")
+                    if request_id:
+                        render_human_request(
+                            root, project, request_id, machine["human_requests"][request_id], context=failures
+                        )
                 else:
                     print(f"next action: setup-pipeline --project {project} enter {next_phase}")
     return 0
@@ -611,6 +691,9 @@ def command_values(args: argparse.Namespace, root: Path, project: Path) -> int:
                 )
             )
     print("human gates: " + ", ".join(sorted(gates)))
+    print("human request contracts:")
+    for request_id, request in machine["human_requests"].items():
+        print(f"  {request_id}: authority={request['authority']}, response={request['response']['mode']}")
     print("route conditions: research_required=true|false, frontend=true|false")
     print("artifact statuses: " + ", ".join(ARTIFACT_STATUSES) + " (invalidated is machine-set)")
     print("capability profiles: " + ", ".join(routing["profiles"]))

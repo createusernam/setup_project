@@ -206,14 +206,23 @@ Every phase exit has one explicit continuation state:
 
 - `continue_now` — the next transition is machine-owned; the agent performs the next action printed
   by `setup-pipeline status` without making the human ask again;
-- `waiting_for_human` — a named human authority must decide or provide evidence; show the evidence,
-  consequences and one question, then pause;
+- `waiting_for_human` — a named human authority must decide or provide evidence. Status renders a
+  complete HumanRequest from `pipeline-machine.json`: authority, one question, why it is needed,
+  absolute local paths for project evidence and setup instructions with `exists|missing`, allowed
+  responses, consequences, resume action, and an exact response format: either a file plus adjacent
+  schema or an inline response object. The agent reproduces that packet and pauses; it must not ask
+  the human to infer a format or locate a template;
 - `complete` — the selected route and its acceptance contract are complete.
 
 ### 5. Record the three human decisions at the correct time
 
 Allowed gate names are exactly `contract_locked`, `viz_before_tickets`, and `human_acceptance`.
 `--by` is a free-text attributable person/account identity.
+
+The same HumanRequest catalog also owns model-binding pauses. A file response points to the
+project's `model-bindings.json` and `model-bindings.schema.json`; gate decisions use the inline
+object printed by status and are recorded only after the accountable human returns an allowed
+approval response.
 
 1. After contract judge `PASS`, the human reviews the contract and signs:
 

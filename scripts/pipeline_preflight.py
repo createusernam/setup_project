@@ -286,6 +286,67 @@ def artifact_flow_errors(machine: dict[str, Any]) -> list[str]:
     return failures
 
 
+def human_request_contract_errors(machine: dict[str, Any]) -> list[str]:
+    """Fail closed when a machine-emitted human wait lacks an actionable response contract."""
+    failures: list[str] = []
+    requests = machine.get("human_requests", {})
+    required_ids = {"model_bindings", *machine.get("gate_owners", {})}
+    missing = sorted(required_ids - set(requests)) if isinstance(requests, dict) else sorted(required_ids)
+    for request_id in missing:
+        failures.append(f"human_request: missing contract for {request_id!r}")
+    if not isinstance(requests, dict):
+        return failures
+
+    required_fields = {
+        "authority", "question", "why_needed", "evidence_refs", "response",
+        "allowed_responses", "consequences", "resume_action",
+    }
+    for request_id, request in requests.items():
+        if not isinstance(request, dict):
+            failures.append(f"human_request: {request_id!r} must be an object")
+            continue
+        for field in sorted(required_fields - set(request)):
+            failures.append(f"human_request: {request_id!r} missing {field!r}")
+        for field in ("authority", "question", "why_needed", "resume_action"):
+            if field in request and (not isinstance(request[field], str) or not request[field].strip()):
+                failures.append(f"human_request: {request_id!r}.{field} must be non-empty text")
+        if isinstance(request.get("question"), str) and not request["question"].rstrip().endswith("?"):
+            failures.append(f"human_request: {request_id!r}.question must be one explicit question")
+        for field in ("evidence_refs", "allowed_responses"):
+            values = request.get(field)
+            if not isinstance(values, list) or not values or not all(isinstance(value, str) and value for value in values):
+                failures.append(f"human_request: {request_id!r}.{field} must be a non-empty string list")
+        for field in ("evidence_refs", "setup_refs"):
+            for value in request.get(field, []) if isinstance(request.get(field, []), list) else []:
+                path = Path(value)
+                if path.is_absolute() or ".." in path.parts:
+                    failures.append(f"human_request: {request_id!r}.{field} path {value!r} must be relative")
+        consequences = request.get("consequences")
+        if not isinstance(consequences, dict) or not consequences or not all(
+            isinstance(key, str) and isinstance(value, str) and value.strip()
+            for key, value in consequences.items()
+        ):
+            failures.append(f"human_request: {request_id!r}.consequences must be a non-empty text map")
+        response = request.get("response")
+        if not isinstance(response, dict):
+            failures.append(f"human_request: {request_id!r} missing valid 'response' object")
+            continue
+        mode = response.get("mode")
+        if mode == "file":
+            for field in ("path", "schema"):
+                value = response.get(field)
+                if not isinstance(value, str) or not value or Path(value).is_absolute() or ".." in Path(value).parts:
+                    failures.append(f"human_request: {request_id!r}.response.{field} must be a relative path")
+        elif mode == "inline":
+            if not isinstance(response.get("format"), dict) or not response["format"]:
+                failures.append(f"human_request: {request_id!r} inline response requires a format object")
+            if not isinstance(response.get("record_command"), str) or not response["record_command"].strip():
+                failures.append(f"human_request: {request_id!r} inline response requires a record_command")
+        else:
+            failures.append(f"human_request: {request_id!r}.response.mode must be file or inline")
+    return failures
+
+
 def evaluate(
     root: Path,
     project: Path,
@@ -322,6 +383,7 @@ def evaluate(
 
     failures: list[str] = ledger_errors(ledger)
     failures.extend(artifact_flow_errors(machine))
+    failures.extend(human_request_contract_errors(machine))
     warnings: list[str] = []
     policy = ledger.get("policy", {})
     conditions = policy.get("conditions", {}) if isinstance(policy.get("conditions", {}), dict) else {}

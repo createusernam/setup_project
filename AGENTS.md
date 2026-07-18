@@ -63,9 +63,10 @@ Apply to every agent in every phase:
   is producer-phase restricted. A failed entry or guard leaves the ledger unchanged.
 - **Phase exit is part of every skill.** After stable outputs are validated and attested, run
   `setup-pipeline status` and return exactly one continuation state: `continue_now` (perform the
-  printed machine-owned next action now), `waiting_for_human` (show evidence/consequences and ask
-  one authority-owned question), or `complete`. Never make the human ask “what next?” between
-  machine-owned phases.
+  printed machine-owned next action now), `waiting_for_human` (render the machine-owned
+  HumanRequest: authority, one question, why, evidence paths, exact file/schema or inline response
+  format, allowed responses, consequences, and resume action), or `complete`. Never invent a
+  shorter chat-only wait and never make the human ask “what next?” between machine-owned phases.
 - **Route skills before tools.** Apply `docs/agent/SKILL-ROUTING.md` in every CLI. A named or clearly matching skill is mandatory. In particular, load `planning-with-files` when the user asks to save and execute a plan, calls the work a large task, the task likely needs 5+ tool calls, or it must survive a CLI/provider switch.
 - **Ask only at the knowledge boundary.** Inspect code and approved artifacts before asking. Ask only
   for a decision that is necessary for the next transition and owned by the respondent; give a

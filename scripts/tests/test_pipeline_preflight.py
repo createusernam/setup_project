@@ -33,6 +33,13 @@ def main() -> None:
     routing = json.loads((ROOT / "model-routing.json").read_text(encoding="utf-8"))
     assert set(machine["transitions"]) == set(routing["phases"]), "machine/model phase drift"
     assert not module.artifact_flow_errors(machine), "every declared phase output must feed a checked downstream input"
+    assert not module.human_request_contract_errors(machine), "every human wait must have a complete request contract"
+    broken_requests = json.loads(json.dumps(machine))
+    del broken_requests["human_requests"]["contract_locked"]["response"]
+    assert any(
+        "contract_locked" in item and "response" in item
+        for item in module.human_request_contract_errors(broken_requests)
+    ), "incomplete HumanRequest was not detected"
     broken_flow = json.loads(json.dumps(machine))
     broken_flow["artifact_owners"]["orphan-output.json"] = {"producer_phase": "2"}
     assert any("orphan-output.json" in item for item in module.artifact_flow_errors(broken_flow)), "orphan output was not detected"

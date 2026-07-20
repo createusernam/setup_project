@@ -259,8 +259,9 @@ approval response.
    setup-preflight 7 . --completion
    ```
 
-If code review requests changes or feature judge returns `CONDITIONAL|FAIL`, return to Phase 6,
-update `build-evidence.json`, re-attest it, and repeat Phase 7. Never sign acceptance first.
+If code review requests changes or feature judge returns `CONDITIONAL|FAIL`, return to the evidence
+producer (`6f` for T0/T1, `6` for T2–T4), update `build-evidence.json`, re-attest it, and repeat
+Phase 7. Never sign acceptance first.
 
 ## Core rules
 
@@ -311,9 +312,9 @@ decision is a valid outcome, but it is not permission to enter a delivery route.
 
 | File or state | Owner | How it changes |
 |---|---|---|
-| `product_brief.md`, `evidence-handoff.json`, `model-bindings.json` | human/project owner | Edit deliberately; validate against the adjacent schema where provided. |
+| `product_brief.md`, `evidence-handoff.json`, `model-bindings.json` | human/project owner | Edit deliberately. `attest` and consuming preflight enforce every schema registered in `pipeline-machine.json`; model bindings are checked directly. |
 | `.pipeline-state.json` | `setup-pipeline` | Use `bootstrap`/`migrate`/`init`, `set-condition`, `set-tier`, `enter`, `guard`, `attest`, `sign`, `status`, and `values`; do not hand-edit hashes or signatures. `set-phase` is a deprecated atomic alias for `enter`, not an unsafe override. Its adjacent `pipeline-state.schema.json` defines the ledger shape. |
-| phase artifacts such as plans, contracts, reviews, design and build evidence | producing skill | Run the phase, review its result, then attest the exact files. |
+| phase artifacts such as plans, contracts, reviews, design and build evidence | producing skill | Run the phase, review its result, then attest the exact files. Attestation records both artifact and schema hashes. |
 | `pipeline-machine.json`, `model-routing.json`, their schemas and generated machine view | setup maintainer | Change only as a versioned setup-contract update; never edit a project copy to bypass a gate. |
 
 `CONTINUITY.md` is fallback-only. A workctl-managed task instead owns its continuity under
@@ -383,7 +384,7 @@ the common route; it does not override the machine.
 | -1 | establish a supported product/delivery decision | `product_brief.md`, `evidence-handoff.json` | accountable input/signoff owned by discovery process |
 | 0 | close material factual gaps | `docs/research-state.json` and updated brief/evidence | source/evidence status preserved |
 | 1 | align terminology and document decisions | `CONTEXT.md`, `docs/adr/*.md` | unresolved conflicts remain explicit |
-| 2 | decompose outcome into implementable work | `task_plan.md` (+ JSON mirror) | architecture handoff covers responsibilities, flows, risks, verification |
+| 2 | decompose outcome into implementable work | canonical `task_plan.json` + generated `task_plan.md` | architecture handoff covers responsibilities, flows, risks, verification |
 | 2-PM | verify plan against the brief | `pm-review.json` | semantic verdict `APPROVE` |
 | 2b | formalize module graph and verification | GRACE XML artifacts | required for T3/T4 unless machine policy says otherwise |
 | 3 | approve frontend behavior before API implementation | wireframe, `api-contract.json`, design artifacts | human wireframe approval |
@@ -393,6 +394,7 @@ the common route; it does not override the machine.
 | 4c | make plan/structure legible to the human | Mermaid/Markdown view, `SUPERVISION.md` | `viz_before_tickets` signature |
 | 5 | create traceable implementation slices | approved issue set | issues link to plan/contract criteria |
 | 5.5 | provide code-native implementation boundaries | scaffolded module skeletons | scaffold readiness and contract preservation |
+| 6f | produce bounded fix evidence for T0/T1 | targeted change or diagnose+TDD, tests, `build-evidence.json` | no contract gate; artifact ownership and schema still apply |
 | 6 | implement and verify | code, tests, traces, `build-evidence.json` | collegium/model and build-evidence requirements |
 | 7 | review and accept the completed outcome | `feature-judge-report.json` for T2–T4, `code-review.md`, rollout evidence | entry check first; human acceptance and `--completion` check last |
 
@@ -617,7 +619,7 @@ setup-pipeline sign viz_before_tickets --by "name-or-account"
 | -1 | selected discovery process; private installs may use `methodology` | `product_brief.md`, `evidence-handoff.json`, and `business_model.md` if that process produced it |
 | 0 | `researcher` only when material factual gaps remain | research state plus changed brief/evidence |
 | 1 | `grill-with-docs` | attest stable `CONTEXT.md` plus relevant ADRs |
-| 2 | `planning-with-files` | `task_plan.md` and its JSON mirror |
+| 2 | `planning-with-files` | canonical `task_plan.json` and generated `task_plan.md` view |
 | 2-PM | `pm-review` in an independent context | `pm-review.json` |
 | 2b | `grace-init`, then `grace-plan` | required GRACE XML files |
 | 3 | `design-rubric` when needed, then `design-first` for frontend work | `design-contract.json`, `.design-contract-attestation`, `api-contract.json`, and the approved `docs/wireframe-<feature>.md` path returned by the skill |
@@ -627,6 +629,7 @@ setup-pipeline sign viz_before_tickets --by "name-or-account"
 | 4c | `visualization` | `SUPERVISION.md` and the review view |
 | 5 | `to-issues` after `viz_before_tickets` is signed | `issues-manifest.json` with status `approved` |
 | 5.5 | `scaffold` | `scaffold-manifest.json` with status `ready` |
+| 6f | T0: targeted change; T1: `triage` → `diagnose` → `tdd` | `build-evidence.json` with route `targeted` or `tdd` and status `complete` |
 | 6 | `build-loop` or `tdd` after `contract_locked` is signed | `build-evidence.json` with status `complete` |
 | 7 | T0/T1: `code-review-expert`; T2–T4: `judge feature`, then `code-review-expert` | stable final reports, then `human_acceptance`, then `setup-preflight 7 . --completion` |
 

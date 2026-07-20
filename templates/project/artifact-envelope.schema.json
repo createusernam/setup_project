@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "artifact-envelope.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_type", "project_id", "task_id", "phase", "status", "revision", "provenance", "authority", "facts", "assumptions", "unknowns", "invariants", "next_transition"],
+  "properties": {
+    "schema_version": {"const": "1"},
+    "artifact_type": {"enum": ["plan", "contract", "evidence", "review", "handoff", "view", "memory"]},
+    "project_id": {"type": "string", "minLength": 1},
+    "task_id": {"type": ["string", "null"]},
+    "phase": {"type": "string", "minLength": 1},
+    "status": {"enum": ["draft", "ready", "approved", "complete", "invalidated"]},
+    "revision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha256", "supersedes"],
+      "properties": {
+        "sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+        "supersedes": {"type": ["string", "null"]}
+      }
+    },
+    "provenance": {"type": "array", "items": {"type": "string"}},
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["producer", "approver"],
+      "properties": {"producer": {"type": "string", "minLength": 1}, "approver": {"type": ["string", "null"]}}
+    },
+    "facts": {"type": "array"},
+    "assumptions": {"type": "array"},
+    "unknowns": {"type": "array"},
+    "invariants": {"type": "array", "items": {"type": "string"}},
+    "next_transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed", "blockers"],
+      "properties": {"allowed": {"type": "boolean"}, "blockers": {"type": "array", "items": {"type": "string"}}}
+    }
+  }
+}

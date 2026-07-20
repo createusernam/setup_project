@@ -3,7 +3,7 @@ name: visualization
 description: Render the human-track views at pipeline gates — the Mermaid plan diagram the human approves before tickets are cut (viz_before_tickets), module/dependency flowcharts, and the SUPERVISION.md index. Choose concern, then scale, then notation; never start from the tool. Separate from the agent GRACE track. Use between /judge and /to-issues or when the user asks to visualize a plan or architecture.
 user-invocable: true
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
   track: "human (supervision) — the agent track is GRACE in-code markup"
 ---
 
@@ -21,13 +21,47 @@ into tickets. Mermaid is the default portable format, not a mandatory design met
 
 ## Three rules
 
-### Rule 1 — Choose concern and scale before notation
+### Rule 1 — Write the viewpoint contract before notation
 
-Start with the decision the view must support, then choose its scale, and only then select notation:
+Start with the stakeholder decision, then choose concern and scale, and only then select notation.
+For every durable gate view, write `docs/views/<view-id>.json` and validate it against
+`viewpoint.schema.json` before rendering:
 
-1. **Concern** — whose question and what decision? → `structural | behavioral | functional | data | goal`.
-2. **Scale** — what altitude? black / gray / white box. **One diagram = one altitude**; mixing scales makes box size misrepresent system size.
-3. **Notation** — only now pick the diagram language that encodes the chosen concern and scale.
+```json
+{
+  "$schema": "../../viewpoint.schema.json",
+  "version": "1",
+  "view_id": "story-payment-capacity",
+  "stakeholder": "operations_manager",
+  "decision": "where to add capacity before peak load",
+  "story_ref": "US-17",
+  "concern": "flow_and_overflow",
+  "scale": "system",
+  "focal_elements": ["incoming_orders", "processing_bucket", "overflow_queue"],
+  "actors": ["operations_manager"],
+  "metaphor": {
+    "name": "buckets_and_overflow",
+    "mapping": {"bucket": "worker_pool_capacity", "liquid": "queued_work", "spill": "rejected_or_delayed_work"},
+    "limits": ["liquid is homogeneous; real requests are not"]
+  },
+  "canonical_refs": ["contract.json#/integrations"],
+  "hidden_aggregation": ["request priority and service-time variance"],
+  "next_scale_views": ["story-payment-capacity-worker"],
+  "approval": {"status": "draft", "by": null, "at": null}
+}
+```
+
+The machine-readable order is:
+
+1. **Stakeholder + decision** — whose question, what decision, and which story/evidence anchors it?
+2. **Concern** — `structural | behavioral | functional | data | goal | flow_and_overflow | dynamics`.
+3. **Scale** — `context | system | subsystem | operation`. **One diagram = one altitude**.
+4. **Projection** — actors and optional metaphor with explicit mapping, limits, and hidden aggregation.
+5. **Notation** — only now pick the diagram language that encodes the concern and scale.
+
+The focal-elements budget is 1–3. More than three means aggregate explicitly or link a next-scale
+view. This is a local readability heuristic, not a cognitive-science standard. A metaphor is a
+human projection, never canonical ontology; process/structure truth remains in the canonical refs.
 
 ### Rule 2 — The plan owner supplies the view before tickets
 
@@ -107,6 +141,8 @@ behavioral review.
 
 - Each gate writes a **stably-named `*.md`** (not only inline JSON) with a ` ```mermaid ` block.
 - One **`SUPERVISION.md`** index per project links the human-review artifacts.
+- Index each durable view as `story → concern → scale → view → decision → approval` and link both
+  its viewpoint JSON and rendered Markdown/HTML projection.
 - A **`.pipeline-state.json`** convention (current phase · last gate · open questions) lets Obsidian show "where the agent is" at a glance.
 
 ---

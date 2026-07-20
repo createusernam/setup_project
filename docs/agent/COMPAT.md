@@ -78,11 +78,13 @@ Each project has `model-bindings.json`, created from the project template:
 ```json
 {
   "version": "1",
+  "conformance_policy": {"mode": "required", "minimum_pass_rate": 0.8, "harness_version": "1"},
   "bindings": {
     "reasoning_high": {
       "runtime": "your-runtime",
       "model_id": "provider/model-id",
-      "enabled": true
+      "enabled": true,
+      "conformance_ref": "model-conformance/provider-model.json"
     },
     "implementation_general": {
       "runtime": "another-runtime",
@@ -109,6 +111,7 @@ Fill every profile used by the selected route. Unused profiles may remain unboun
 | `enabled` | JSON boolean `true` or `false`; unused profiles stay `false` |
 | `runtime` | `claude`, `codex`, `opencode`, `api`, `manual`, `self-hosted`, or `custom:<lowercase-slug>` |
 | `model_id` | the exact non-empty, no-whitespace identifier selected by that runtime; use `provider/model-id` when the runtime uses that form |
+| `conformance_ref` | project-relative `model-conformance/*.json`; required for enabled bindings when policy mode is `required` |
 
 `runtime` names the surface that will actually run the phase. `api` means a direct provider API;
 `manual` means a human moves prompts/artifacts between surfaces; `self-hosted` means a locally
@@ -121,20 +124,54 @@ Example shape (identifiers are placeholders, not recommendations):
 {
   "$schema": "./model-bindings.schema.json",
   "version": "1",
+  "conformance_policy": {"mode": "required", "minimum_pass_rate": 0.8, "harness_version": "1"},
   "bindings": {
-    "reasoning_high": {"runtime": "claude", "model_id": "provider/reasoning-model", "enabled": true},
-    "reasoning_balanced": {"runtime": "codex", "model_id": "provider/general-model", "enabled": true},
-    "research_worker": {"runtime": "api", "model_id": "provider/research-model", "enabled": true},
-    "implementation_general": {"runtime": "codex", "model_id": "provider/code-model", "enabled": true},
-    "implementation_ui": {"runtime": "opencode", "model_id": "provider/ui-model", "enabled": true},
-    "review_test": {"runtime": "opencode", "model_id": "provider/test-model", "enabled": true},
-    "review_acceptance": {"runtime": "claude", "model_id": "provider/review-model", "enabled": true}
+    "reasoning_high": {"runtime": "claude", "model_id": "provider/reasoning-model", "enabled": true, "conformance_ref": "model-conformance/reasoning.json"},
+    "reasoning_balanced": {"runtime": "codex", "model_id": "provider/general-model", "enabled": true, "conformance_ref": "model-conformance/general.json"},
+    "research_worker": {"runtime": "api", "model_id": "provider/research-model", "enabled": true, "conformance_ref": "model-conformance/research.json"},
+    "implementation_general": {"runtime": "codex", "model_id": "provider/code-model", "enabled": true, "conformance_ref": "model-conformance/code.json"},
+    "implementation_ui": {"runtime": "opencode", "model_id": "provider/ui-model", "enabled": true, "conformance_ref": "model-conformance/ui.json"},
+    "review_test": {"runtime": "opencode", "model_id": "provider/test-model", "enabled": true, "conformance_ref": "model-conformance/test.json"},
+    "review_acceptance": {"runtime": "claude", "model_id": "provider/review-model", "enabled": true, "conformance_ref": "model-conformance/review.json"}
   }
 }
 ```
 
 The adjacent `model-bindings.schema.json` is authoritative for shape. `setup-model-check` additionally
-checks the profiles used by one phase and role independence.
+checks the profiles used by one phase and role independence. Core preflight also validates required
+conformance evidence: model ID, harness version, pass rate, and qualified verdict.
+
+Run a bounded API qualification without putting a key on the command line:
+
+```bash
+python3 scripts/model-conformance.py --provider PROVIDER --base-url BASE_URL \
+  --model MODEL_ID --output model-conformance/provider-model.json --api-key-stdin
+```
+
+For models reached through an already authenticated OpenCode provider, use the isolated runtime
+adapter. It batches the structured-output probes into one request and independently verifies the
+filesystem tool and multi-hop artifacts:
+
+```bash
+python3 scripts/opencode-conformance.py --model PROVIDER/MODEL \
+  --output model-conformance/provider-model.json
+```
+
+The credential is read from stdin (or the named environment variable) and is never written to the
+result. A legacy binding file with no `conformance_policy` remains advisory until explicitly migrated;
+new project templates fail closed.
+
+Migration for an existing project is explicit and non-destructive:
+
+1. keep the legacy file advisory while running conformance for each enabled model ID;
+2. save the validated results under `model-conformance/`;
+3. add each `conformance_ref` and the `conformance_policy` object in one reviewed edit;
+4. run `setup-preflight` for every phase used by the selected route;
+5. switch to `mode: required` only after all required bindings qualify.
+
+Do not add an attestation bypass. Existing valid artifacts are revalidated on consume and receive
+schema provenance on their next normal producer-phase attestation; schema-invalid legacy bytes must
+be repaired rather than grandfathered.
 
 ```bash
 setup-model-check 2 /path/to/project

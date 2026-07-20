@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "model-conformance.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "version", "harness_version", "provider", "runtime", "model_id", "endpoint_host", "executed_at", "settings", "scenarios", "summary", "provenance"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "version": {"const": "1"},
+    "harness_version": {"const": "1"},
+    "provider": {"type": "string", "minLength": 1},
+    "runtime": {"type": "string", "minLength": 1},
+    "model_id": {"type": "string", "minLength": 1},
+    "endpoint_host": {"type": "string", "minLength": 1},
+    "executed_at": {"type": "string", "format": "date-time"},
+    "settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["temperature", "max_tokens", "timeout_seconds", "max_repair_attempts", "thinking"],
+      "properties": {
+        "temperature": {"type": "number"},
+        "max_tokens": {"type": "integer", "minimum": 0, "description": "Zero means the runtime manages the token limit."},
+        "timeout_seconds": {"type": "integer", "minimum": 1},
+        "max_repair_attempts": {"type": "integer", "minimum": 0},
+        "thinking": {"enum": ["default", "enabled", "disabled"]}
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 7,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "status", "attempts", "latency_ms", "evidence"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "status": {"enum": ["pass", "fail", "error"]},
+          "attempts": {"type": "integer", "minimum": 1},
+          "latency_ms": {"type": "integer", "minimum": 0},
+          "evidence": {"type": "object"}
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["passed", "total", "pass_rate", "threshold", "qualified"],
+      "properties": {
+        "passed": {"type": "integer", "minimum": 0},
+        "total": {"type": "integer", "minimum": 1},
+        "pass_rate": {"type": "number", "minimum": 0, "maximum": 1},
+        "threshold": {"type": "number", "minimum": 0, "maximum": 1},
+        "qualified": {"type": "boolean"}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["setup_git_sha", "runner_sha256"],
+      "properties": {
+        "setup_git_sha": {"type": "string", "minLength": 1},
+        "runner_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    }
+  }
+}

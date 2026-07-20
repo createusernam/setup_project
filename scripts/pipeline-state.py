@@ -121,10 +121,18 @@ def load_preflight(root: Path) -> Any:
     return module
 
 
-def owner_for_artifact(machine: dict[str, Any], name: str) -> str | None:
+def owners_for_artifact(machine: dict[str, Any], name: str) -> list[str]:
     for pattern, ownership in machine.get("artifact_owners", {}).items():
         if fnmatch.fnmatch(name, pattern):
-            return ownership.get("producer_phase")
+            owners = ownership.get("producer_phases") or [ownership.get("producer_phase")]
+            return [owner for owner in owners if owner is not None]
+    return []
+
+
+def contract_for_artifact(machine: dict[str, Any], name: str) -> dict[str, Any] | None:
+    for pattern, contract in machine.get("artifact_owners", {}).items():
+        if fnmatch.fnmatch(name, pattern):
+            return contract
     return None
 
 
@@ -302,20 +310,31 @@ def command_attest(args: argparse.Namespace, root: Path, project: Path) -> int:
     records = ledger.setdefault("artifacts", {})
     changed_sources: list[str] = []
     refreshed: set[str] = set()
+    preflight = load_preflight(root)
     for raw_name in args.artifacts:
         artifact, name = project_artifact(project, raw_name)
-        owner = owner_for_artifact(machine, name)
-        if owner is not None and ledger.get("phase") != owner:
+        owners = owners_for_artifact(machine, name)
+        if owners and ledger.get("phase") not in owners:
             raise ValueError(
-                f"artifact {name!r} belongs to phase {owner}; current phase is {ledger.get('phase')!r}. "
-                f"Run `setup-pipeline enter {owner}` and the phase guard before producing or attesting it."
+                f"artifact {name!r} belongs to phase(s) {owners}; current phase is {ledger.get('phase')!r}. "
+                f"Enter one of {owners} and run its phase guard before producing or attesting it."
             )
         if not artifact.is_file():
             raise ValueError(f"artifact not found: {artifact}")
+        schema_failures = preflight.artifact_schema_errors(root, artifact, name, machine)
+        if schema_failures:
+            rendered = "\n  - ".join(schema_failures)
+            raise ValueError(f"cannot attest schema-invalid artifact {name!r}:\n  - {rendered}")
         current = sha256(artifact)
         prior = records.get(name, {}) if isinstance(records.get(name), dict) else {}
         previous_hash = prior.get("sha256")
-        records[name] = {"sha256": current, "status": args.status, "invalidated_by": None}
+        record = {"sha256": current, "status": args.status, "invalidated_by": None}
+        contract = contract_for_artifact(machine, name)
+        schema_name = contract.get("schema") if contract else None
+        if schema_name:
+            schema_path = root / schema_name
+            record.update({"schema": schema_name, "schema_sha256": sha256(schema_path)})
+        records[name] = record
         if not previous_hash or previous_hash != current:
             refreshed.add(name)
         if previous_hash and previous_hash != current:
@@ -765,18 +784,13 @@ def command_values(args: argparse.Namespace, root: Path, project: Path) -> int:
     for name in ("kind", "impact", "materiality", "disposition", "status"):
         print(f"  spec_gaps[].{name}: " + ", ".join(gaps[name]["enum"]))
     print("  cheapest_next_experiment.type: " + ", ".join(experiment["type"]["enum"]))
-    print("schema owners:")
-    for name in (
-        "evidence-handoff.schema.json",
-        "model-bindings.schema.json",
-        "pipeline-state.schema.json",
-        "risk-review.schema.json",
-        "issues-manifest.schema.json",
-        "scaffold-manifest.schema.json",
-        "build-evidence.schema.json",
-        "rollout-plan.schema.json",
-    ):
-        print(f"  {name}: {root / 'templates' / 'project' / name}")
+    print("registered artifact schemas:")
+    contracts: dict[str, str] = {}
+    for pattern, contract in {**machine.get("artifact_owners", {}), **machine.get("artifact_contracts", {})}.items():
+        if contract.get("schema"):
+            contracts[pattern] = contract["schema"]
+    for pattern, schema in sorted(contracts.items()):
+        print(f"  {pattern}: {root / schema}")
     return 0
 # END_BLOCK_LEDGER_COMMANDS
 

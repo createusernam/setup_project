@@ -9,6 +9,16 @@
     "$schema": {"type": "string"},
     "version": {"const": "1"},
     "_instructions": {"type": "string"},
+    "conformance_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "minimum_pass_rate", "harness_version"],
+      "properties": {
+        "mode": {"enum": ["advisory", "required"]},
+        "minimum_pass_rate": {"type": "number", "minimum": 0, "maximum": 1},
+        "harness_version": {"type": "string", "minLength": 1}
+      }
+    },
     "bindings": {
       "type": "object",
       "additionalProperties": false,
@@ -51,7 +61,8 @@
           "description": "Exact runtime model identifier; empty only while disabled.",
           "pattern": "^$|^[^\\s]+$"
         },
-        "enabled": {"type": "boolean"}
+        "enabled": {"type": "boolean"},
+        "conformance_ref": {"type": ["string", "null"], "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+\\.json$"}
       },
       "allOf": [
         {

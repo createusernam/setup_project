@@ -9,7 +9,9 @@
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 import re
@@ -32,6 +34,42 @@ def sha256(path: Path) -> str:
         for chunk in iter(lambda: stream.read(8192), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def load_schema_validator(root: Path) -> Any:
+    """Load the repository-owned portable JSON Schema validator."""
+    path = root / "scripts" / "json_schema.py"
+    spec = importlib.util.spec_from_file_location("setup_json_schema", path)
+    if spec is None or spec.loader is None:
+        raise ValueError(f"cannot load JSON Schema validator at {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def artifact_contract(machine: dict[str, Any], name: str) -> tuple[str, dict[str, Any]] | None:
+    """Resolve registry metadata for an artifact path."""
+    for registry_name in ("artifact_contracts", "artifact_owners"):
+        for pattern, contract in machine.get(registry_name, {}).items():
+            if fnmatch.fnmatch(name, pattern):
+                return pattern, contract
+    return None
+
+
+def artifact_schema_errors(root: Path, artifact: Path, name: str, machine: dict[str, Any]) -> list[str]:
+    """Validate a registered artifact before its bytes may carry an attestation."""
+    resolved = artifact_contract(machine, name)
+    if resolved is None:
+        return []
+    _, contract = resolved
+    schema_name = contract.get("schema")
+    if not schema_name:
+        return []
+    schema_path = root / schema_name
+    if not schema_path.is_file():
+        return [f"schema: registered schema missing for {name!r}: {schema_name}"]
+    validator = load_schema_validator(root)
+    return [f"schema: {name}: {error}" for error in validator.validate_file(artifact, schema_path)]
 
 
 def pointer(document: Any, value: str) -> Any:
@@ -124,6 +162,54 @@ def resolve_binding(bindings: dict[str, Any], profile: str) -> tuple[str, str] |
     if not valid_runtime(runtime) or not isinstance(model_id, str) or not model_id or any(char.isspace() for char in model_id):
         return None
     return runtime, model_id
+
+
+def model_conformance_errors(
+    root: Path,
+    project: Path,
+    machine: dict[str, Any],
+    profile: str,
+    binding: dict[str, Any],
+    policy: dict[str, Any],
+) -> list[str]:
+    """Verify that a required enabled binding is backed by matching executable probe evidence."""
+    if not binding.get("enabled") or policy.get("mode", "advisory") != "required":
+        return []
+    reference = binding.get("conformance_ref")
+    if not isinstance(reference, str) or not reference:
+        return [f"model_conformance: enabled profile {profile!r} requires conformance_ref"]
+    path = (project / reference).resolve()
+    try:
+        name = path.relative_to(project).as_posix()
+    except ValueError:
+        return [f"model_conformance: {profile!r} conformance_ref must stay inside the project"]
+    if not path.is_file():
+        return [f"model_conformance: {profile!r} evidence missing at {path}"]
+    failures = artifact_schema_errors(root, path, name, machine)
+    if failures:
+        return failures
+    try:
+        document = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        return [f"model_conformance: cannot read {name}: {error}"]
+    summary = document.get("summary", {})
+    expected_harness = policy.get("harness_version")
+    minimum = policy.get("minimum_pass_rate", 1)
+    if document.get("model_id") != binding.get("model_id"):
+        failures.append(
+            f"model_conformance: {profile!r} evidence model_id {document.get('model_id')!r} "
+            f"does not match binding {binding.get('model_id')!r}"
+        )
+    if expected_harness and document.get("harness_version") != expected_harness:
+        failures.append(
+            f"model_conformance: {profile!r} requires harness {expected_harness!r}, "
+            f"got {document.get('harness_version')!r}"
+        )
+    if not summary.get("qualified") or not isinstance(summary.get("pass_rate"), (int, float)) or summary["pass_rate"] < minimum:
+        failures.append(
+            f"model_conformance: {profile!r} pass_rate must be >= {minimum} and qualified=true"
+        )
+    return failures
 
 
 def ledger_errors(ledger: Any) -> list[str]:
@@ -321,8 +407,10 @@ def artifact_ownership_errors(
     failures: list[str] = []
     records = ledger.get("artifacts", {}) if isinstance(ledger.get("artifacts", {}), dict) else {}
     for pattern, ownership in machine.get("artifact_owners", {}).items():
-        owner = ownership.get("producer_phase")
-        if owner == phase:
+        owners = ownership.get("producer_phases") or [ownership.get("producer_phase")]
+        owners = [owner for owner in owners if owner is not None]
+        owner_label = f"phase {owners[0]}" if len(owners) == 1 else f"phases {owners}"
+        if not owners or phase in owners:
             continue
         for artifact in project.glob(pattern):
             if not artifact.is_file():
@@ -334,7 +422,7 @@ def artifact_ownership_errors(
                 if recorded_hash == sha256(artifact):
                     continue
                 failures.append(
-                    f"artifact_ownership: {name!r} changed outside producer phase {owner}; "
+                    f"artifact_ownership: {name!r} changed outside producer {owner_label}; "
                     f"ledger phase is {phase} and the recorded attestation no longer matches"
                 )
                 continue
@@ -344,8 +432,8 @@ def artifact_ownership_errors(
                 if template.is_file() and sha256(template) == sha256(artifact):
                     continue
             failures.append(
-                f"artifact_ownership: {name!r} belongs to phase {owner}, but ledger phase is {phase}; "
-                f"treat it as an unapproved draft and enter phase {owner} before writing or attesting it"
+                f"artifact_ownership: {name!r} belongs to {owner_label}, but ledger phase is {phase}; "
+                f"treat it as an unapproved draft and enter one of {owners} before writing or attesting it"
             )
     return failures
 
@@ -360,7 +448,8 @@ def artifact_flow_errors(machine: dict[str, Any]) -> list[str]:
     phase_position = {phase: index for index, phase in enumerate(transitions)}
     failures: list[str] = []
     for pattern, ownership in machine.get("artifact_owners", {}).items():
-        owner = ownership.get("producer_phase")
+        owners = ownership.get("producer_phases") or [ownership.get("producer_phase")]
+        owners = [owner for owner in owners if owner is not None]
         consumers: list[str] = []
         for phase, transition in transitions.items():
             requirements = list(transition.get("requires", []))
@@ -369,13 +458,16 @@ def artifact_flow_errors(machine: dict[str, Any]) -> list[str]:
                 consumers.append(phase)
         if not consumers:
             failures.append(
-                f"artifact_flow: output {pattern!r} from phase {owner} has no downstream requirement"
+                f"artifact_flow: output {pattern!r} from phase(s) {owners} has no downstream requirement"
             )
-        elif owner not in phase_position or all(
-            phase_position.get(consumer, -1) < phase_position[owner] for consumer in consumers
+        elif not owners or all(
+            owner not in phase_position or all(
+                phase_position.get(consumer, -1) < phase_position[owner] for consumer in consumers
+            )
+            for owner in owners
         ):
             failures.append(
-                f"artifact_flow: output {pattern!r} from phase {owner} is only consumed by earlier phases {consumers}"
+                f"artifact_flow: output {pattern!r} from phase(s) {owners} is only consumed by earlier phases {consumers}"
             )
     return failures
 
@@ -477,6 +569,13 @@ def evaluate(
             return [f"ledger: cannot read {ledger_path}: {error}"], [], transition
 
     failures: list[str] = ledger_errors(ledger)
+    if ledger_path.is_file():
+        validator = load_schema_validator(root)
+        ledger_schema = root / "templates" / "project" / "pipeline-state.schema.json"
+        failures.extend(
+            f"schema: .pipeline-state.json: {error}"
+            for error in validator.validate_file(ledger_path, ledger_schema)
+        )
     failures.extend(artifact_flow_errors(machine))
     failures.extend(human_request_contract_errors(machine))
     warnings: list[str] = []
@@ -517,14 +616,22 @@ def evaluate(
     configured_binding_path = ledger.get("model_bindings_file", "model-bindings.json")
     binding_path = project / configured_binding_path if isinstance(configured_binding_path, str) else project / "model-bindings.json"
     bindings: dict[str, Any] = {}
+    conformance_policy: dict[str, Any] = {"mode": "advisory"}
     if not binding_path.is_file() and requires_binding:
         failures.append(f"model: binding file missing at {binding_path}")
     elif binding_path.is_file():
+        validator = load_schema_validator(root)
+        binding_schema = root / "templates" / "project" / "model-bindings.schema.json"
+        failures.extend(
+            f"schema: {configured_binding_path}: {error}"
+            for error in validator.validate_file(binding_path, binding_schema)
+        )
         try:
             binding_document = json.loads(binding_path.read_text(encoding="utf-8"))
             if binding_document.get("version") != "1":
                 failures.append("model: binding file version must be '1'")
             bindings = binding_document.get("bindings", {})
+            conformance_policy = binding_document.get("conformance_policy", {"mode": "advisory"})
             if not isinstance(bindings, dict):
                 failures.append("model: bindings must be an object")
                 bindings = {}
@@ -533,6 +640,12 @@ def evaluate(
                 failures.append(f"model: unknown capability profiles: {', '.join(unknown_profiles)}")
         except (json.JSONDecodeError, AttributeError) as error:
             failures.append(f"model: cannot read bindings at {binding_path}: {error}")
+
+    for profile, binding in bindings.items():
+        if isinstance(binding, dict):
+            failures.extend(
+                model_conformance_errors(root, project, machine, profile, binding, conformance_policy)
+            )
 
     resolved: dict[str, str] = {}
     if required_profile:
@@ -566,11 +679,14 @@ def evaluate(
             artifact for artifact in project.glob(pattern) if artifact.is_file()
         ) if any(character in pattern for character in "*?[") else [project / pattern]
         if not matches or not all(artifact.exists() for artifact in matches):
+            if requirement.get("when_present"):
+                continue
             failures.append(f"input: required artifact {pattern!r} missing")
             continue
         for artifact in matches:
             name = artifact.relative_to(project).as_posix()
             record = records.get(name, {}) if isinstance(records.get(name, {}), dict) else {}
+            failures.extend(artifact_schema_errors(root, artifact, name, machine))
             if artifact.stat().st_size == 0:
                 failures.append(f"input: required artifact {name!r} is empty")
             if name == "code-review.md":
@@ -592,6 +708,24 @@ def evaluate(
                     actual = sha256(artifact)
                     if actual != expected:
                         failures.append(f"input: {name!r} changed since attested (ledger {expected[:12]}…, actual {actual[:12]}…)")
+                resolved_contract = artifact_contract(machine, name)
+                schema_name = resolved_contract[1].get("schema") if resolved_contract else None
+                if schema_name:
+                    schema_path = root / schema_name
+                    recorded_schema = record.get("schema")
+                    recorded_schema_hash = record.get("schema_sha256")
+                    if recorded_schema and recorded_schema != schema_name:
+                        failures.append(
+                            f"schema: {name!r} was attested against {recorded_schema!r}, expected {schema_name!r}"
+                        )
+                    elif recorded_schema_hash and recorded_schema_hash != sha256(schema_path):
+                        failures.append(
+                            f"schema: {name!r} schema changed since attestation; revalidate and re-attest"
+                        )
+                    elif not recorded_schema_hash:
+                        warnings.append(
+                            f"{name!r} attestation predates schema provenance; current bytes were validated but should be re-attested"
+                        )
             if "sha256_of" in requirement:
                 source = project / requirement["sha256_of"]
                 marker = artifact.read_text(encoding="utf-8", errors="replace").strip()

@@ -310,7 +310,8 @@ Concretely, in this loop: `iterations/<n>/traces/*.log` carry `[Module][function
 are read by the evaluator for `trace` criteria; `docs/*.xml` carry the graph the generator navigates.
 Neither is ever converted to JSON to "keep the state uniform".
 
-`progress.md` is still updated for human readability — but its content is mirrored to `progress.json` by the modified `/planning-with-files`.
+`progress.json` is canonical planning progress. `/planning-with-files` deterministically renders
+`progress.md` for human readability; the loop never edits both representations.
 
 ## Restart vs patch — concrete heuristic
 

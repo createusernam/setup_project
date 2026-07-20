@@ -1,11 +1,11 @@
 {
-  "version": "1.2",
+  "version": "1.3",
   "description": "Executable transition contract for the setup pipeline. Prose explains transitions; this file authorizes them.",
   "risk_policy": {
     "default": "T3",
     "tiers": {
-      "T0": {"label": "mechanical", "criteria": "typo, config, or deterministic edit; reversible; one boundary", "required_phases": ["7"]},
-      "T1": {"label": "bounded_bugfix", "criteria": "reproduced defect with bounded blast radius", "required_phases": ["7"]},
+      "T0": {"label": "mechanical", "criteria": "typo, config, or deterministic edit; reversible; one boundary", "required_phases": ["6f", "7"]},
+      "T1": {"label": "bounded_bugfix", "criteria": "reproduced defect with bounded blast radius", "required_phases": ["6f", "7"]},
       "T2": {"label": "small_reversible_feature", "criteria": "small reversible feature across at most two boundaries", "required_phases": ["1", "2", "4", "4b", "4c", "5", "6", "7"], "conditional_phases": {"0": {"condition": "research_required", "equals": true, "description": "only when material factual gaps remain"}, "3": {"condition": "frontend", "equals": true, "description": "only when the change includes frontend behavior"}}},
       "T3": {"label": "cross_module_or_high_risk", "criteria": "cross-module change, high uncertainty, or costly rework", "required_phases": ["-1", "1", "2", "2-PM", "2b", "4", "4b", "4c", "5", "5.5", "6", "7"], "conditional_phases": {"0": {"condition": "research_required", "equals": true, "description": "only when material factual gaps remain"}, "3": {"condition": "frontend", "equals": true, "description": "only when the change includes frontend behavior"}}},
       "T4": {"label": "safety_regulatory_irreversible", "criteria": "safety, regulatory, security, privacy, or irreversible impact", "required_phases": ["-1", "1", "2", "2-PM", "2b", "3r", "4", "4b", "4c", "5", "5.5", "6", "7"], "conditional_phases": {"0": {"condition": "research_required", "equals": true, "description": "only when material factual gaps remain"}, "3": {"condition": "frontend", "equals": true, "description": "only when the change includes frontend behavior"}}}
@@ -27,7 +27,7 @@
       "requires": [
         {"artifact": "product_brief.md", "attested": true},
         {"artifact": "evidence-handoff.json", "attested": true, "json_pointer": "/decision", "equals": "delivery"},
-        {"artifact": "business_model.md", "attested": true},
+        {"artifact": "business_model.md", "attested": true, "when_present": true},
         {"artifact": "docs/research-state.json", "attested": true, "when": {"condition": "research_required", "equals": true}}
       ]
     },
@@ -120,6 +120,10 @@
         {"artifact": "docs/knowledge-graph.xml", "attested": true}
       ]
     },
+    "6f": {
+      "skill": "targeted change or diagnose+tdd", "tiers": ["T0", "T1"],
+      "requires": []
+    },
     "6": {
       "skill": "build-loop, tdd", "tiers": ["T2", "T3", "T4"],
       "requires": [
@@ -147,7 +151,7 @@
   },
   "artifact_owners": {
     "product_brief.md": {"producer_phase": "-1", "template": "templates/project/product_brief.md"},
-    "evidence-handoff.json": {"producer_phase": "-1", "template": "templates/project/evidence-handoff.json"},
+    "evidence-handoff.json": {"producer_phase": "-1", "template": "templates/project/evidence-handoff.json", "schema": "templates/project/evidence-handoff.schema.json", "media_type": "application/json"},
     "business_model.md": {"producer_phase": "-1"},
     "docs/research-state.json": {"producer_phase": "0"},
     "CONTEXT.md": {"producer_phase": "1"},
@@ -163,16 +167,24 @@
     ".design-contract-attestation": {"producer_phase": "3"},
     "api-contract.json": {"producer_phase": "3"},
     "docs/wireframe-*.md": {"producer_phase": "3"},
-    "risk-review.json": {"producer_phase": "3r", "template": "templates/project/risk-review.json"},
-    "rollout-plan.json": {"producer_phase": "3r", "template": "templates/project/rollout-plan.json"},
-    "contract.json": {"producer_phase": "4", "template": "templates/project/contract.json"},
+    "risk-review.json": {"producer_phase": "3r", "template": "templates/project/risk-review.json", "schema": "templates/project/risk-review.schema.json", "media_type": "application/json"},
+    "rollout-plan.json": {"producer_phase": "3r", "template": "templates/project/rollout-plan.json", "schema": "templates/project/rollout-plan.schema.json", "media_type": "application/json"},
+    "contract.json": {"producer_phase": "4", "template": "templates/project/contract.json", "schema": "templates/project/contract.schema.json", "media_type": "application/json"},
     "judge-report.json": {"producer_phase": "4b"},
     "SUPERVISION.md": {"producer_phase": "4c"},
-    "issues-manifest.json": {"producer_phase": "5", "template": "templates/project/issues-manifest.json"},
-    "scaffold-manifest.json": {"producer_phase": "5.5", "template": "templates/project/scaffold-manifest.json"},
-    "build-evidence.json": {"producer_phase": "6", "template": "templates/project/build-evidence.json"},
+    "issues-manifest.json": {"producer_phase": "5", "template": "templates/project/issues-manifest.json", "schema": "templates/project/issues-manifest.schema.json", "media_type": "application/json"},
+    "scaffold-manifest.json": {"producer_phase": "5.5", "template": "templates/project/scaffold-manifest.json", "schema": "templates/project/scaffold-manifest.schema.json", "media_type": "application/json"},
+    "build-evidence.json": {"producer_phases": ["6f", "6"], "template": "templates/project/build-evidence.json", "schema": "templates/project/build-evidence.schema.json", "media_type": "application/json"},
     "feature-judge-report.json": {"producer_phase": "7"},
     "code-review.md": {"producer_phase": "7"}
+  },
+  "artifact_contracts": {
+    ".pipeline-state.json": {"producer": "setup-pipeline", "schema": "templates/project/pipeline-state.schema.json", "media_type": "application/json"},
+    "model-bindings.json": {"producer": "project_owner", "schema": "templates/project/model-bindings.schema.json", "media_type": "application/json"},
+    "model-conformance/*.json": {"producer": "model-conformance", "schema": "templates/project/model-conformance.schema.json", "media_type": "application/json"},
+    "cross-model-review/*.json": {"producer": "cross-model-review", "schema": "templates/project/cross-model-review.schema.json", "media_type": "application/json"},
+    "docs/views/*.json": {"producer": "visualization", "schema": "templates/project/viewpoint.schema.json", "media_type": "application/json"},
+    ".kaeru/*.json": {"producer": "kaeru-adapter", "schema": "templates/project/kaeru-memory-ref.schema.json", "media_type": "application/json"}
   },
   "gate_owners": {
     "contract_locked": "4b",

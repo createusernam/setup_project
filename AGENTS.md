@@ -7,6 +7,7 @@
 - `docs/human/PIPELINE.md` — sole project operator path from bootstrap through Phase 7 acceptance
 - `docs/agent/COMPAT.md` — cross-runtime compatibility and provider-neutral capability bindings
 - `docs/agent/PROMPT-FORMAT.md` — structured prompt standard (PCAM, Belief State, metamodel check)
+- `docs/agent/ARTIFACT-CONTRACTS.md` — schema-on-attest/consume, state envelope, conformance evidence, and single-writer planning state
 - `skills/grace-ontology/SKILL.md` — GRACE annotation vocabulary (agent-facing)
 - `skills/visualization/SKILL.md` — human-track views (Mermaid/HTML) at pipeline gates; concern → scale → notation
 - `docs/human/ARCHITECTURE-GUIDE.md` — neutral architecture handoff: required inputs, portable outputs, quality checks, and pipeline re-entry; architecture method/tool is the user's choice
@@ -79,6 +80,12 @@ Apply to every agent in every phase:
 - **Validate skills against their runtime profile.** Run `python3 scripts/validate-skills.py --profile claude` for this repository. Claude fields such as `user-invocable` and `hooks` are valid here; use `--profile portable` only when packaging a runtime-neutral skill and treat its stricter rejection as a portability result, not a Claude error.
 - **The handoff to a cheaper model is code, not a spec.** Writing a module spec costs roughly what writing the module costs, and a small model imitates code far more faithfully than it follows prose. Strong model → `scaffold` (contracts, blocks, log anchors, `IMPL:` directives, mocks, no logic); implementer fills the blocks and must not alter contracts, block names or log anchors.
 - **Tests are feedback, not the spec.** The spec is the contract; the trace is the evidence. Grade trajectories (`verify.method: trace` against `[Module][function][BLOCK]` logs), not just return values — an LLM will otherwise write code that satisfies every assertion and breaks everywhere nobody asserted. Never hand an agent a bare `TEST FAIL`: say which anchor was missed, which branch fired, what the trace shows.
+- **Kaeru is optional retrieval memory, never pipeline authority.** Resolve truth in this order:
+  Git/setup artifact → explicitly named workctl task → Kaeru → runtime session. At re-entry read
+  pipeline status and the named task first; call Kaeru `initiatives`, `awake`, and `overview` only
+  for missing cognitive context. Never store credentials/PII, never auto-promote memory, and route a
+  promotion candidate through `scripts/kaeru-adapter.py`, the owning producer phase, validation,
+  attestation, and any human gate.
 
 ## Maintaining this file
 

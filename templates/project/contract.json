@@ -1,4 +1,5 @@
 {
+  "$schema": "./contract.schema.json",
   "_comment": "Draft only. /contract must resolve all null decision fields before attestation.",
   "version": "2",
   "scope": "",

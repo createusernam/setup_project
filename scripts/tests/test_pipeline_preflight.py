@@ -27,6 +27,28 @@ def write(project: Path, name: str, value: object) -> str:
     return hashlib.sha256(content.encode()).hexdigest()
 
 
+def bindings_document(overrides: dict[str, dict[str, object]]) -> dict[str, object]:
+    document = json.loads((ROOT / "templates/project/model-bindings.json").read_text(encoding="utf-8"))
+    document.pop("conformance_policy", None)  # legacy advisory fixture; conformance has dedicated tests
+    for profile, binding in overrides.items():
+        document["bindings"][profile].update(binding)
+    return document
+
+
+def evidence_document(decision: str, spec_gaps: list[dict[str, object]] | None = None) -> dict[str, object]:
+    document = json.loads((ROOT / "templates/project/evidence-handoff.json").read_text(encoding="utf-8"))
+    document["decision"] = decision
+    document["validation_stage"] = "alpha" if decision != "stop" else "discovery"
+    document["spec_gaps"] = spec_gaps or []
+    return document
+
+
+def build_document(*, checks: list[dict[str, object]], criteria: list[dict[str, object]]) -> dict[str, object]:
+    document = json.loads((ROOT / "templates/project/build-evidence.json").read_text(encoding="utf-8"))
+    document.update({"status": "complete", "checks": checks, "criteria": criteria})
+    return document
+
+
 # START_BLOCK_SEMANTIC_PREFLIGHT_CASES
 def main() -> None:
     machine = json.loads((ROOT / "pipeline-machine.json").read_text(encoding="utf-8"))
@@ -91,15 +113,12 @@ def main() -> None:
         assert any("changed outside producer phase 3" in item for item in failures), failures
     with tempfile.TemporaryDirectory() as raw:
         frontend_project = Path(raw)
-        write(frontend_project, "model-bindings.json", {
-            "version": "1",
-            "bindings": {
-                "reasoning_high": {"runtime": "claude", "model_id": "model-reasoning-high", "enabled": True}
-            },
-        })
+        write(frontend_project, "model-bindings.json", bindings_document({
+            "reasoning_high": {"runtime": "claude", "model_id": "model-reasoning-high", "enabled": True}
+        }))
         artifacts = {
             "task_plan.md": "plan\n",
-            "evidence-handoff.json": {"decision": "delivery", "spec_gaps": []},
+            "evidence-handoff.json": evidence_document("delivery"),
             "design-contract.json": {"version": "1"},
             "api-contract.json": {"version": "1"},
             "docs/wireframe-home.md": "approved wireframe\n",
@@ -124,6 +143,7 @@ def main() -> None:
                 "viz_before_tickets": {"by": None, "at": None},
                 "human_acceptance": {"by": None, "at": None},
             },
+            "phase_processes": {},
         }
         write(frontend_project, ".pipeline-state.json", ledger)
         failures, _, _ = module.evaluate(ROOT, frontend_project, "4")
@@ -137,9 +157,7 @@ def main() -> None:
         assert any("must contain the sha256" in item for item in failures), failures
     with tempfile.TemporaryDirectory() as raw:
         project = Path(raw)
-        write(project, "model-bindings.json", {
-            "version": "1",
-            "bindings": {
+        write(project, "model-bindings.json", bindings_document({
                 "reasoning_high": {"runtime": "claude", "model_id": "model-reasoning-high", "enabled": True},
                 "reasoning_balanced": {"runtime": "claude", "model_id": "model-reasoning-balanced", "enabled": True},
                 "research_worker": {"runtime": "codex", "model_id": "model-research", "enabled": True},
@@ -147,9 +165,10 @@ def main() -> None:
                 "implementation_ui": {"runtime": "opencode", "model_id": "model-ui", "enabled": True},
                 "review_test": {"runtime": "opencode", "model_id": "model-test", "enabled": True},
                 "review_acceptance": {"runtime": "claude", "model_id": "model-acceptance", "enabled": True},
-            }
-        })
-        contract_hash = write(project, "contract.json", {"scope": "x"})
+        }))
+        contract_document = json.loads((ROOT / "templates/project/contract.json").read_text(encoding="utf-8"))
+        contract_document["scope"] = "x"
+        contract_hash = write(project, "contract.json", contract_document)
         judge_hash = write(project, "judge-report.json", {"data": {"verdict": "FAIL"}})
         ledger = {
             "version": "2",
@@ -164,7 +183,8 @@ def main() -> None:
                 "contract_locked": {"by": None, "at": None},
                 "viz_before_tickets": {"by": None, "at": None},
                 "human_acceptance": {"by": None, "at": None},
-            }
+            },
+            "phase_processes": {},
         }
         write(project, ".pipeline-state.json", ledger)
         failures, _, _ = module.evaluate(ROOT, project, "4c")
@@ -180,7 +200,7 @@ def main() -> None:
         assert any("unnecessary" in item and "frontend" in item for item in failures), failures
 
         brief_hash = write(project, "product_brief.md", "brief\n")
-        evidence_hash = write(project, "evidence-handoff.json", {"decision": "alpha", "spec_gaps": []})
+        evidence_hash = write(project, "evidence-handoff.json", evidence_document("alpha"))
         ledger["policy"] = {"risk_tier": "T2", "conditions": {"research_required": True, "frontend": False}}
         ledger["phase"] = "0"
         ledger["artifacts"].update({
@@ -227,6 +247,10 @@ def main() -> None:
         write(project, "model-bindings.json", bindings)
         failures, _, _ = module.evaluate(ROOT, project, "6")
         assert any("review_test" in item and "unbound or disabled" in item for item in failures), failures
+        bindings["bindings"]["review_test"] = {
+            "runtime": "opencode", "model_id": "model-test", "enabled": True, "conformance_ref": None
+        }
+        write(project, "model-bindings.json", bindings)
 
         ledger["model_bindings_file"] = "../outside.json"
         write(project, ".pipeline-state.json", ledger)
@@ -234,11 +258,9 @@ def main() -> None:
         assert any("model_bindings_file" in item and "project-relative" in item for item in failures), failures
         ledger["model_bindings_file"] = "model-bindings.json"
 
-        build_hash = write(project, "build-evidence.json", {
-            "status": "complete",
-            "checks": [{"command": "test", "status": "pass", "evidence_ref": "test.log"}],
-            "criteria": [{"id": "C1", "status": "PASS", "evidence_ref": "test.log"}],
-        })
+        passing_checks = [{"command": "test", "status": "pass", "evidence_ref": "test.log"}]
+        passing_criteria = [{"id": "C1", "status": "PASS", "evidence_ref": "test.log"}]
+        build_hash = write(project, "build-evidence.json", build_document(checks=passing_checks, criteria=passing_criteria))
         feature_hash = write(project, "feature-judge-report.json", {"data": {"verdict": "PASS"}})
         review_hash = write(project, "code-review.md", "**Overall assessment**: APPROVE\n")
         ledger["policy"] = {"risk_tier": "T2", "conditions": {"research_required": False, "frontend": False}}
@@ -263,17 +285,13 @@ def main() -> None:
         failures, _, _ = module.evaluate(ROOT, project, "7", completion=True)
         assert not failures, failures
 
-        empty_build_hash = write(project, "build-evidence.json", {"status": "complete", "checks": [], "criteria": []})
+        empty_build_hash = write(project, "build-evidence.json", build_document(checks=[], criteria=[]))
         ledger["artifacts"]["build-evidence.json"]["sha256"] = empty_build_hash
         write(project, ".pipeline-state.json", ledger)
         failures, _, _ = module.evaluate(ROOT, project, "7")
         assert any("requires at least one check" in item for item in failures), failures
         ledger["artifacts"]["build-evidence.json"]["sha256"] = build_hash
-        write(project, "build-evidence.json", {
-            "status": "complete",
-            "checks": [{"command": "test", "status": "pass", "evidence_ref": "test.log"}],
-            "criteria": [{"id": "C1", "status": "PASS", "evidence_ref": "test.log"}],
-        })
+        write(project, "build-evidence.json", build_document(checks=passing_checks, criteria=passing_criteria))
         write(project, ".pipeline-state.json", ledger)
 
         ledger["artifacts"]["code-review.md"]["status"] = "draft"

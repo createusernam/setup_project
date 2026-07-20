@@ -23,12 +23,24 @@ module = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(module)
 
 
+def evidence_document(decision: str) -> dict:
+    document = json.loads((ROOT / "templates/project/evidence-handoff.json").read_text(encoding="utf-8"))
+    document["decision"] = decision
+    document["validation_stage"] = "alpha"
+    document["spec_gaps"] = []
+    return document
+
+
 # START_BLOCK_PIPELINE_STATE_CASES
 class PipelineStateTests(unittest.TestCase):
     def _install_test_process(self, root: Path, *, exit_code: int = 1) -> None:
         (root / "scripts").mkdir(parents=True, exist_ok=True)
         (root / "scripts" / "pipeline_preflight.py").write_bytes(
             (ROOT / "scripts/pipeline_preflight.py").read_bytes()
+        )
+        (root / "scripts" / "json_schema.py").write_bytes((ROOT / "scripts/json_schema.py").read_bytes())
+        (root / "templates" / "project" / "pipeline-state.schema.json").write_bytes(
+            (ROOT / "templates/project/pipeline-state.schema.json").read_bytes()
         )
         skill = root / "skills" / "sample-process"
         (skill / "scripts").mkdir(parents=True)
@@ -139,7 +151,7 @@ class PipelineStateTests(unittest.TestCase):
             module.command_set_tier(SimpleNamespace(tier="T0", reason="targeted deterministic repair"), root, project)
 
             with self.assertRaisesRegex(ValueError, "cannot leave phase -1.*process validator is blocked"):
-                module.command_enter(SimpleNamespace(phase="7"), root, project)
+                module.command_enter(SimpleNamespace(phase="6f"), root, project)
 
             failures, _, _ = module.load_preflight(root).evaluate(root, project, "-1")
             self.assertFalse(any("phase_process" in failure for failure in failures))
@@ -271,7 +283,7 @@ class PipelineStateTests(unittest.TestCase):
             module.command_bootstrap(SimpleNamespace(), ROOT, project)
             (project / "product_brief.md").write_text("# Approved brief\n", encoding="utf-8")
             (project / "evidence-handoff.json").write_text(
-                json.dumps({"decision": "delivery", "spec_gaps": []}) + "\n", encoding="utf-8"
+                json.dumps(evidence_document("delivery")) + "\n", encoding="utf-8"
             )
             (project / "business_model.md").write_text("# Approved business model\n", encoding="utf-8")
             module.command_attest(
@@ -284,6 +296,7 @@ class PipelineStateTests(unittest.TestCase):
             )
             bindings_path = project / "model-bindings.json"
             bindings = json.loads(bindings_path.read_text(encoding="utf-8"))
+            bindings.pop("conformance_policy", None)
             bindings["bindings"]["reasoning_balanced"] = {
                 "runtime": "codex", "model_id": "provider/reasoning-balanced", "enabled": True
             }
@@ -324,12 +337,13 @@ class PipelineStateTests(unittest.TestCase):
             project = Path(raw)
             module.command_bootstrap(SimpleNamespace(), ROOT, project)
             (project / "product_brief.md").write_text("# Discovery brief\n", encoding="utf-8")
-            (project / "evidence-handoff.json").write_text(json.dumps({"decision": "alpha"}) + "\n", encoding="utf-8")
+            (project / "evidence-handoff.json").write_text(json.dumps(evidence_document("alpha")) + "\n", encoding="utf-8")
             module.command_attest(
                 SimpleNamespace(artifacts=["product_brief.md", "evidence-handoff.json"], status="ready"), ROOT, project
             )
             bindings_path = project / "model-bindings.json"
             bindings = json.loads(bindings_path.read_text(encoding="utf-8"))
+            bindings.pop("conformance_policy", None)
             bindings["bindings"]["reasoning_balanced"] = {
                 "runtime": "codex", "model_id": "provider/reasoning-balanced", "enabled": True
             }

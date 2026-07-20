@@ -44,6 +44,9 @@ if PUBLISHER.is_file():
     assert "--dry-run" in publisher and "no commit or push performed" in publisher, (
         "publisher must provide a non-mutating public-preview mode"
     )
+    assert '--exclude="docs/private"' in publisher, (
+        "publisher must structurally exclude private operator documentation"
+    )
 
 assert "methodology" not in (ROOT / "pipeline-machine.json").read_text(encoding="utf-8").lower(), (
     "public pipeline-machine must not route to the excluded private methodology skill"

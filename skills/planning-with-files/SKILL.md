@@ -17,7 +17,7 @@ hooks:
     - matcher: "Write|Edit"
       hooks:
         - type: command
-          command: "if [ -f task_plan.md ]; then echo '[planning-with-files] Update progress.md with what you just did. If a phase is now complete, update task_plan.md status.'; fi"
+          command: "if [ -f task_plan.md ]; then echo '[planning-with-files] Update canonical progress.json/task_plan.json, then run scripts/planning-state.py render for the active plan directory.'; fi"
   Stop:
     - hooks:
         - type: command
@@ -26,7 +26,7 @@ hooks:
     - matcher: "*"
       hooks:
         - type: command
-          command: "if [ -f task_plan.md ]; then echo '[planning-with-files] PreCompact: context compaction is about to occur.'; echo 'Before compaction completes: ensure progress.md captures recent actions and task_plan.md status reflects current phase.'; echo 'task_plan.md, findings.md, progress.md remain on disk and will be re-read after compaction.'; ATTEST=''; if [ -f .planning/.active_plan ]; then AP=$(tr -d '[:space:]' < .planning/.active_plan 2>/dev/null); if [ -n \"$AP\" ] && [ -f \".planning/$AP/.attestation\" ]; then ATTEST=$(tr -d '[:space:]' < \".planning/$AP/.attestation\" 2>/dev/null); fi; fi; if [ -z \"$ATTEST\" ] && [ -f .plan-attestation ]; then ATTEST=$(tr -d '[:space:]' < .plan-attestation 2>/dev/null); fi; if [ -n \"$ATTEST\" ]; then echo \"Plan-SHA256 at compaction: $ATTEST\"; fi; fi; exit 0"
+          command: "if [ -f task_plan.md ]; then echo '[planning-with-files] PreCompact: context compaction is about to occur.'; echo 'Before compaction completes: update canonical progress.json/task_plan.json and render Markdown views.'; echo 'JSON planning state and generated Markdown views remain on disk and will be re-read after compaction.'; ATTEST=''; if [ -f .planning/.active_plan ]; then AP=$(tr -d '[:space:]' < .planning/.active_plan 2>/dev/null); if [ -n \"$AP\" ] && [ -f \".planning/$AP/.attestation\" ]; then ATTEST=$(tr -d '[:space:]' < \".planning/$AP/.attestation\" 2>/dev/null); fi; fi; if [ -z \"$ATTEST\" ] && [ -f .plan-attestation ]; then ATTEST=$(tr -d '[:space:]' < .plan-attestation 2>/dev/null); fi; if [ -n \"$ATTEST\" ]; then echo \"Plan-SHA256 at compaction: $ATTEST\"; fi; fi; exit 0"
 metadata:
   version: "2.40.0"
 ---
@@ -81,9 +81,9 @@ If catchup report shows unsynced context:
 
 Before ANY complex task:
 
-1. **Create `task_plan.md`** — Use [templates/task_plan.md](templates/task_plan.md) as reference
-2. **Create `findings.md`** — Use [templates/findings.md](templates/findings.md) as reference
-3. **Create `progress.md`** — Use [templates/progress.md](templates/progress.md) as reference
+1. Run `scripts/init-session.sh` to create canonical `task_plan.json`, `findings.json`, and `progress.json`.
+2. Edit only the JSON state files.
+3. Run `scripts/planning-state.py render <plan-dir>` to regenerate the Markdown views.
 4. **Re-read plan before decisions** — Refreshes goals in attention window
 5. **Update after each phase** — Mark complete, log errors
 
@@ -134,21 +134,26 @@ are identical either way.
 
 | File | Purpose | When to Update |
 |------|---------|----------------|
-| `task_plan.md` | Phases, progress, decisions | After each phase |
-| `findings.md` | Research, discoveries | After ANY discovery |
-| `progress.md` | Session log, test results | Throughout session |
+| `task_plan.json` | Canonical phases, progress, decisions | After each phase |
+| `findings.json` | Canonical research and discoveries | After ANY discovery |
+| `progress.json` | Canonical append-only session log | Throughout session |
+| `task_plan.md`, `findings.md`, `progress.md` | Deterministic human views | Regenerate after JSON edits |
 
-### JSON mirror (v2.39.0+)
+### Single-writer planning state (v2.40.0+)
 
-Per the Anthropic Applied AI talk on long-running agents (May 2026), **models overwrite markdown files more aggressively than JSON**. For long autonomous runs, maintain JSON mirrors of the three planning files alongside the markdown:
+JSON is canonical. Markdown is a deterministic generated human view; it is never edited in parallel.
+This removes dual-write drift while preserving the readable files consumed by hooks and reviews:
 
-| Markdown | JSON mirror | Purpose |
+| Generated view | Canonical JSON | Purpose |
 |----------|-------------|---------|
 | `task_plan.md` | `task_plan.json` | machine-readable phases + statuses |
 | `progress.md` | `progress.json` | append-only session log |
 | `findings.md` | `findings.json` | structured research entries |
 
-The markdown stays the human-readable view. The JSON mirror is what autonomous loops (`/build-loop`, the orchestrator scripts) read and write. Keep both in sync — when you update one, update the other in the same edit.
+Autonomous loops read and write JSON. After each logical update, run
+`python3 <skill-root>/scripts/planning-state.py render <plan-dir>`. Generated Markdown begins with a
+do-not-edit marker. Legacy sessions that have only Markdown remain readable; migrate them deliberately
+rather than inventing missing structured fields.
 
 **JSON schemas:**
 
@@ -192,7 +197,7 @@ Why bother with both: markdown for /grill-with-docs and human review; JSON for /
 ## Critical Rules
 
 ### 1. Create Plan First
-Never start a complex task without `task_plan.md`. Non-negotiable.
+Never start a complex task without canonical `task_plan.json` and its generated `task_plan.md` view.
 
 ### 2. The 2-Action Rule
 > "After every 2 view/browser/search operations, IMMEDIATELY save key findings to text files."
@@ -305,7 +310,8 @@ Copy these templates to start:
 
 Helper scripts for automation:
 
-- `scripts/init-session.sh` — Initialize planning files. With a name arg, creates an isolated plan under `.planning/YYYY-MM-DD-<slug>/` for parallel task workflows. Without args, writes `task_plan.md` at project root (legacy mode, backward-compatible).
+- `scripts/init-session.sh` — Initialize JSON-canonical planning files and generated Markdown views. With a name arg, creates an isolated plan under `.planning/YYYY-MM-DD-<slug>/`; without args, initializes the project root.
+- `scripts/planning-state.py` — Initialize, deterministically render, and check canonical planning state.
 - `scripts/set-active-plan.sh` — Switch the active plan pointer (`.planning/.active_plan`). Run with a plan ID to switch; run without args to show which plan is current.
 - `scripts/resolve-plan-dir.sh` — Resolve the active plan directory. Checks `$PLAN_ID` env var first, then `.planning/.active_plan`, then newest plan dir by mtime, then falls back to project root (legacy). Used internally by hooks.
 - `scripts/check-complete.sh` — Verify all phases in the active plan are complete.
@@ -362,7 +368,7 @@ Composes with Claude Code's `/goal`. Derives a goal condition from the active pl
 
 ### `/plan-loop` slash command
 
-Composes with Claude Code's `/loop`. Default 10-minute tick re-reads the planning files, runs `check-complete`, and writes a `progress.md` entry if nothing changed since the last tick.
+Composes with Claude Code's `/loop`. Default 10-minute tick re-reads planning state, runs `check-complete`, appends to `progress.json` if nothing changed, and renders the Markdown views.
 
 ```
 /plan-loop                                # default 10m cadence, default tick prompt
@@ -416,7 +422,7 @@ The attestation is written to `.planning/<active-plan>/.attestation` (parallel-p
 
 | Don't | Do Instead |
 |-------|------------|
-| Use TodoWrite for persistence | Create task_plan.md file |
+| Use TodoWrite for persistence | Initialize canonical task_plan.json and render task_plan.md |
 | State goals once and forget | Re-read plan before decisions |
 | Hide errors and retry silently | Log errors to plan file |
 | Stuff everything in context | Store large content in files |

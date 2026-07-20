@@ -195,7 +195,8 @@ The private setup checkout is the editing source; the public repository is a gen
 mirror. For every wider setup behavior change, update the public-safe explanation in both the
 relevant `docs/human/` page and `docs/agent/` page before publishing. If the change affects the
 engineering conveyor, update the handbook's `setup-pipeline.html` from `PIPELINE.md` and rebuild its
-manifest. Keep private-only content in its excluded owner paths.
+manifest. Keep private-only content in its excluded owner paths, including `docs/private/` for
+operator runbooks that must not enter the public projection.
 
 Commit the private source first, then run `publish-public.sh`. Never patch the generated public copy
 to hide source drift; the publisher rewrites public URLs and fails closed on private markers.

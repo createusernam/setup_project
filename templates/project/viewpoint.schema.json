@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "viewpoint.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "version", "view_id", "stakeholder", "decision", "story_ref", "concern", "scale", "focal_elements", "actors", "metaphor", "canonical_refs", "hidden_aggregation", "next_scale_views", "approval"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "version": {"const": "1"},
+    "view_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "stakeholder": {"type": "string", "minLength": 1},
+    "decision": {"type": "string", "minLength": 1},
+    "story_ref": {"type": ["string", "null"]},
+    "concern": {"enum": ["structural", "behavioral", "functional", "data", "goal", "flow_and_overflow", "dynamics"]},
+    "scale": {"enum": ["context", "system", "subsystem", "operation"]},
+    "focal_elements": {"type": "array", "minItems": 1, "maxItems": 3, "items": {"type": "string"}},
+    "actors": {"type": "array", "items": {"type": "string"}},
+    "metaphor": {
+      "type": ["object", "null"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "mapping": {"type": "object", "minProperties": 1},
+        "limits": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+      },
+      "required": ["name", "mapping", "limits"],
+      "additionalProperties": false
+    },
+    "canonical_refs": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "hidden_aggregation": {"type": "array", "items": {"type": "string"}},
+    "next_scale_views": {"type": "array", "items": {"type": "string"}},
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "by", "at"],
+      "properties": {
+        "status": {"enum": ["draft", "approved", "rejected"]},
+        "by": {"type": ["string", "null"]},
+        "at": {"type": ["string", "null"], "format": "date-time"}
+      }
+    }
+  }
+}

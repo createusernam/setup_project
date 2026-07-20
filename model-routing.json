@@ -112,6 +112,11 @@
       "profile": "reasoning_high",
       "note": "Produces code-native boundaries and no business logic."
     },
+    "6f": {
+      "skill": "targeted change or diagnose+tdd",
+      "profile": "implementation_general",
+      "note": "T0/T1 evidence production is bounded; Phase 7 supplies independent acceptance review."
+    },
     "6": {
       "skill": "build-loop, tdd",
       "roles": {

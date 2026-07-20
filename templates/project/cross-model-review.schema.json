@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cross-model-review.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "version", "reviewed_at", "provider", "model_id", "subject_sha256", "verdict", "summary", "findings", "conditions"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "version": {"const": "1"},
+    "reviewed_at": {"type": "string", "format": "date-time"},
+    "provider": {"type": "string", "minLength": 1},
+    "model_id": {"type": "string", "minLength": 1},
+    "subject_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "verdict": {"enum": ["PASS", "CONDITIONAL", "REVISE", "STOP"]},
+    "summary": {"type": "string", "minLength": 1},
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["severity", "title", "evidence", "recommendation"],
+        "properties": {
+          "severity": {"enum": ["P0", "P1", "P2", "P3"]},
+          "title": {"type": "string", "minLength": 1},
+          "evidence": {"type": "string", "minLength": 1},
+          "recommendation": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "conditions": {"type": "array", "items": {"type": "string"}}
+  }
+}

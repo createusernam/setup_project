@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "iteration-contract.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema", "version", "status", "issue_id", "pbs_leaf", "goal", "story_refs",
+    "criterion_refs", "contract_sha256", "issues_manifest_sha256", "scaffold_manifest_sha256",
+    "baseline_commit", "allowed_paths", "forbidden_paths", "allowed_commands", "network_policy",
+    "production_loc_target", "production_loc_max", "total_loc_target", "total_loc_max",
+    "files_target", "max_files", "public_interfaces_target", "max_public_interfaces",
+    "scaffold_files", "contract_anchor_hashes", "verify_commands", "required_trace_refs",
+    "requirement_delta_policy", "debt_delta_policy", "models"
+  ],
+  "properties": {
+    "$schema": {"type": "string"},
+    "version": {"const": "1"},
+    "status": {"enum": ["draft", "ready"]},
+    "issue_id": {"type": ["string", "null"]},
+    "pbs_leaf": {"type": ["string", "null"]},
+    "goal": {"type": "string"},
+    "story_refs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^US-[A-Z0-9-]+$"}},
+    "criterion_refs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "contract_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "issues_manifest_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "scaffold_manifest_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "baseline_commit": {"type": ["string", "null"], "pattern": "^[a-f0-9]{40}([a-f0-9]{24})?$"},
+    "allowed_paths": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "forbidden_paths": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "allowed_commands": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "network_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "allowed_hosts"],
+      "properties": {
+        "mode": {"enum": ["deny", "allowlist"]},
+        "allowed_hosts": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "production_loc_target": {"type": "integer", "minimum": 1, "maximum": 200},
+    "production_loc_max": {"type": "integer", "minimum": 1, "maximum": 400},
+    "total_loc_target": {"type": "integer", "minimum": 1, "maximum": 400},
+    "total_loc_max": {"type": "integer", "minimum": 1, "maximum": 800},
+    "files_target": {"type": "integer", "minimum": 1, "maximum": 6},
+    "max_files": {"type": "integer", "minimum": 1, "maximum": 10},
+    "public_interfaces_target": {"type": "integer", "minimum": 0, "maximum": 1},
+    "max_public_interfaces": {"type": "integer", "minimum": 0, "maximum": 2},
+    "scaffold_files": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "contract_anchor_hashes": {
+      "type": "object",
+      "propertyNames": {"type": "string", "minLength": 1},
+      "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+    },
+    "verify_commands": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "required_trace_refs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "requirement_delta_policy": {"const": "fail_closed"},
+    "debt_delta_policy": {"const": "zero_or_owner_accepted"},
+    "models": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["architect", "worker", "test_owner", "acceptor"],
+      "properties": {
+        "architect": {"type": ["string", "null"]},
+        "worker": {"type": ["string", "null"]},
+        "test_owner": {"type": ["string", "null"]},
+        "acceptor": {"type": ["string", "null"]}
+      }
+    }
+  },
+  "allOf": [{
+    "if": {"properties": {"status": {"const": "ready"}}, "required": ["status"]},
+    "then": {
+      "properties": {
+        "issue_id": {"type": "string", "minLength": 1},
+        "pbs_leaf": {"type": "string", "minLength": 1},
+        "goal": {"type": "string", "minLength": 1},
+        "story_refs": {"minItems": 1},
+        "criterion_refs": {"minItems": 1},
+        "contract_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "issues_manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "scaffold_manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "baseline_commit": {"type": "string", "pattern": "^[a-f0-9]{40}([a-f0-9]{24})?$"},
+        "allowed_paths": {"minItems": 1},
+        "allowed_commands": {"minItems": 1},
+        "scaffold_files": {"minItems": 1},
+        "contract_anchor_hashes": {"minProperties": 1},
+        "verify_commands": {"minItems": 1},
+        "models": {
+          "properties": {
+            "architect": {"type": "string", "minLength": 1, "pattern": "^\\S+$"},
+            "worker": {"type": "string", "minLength": 1, "pattern": "^\\S+$"},
+            "test_owner": {"type": "string", "minLength": 1, "pattern": "^\\S+$"},
+            "acceptor": {"type": "string", "minLength": 1, "pattern": "^\\S+$"}
+          }
+        }
+      }
+    }
+  }]
+}

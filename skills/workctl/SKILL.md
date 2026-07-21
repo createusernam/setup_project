@@ -7,16 +7,51 @@ description: Continue one specific coding task safely across Claude Code, Codex,
 
 Use `workctl` as the task-level control plane when a conversation may move between coding CLIs. Repository phase artifacts remain canonical for specification and gates; `.workctl/tasks/<task-id>/` is canonical for task identity, current execution state, and runtime provenance. A reusable model session is an optional cache resource, never the source of truth.
 
+## Session entry
+
+A fresh CLI/chat session does not automatically load any workctl task.
+
+Inside an existing agent session, the user should name the task explicitly: `Continue workctl task
+<task-id>`. Read that task's durable state and report Done/Now/Next before acting. From a normal
+terminal, use `workctl continue <task-id> --runtime <runtime>`.
+
+Calling workctl without an ID is safe only when `WORKCTL_TASK` is set, exactly one task is bound to
+the current Git branch, or the repository contains exactly one task. Otherwise stop and require the
+task ID; never infer it from recency or chat history.
+
 ## Conversational contract
 
 Do not make the human operate workctl for normal project orientation. If they ask where the project
 is or what comes next, use `pipeline-status`. Use workctl only when one concrete task must survive a
 CLI/session/provider switch, when several tasks coexist, or when the user names a task to resume.
 
+### Choosing workctl versus planning-with-files
+
+These tools intentionally overlap on durable context, but they operate at different levels:
+
+| Situation | Use | Why |
+|---|---|---|
+| One agent, one CLI, one ordinary multi-step task | `planning-with-files` only | The repository plan, findings, and progress are sufficient; creating task-local state would duplicate them. |
+| Project planning, research, phases, or recovery after compaction | `planning-with-files` | It is the canonical project-level plan and working memory. |
+| A named task moves between Claude Code, Codex, or OpenCode; a provider limit requires a handoff | Both | The project plan keeps the work's purpose and phases; workctl supplies task identity, handoff state, and runtime provenance. |
+| Several active tasks or branches must not be confused | Both | The project plan describes the work; workctl pins one execution unit to an explicit task ID and branch. |
+
+Default to `planning-with-files`. Add workctl only for an explicit cross-runtime/session handoff,
+multiple concurrent named tasks, or when task-level execution safety is needed. When both apply,
+do not duplicate repository artifacts in `.workctl/tasks/<task-id>/`: reference the root
+`task_plan.json`, `contract.json`, and other phase outputs from `context.md`. The root artifacts
+remain authoritative for scope and pipeline gates; workctl owns only task identity, current
+execution state, handoff, and run provenance.
+
 In an agent conversation, translate requests such as “continue auth-refresh in Codex” or “where is
 the auth-refresh task?” into read-only inspection first. Explain the task's Done/Now/Next and only
 then perform or propose the exact handoff. `start` and `continue` launch child CLIs, so do not run
 them inside an interactive coding CLI; tell the human the one terminal action needed at that point.
+When the named task is already loaded in the current agent, a Done/Now/Next update is intermediate:
+do not return a terminal answer while a safe local next action remains. Continue within the same
+turn until the task contract is complete, an authority/external-state blocker is genuine, or the
+runtime forces an exit. Never make the human send repeated “continue” messages between planned
+steps.
 Do not dump the full command catalog unless asked.
 
 When the setup pipeline is present, do not copy or redefine root `product_brief.md`, `task_plan.md`,
@@ -106,6 +141,10 @@ workctl resume auth-refresh
 ```
 
 `handoff` refreshes the human-readable handoff and resume prompt. `resume` prints the prompt for manual paste or inspection.
+
+The generated handoff distinguishes launcher-recorded runtime/model/session settings from actual
+provider identity. Link provider-issued evidence in `checks.json` when available; otherwise retain
+the explicit `self_attested` label. Configuration and a model's own claim are not independent proof.
 
 ### Resolve branch or lease conflicts
 

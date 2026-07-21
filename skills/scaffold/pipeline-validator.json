@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "runner": "python",
+  "script": "scripts/validate-iteration-contract.py",
+  "arguments": ["--project", "{project}"],
+  "read_only": true,
+  "timeout_seconds": 30,
+  "failure_next": "repair the one-leaf iteration contract or reopen its owning issue/scaffold input, then rerun setup-pipeline status"
+}

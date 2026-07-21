@@ -7,7 +7,8 @@
   "properties": {
     "$schema": {"type": "string"},
     "version": {"const": "1"},
-    "harness_version": {"const": "1"},
+    "harness_version": {"enum": ["1", "2"]},
+    "profile": {"enum": ["general", "coding_worker"]},
     "provider": {"type": "string", "minLength": 1},
     "runtime": {"type": "string", "minLength": 1},
     "model_id": {"type": "string", "minLength": 1},
@@ -34,6 +35,7 @@
         "required": ["id", "status", "attempts", "latency_ms", "evidence"],
         "properties": {
           "id": {"type": "string", "minLength": 1},
+          "critical": {"type": "boolean"},
           "status": {"enum": ["pass", "fail", "error"]},
           "attempts": {"type": "integer", "minimum": 1},
           "latency_ms": {"type": "integer", "minimum": 0},
@@ -51,6 +53,9 @@
         "pass_rate": {"type": "number", "minimum": 0, "maximum": 1},
         "threshold": {"type": "number", "minimum": 0, "maximum": 1},
         "qualified": {"type": "boolean"}
+        ,"critical_passed": {"type": "integer", "minimum": 0}
+        ,"critical_total": {"type": "integer", "minimum": 0}
+        ,"critical_failures": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
       }
     },
     "provenance": {

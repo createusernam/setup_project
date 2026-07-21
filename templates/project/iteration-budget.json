@@ -1,0 +1,28 @@
+{
+  "$schema": "./iteration-budget.schema.json",
+  "version": "1",
+  "producer": "trusted-iteration-budget-checker",
+  "consumers": ["phase6-semantic-validator", "iteration-dashboard-renderer"],
+  "issue_id": "",
+  "pbs_leaf": "",
+  "baseline_commit": "0000000000000000000000000000000000000000",
+  "verdict": "PASS",
+  "changed_files": [],
+  "observed_pbs_leaves": [],
+  "metrics": {
+    "production": {"files": 0, "added": 0, "deleted": 0, "changed_loc": 0},
+    "tests": {"files": 0, "added": 0, "deleted": 0, "changed_loc": 0},
+    "docs": {"files": 0, "added": 0, "deleted": 0, "changed_loc": 0},
+    "generated": {"files": 0, "added": 0, "deleted": 0, "changed_loc": 0},
+    "vendor": {"files": 0, "added": 0, "deleted": 0, "changed_loc": 0},
+    "lock": {"files": 0, "added": 0, "deleted": 0, "changed_loc": 0}
+  },
+  "budget": {
+    "production_loc": {"actual": 0, "target": 200, "max": 400, "target_exceeded": false, "hard_max_exceeded": false},
+    "total_loc": {"actual": 0, "target": 400, "max": 800, "target_exceeded": false, "hard_max_exceeded": false},
+    "files": {"actual": 0, "target": 6, "max": 10, "target_exceeded": false, "hard_max_exceeded": false},
+    "public_interfaces": {"actual": 0, "target": 1, "max": 2, "target_exceeded": false, "hard_max_exceeded": false}
+  },
+  "scope_breaches": [],
+  "split_reasons": []
+}

@@ -2,7 +2,7 @@
   "$schema": "./model-bindings.schema.json",
   "version": "1",
   "_instructions": "Enable and fill every capability profile used by your selected route. New projects require a qualified model-conformance artifact for each enabled binding. Credentials never belong in either file.",
-  "conformance_policy": {"mode": "required", "minimum_pass_rate": 0.8, "harness_version": "1"},
+  "conformance_policy": {"mode": "required", "minimum_pass_rate": 0.8, "harness_version": "2"},
   "bindings": {
     "reasoning_high": {"runtime": "", "model_id": "", "enabled": false, "conformance_ref": null},
     "reasoning_balanced": {"runtime": "", "model_id": "", "enabled": false, "conformance_ref": null},

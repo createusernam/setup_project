@@ -6,3 +6,6 @@ traces/
 *:Zone.Identifier
 __pycache__/
 .planning/
+
+# Local workctl task state: runtime sessions, prompts, logs, leases, absolute paths
+.workctl/

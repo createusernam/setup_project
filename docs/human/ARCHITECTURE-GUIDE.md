@@ -58,6 +58,12 @@ an end-to-end user flow: use it only when message order between participants is 
 local interaction view links to a flow/use-case step, and every executable path links back to the
 textual use case or journey criterion.
 
+For T3/T4, and for a T2 route whose policy declares `behavior_pack_required=true`, keep
+`docs/behavior/behavior-index.json` as the compact traceability map. It links flow → use case →
+local interaction → contract path and records risk-probe outcomes. Run the visualization checker
+before the Phase 4c human gate; it rejects missing links, unresolved critical coverage, and
+unjustified diagrams over the readability budget.
+
 ### Readability budget
 
 One diagram carries one concern at one altitude. Prefer no more than 12–15 meaningful nodes. More
@@ -100,8 +106,8 @@ interfaces:
   - POST /accounts
 data_owned:
   - accounts
-journey_refs:
-  - product_brief.md#7-user-journey
+story_refs:
+  - US-ACCOUNT-CREATION
 criterion_refs:
   - c1-account-created
 verification_refs:

@@ -1,0 +1,7 @@
+{
+  "$schema": "./role-assignment.schema.json",
+  "version": "1",
+  "product_owner": null,
+  "technical_owner": null,
+  "accountable_acceptor": null
+}

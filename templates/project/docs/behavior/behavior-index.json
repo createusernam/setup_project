@@ -1,0 +1,9 @@
+{
+  "$schema": "./behavior-index.schema.json",
+  "version": "1",
+  "flows": [],
+  "use_cases": [],
+  "interactions": [],
+  "risk_probes": [],
+  "coverage": {"uncovered_criteria": [], "uncovered_critical_error_paths": []}
+}

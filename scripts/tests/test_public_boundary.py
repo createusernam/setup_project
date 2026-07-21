@@ -47,6 +47,12 @@ if PUBLISHER.is_file():
     assert '--exclude="docs/private"' in publisher, (
         "publisher must structurally exclude private operator documentation"
     )
+    assert '--exclude="skills/game-development"' in publisher, (
+        "publisher must structurally exclude the private game-development skill"
+    )
+    assert '--exclude=".workctl"' in publisher, (
+        "publisher must structurally exclude local cross-runtime task state"
+    )
 
 assert "methodology" not in (ROOT / "pipeline-machine.json").read_text(encoding="utf-8").lower(), (
     "public pipeline-machine must not route to the excluded private methodology skill"

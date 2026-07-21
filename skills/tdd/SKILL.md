@@ -161,3 +161,10 @@ For every pipeline route, including a standalone T0/T1 change in machine Phase `
 `pass|fail|not_run` results, criterion evidence when a contract exists, trace references and
 residual risks. Set `status` to `complete` only when the checks needed for review pass. The exact
 shape and allowed values are in `build-evidence.schema.json`.
+
+When TDD runs in contract-driven Phase 6, also record the current contract SHA, selected issue ID
+and PBS leaf, iteration dashboard ref, authority-resolved requirements delta, zero/removed/or
+owner-accepted debt delta with exact architect review coverage, and scaffold-integrity
+verdict. Phase 6 entry binds the build-loop skill's shared read-only semantic validator; do not set
+`status: complete` until `skills/build-loop/scripts/validate-phase6.py --project .` passes. Phase
+`6f` keeps its short-route semantics and leaves Phase-6-only fields at their template defaults.

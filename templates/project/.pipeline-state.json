@@ -6,7 +6,8 @@
     "risk_tier": null,
     "conditions": {
       "research_required": null,
-      "frontend": null
+      "frontend": null,
+      "behavior_pack_required": null
     }
   },
   "artifacts": {
@@ -14,9 +15,9 @@
     "evidence-handoff.json": {"sha256": null, "status": "draft", "invalidated_by": null}
   },
   "human_gates": {
-    "viz_before_tickets": {"by": null, "at": null},
-    "contract_locked": {"by": null, "at": null},
-    "human_acceptance": {"by": null, "at": null}
+    "viz_before_tickets": {"by": null, "at": null, "approvals": {}},
+    "contract_locked": {"by": null, "at": null, "approvals": {}},
+    "human_acceptance": {"by": null, "at": null, "approvals": {}}
   },
   "phase_processes": {},
   "model_bindings_file": "model-bindings.json",

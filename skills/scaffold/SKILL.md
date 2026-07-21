@@ -203,9 +203,28 @@ Write `handoff.json` (COMPAT schema): `agent_role: "architect"`, `model_used`, `
 or log anchors"`.
 
 Write root `scaffold-manifest.json` from the project template. Record the exact contract SHA-256,
-every scaffolded file/module/PBS leaf/block count, and the commands actually checked. Set `status`
+the selected issue ID, every scaffolded file/module/PBS leaf/block count, and the commands actually checked. Set `status`
 to `ready` only when the autonomous GRACE lint, typecheck, and unfinished-block checks above pass.
 Allowed statuses and fields are owned by `scaffold-manifest.schema.json`.
+
+Then write the single root `iteration-contract.json` from its project template. This is the only
+execution authority for the next worker iteration: select exactly one approved issue/PBS leaf;
+record current contract/issues/scaffold hashes and baseline commit; allowed/forbidden paths,
+commands, and deny-by-default network policy; production/total LOC, file, and public-interface
+targets/maxima; scaffold files and anchor hashes; verification/trace refs; fail-closed requirement
+and debt policies; and exact architect/worker/test-owner/acceptor model IDs from bindings. Do not
+duplicate mutable progress or verdict state into the issue or scaffold manifest.
+
+Generate `contract_anchor_hashes` with the trusted checker while the iteration contract is still
+`draft`: `python3 <build-loop-skill-root>/scripts/check-scaffold-integrity.py --project . --snapshot`.
+Copy that exact JSON map into the contract. It hashes MODULE/FUNCTION contracts, ordered block names
+plus their `IMPL:` directives, ordered log anchors, and the combined scaffold structure; do not hand
+calculate or selectively omit anchors.
+
+Run `python3 <scaffold-skill-root>/scripts/validate-iteration-contract.py --project .` and set the iteration contract to `ready`
+only when it passes. Phase 5.5 entry automatically binds this skill's read-only phase-process
+descriptor, so an invalid or missing iteration contract blocks forward exit. Attest both
+`scaffold-manifest.json` and `iteration-contract.json`; Phase 6 consumes both.
 
 ## The implementer's rules (state these in the Phase 6 prompt)
 
@@ -219,6 +238,9 @@ The scaffold only pays off if the cheap model respects it:
 4. **If an `IMPL:` directive is wrong or impossible, stop and say so** — do not "fix" it by changing the
    contract. That is a `PLAN_CONFIRM` back to the architect.
 5. New file? It needs a MODULE_CONTRACT, same as the scaffolded ones.
+6. After the patch, only the trusted orchestrator runs `check-scaffold-integrity.py`. `CONTRACT_GAP`
+   returns to Phase 5.5 for corrected/re-attested architecture; `SCAFFOLD_DRIFT` cannot be hidden by
+   the worker and needs an architect decision; only `PASS` is directly eligible for completion.
 
 ## Anti-patterns
 

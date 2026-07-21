@@ -26,7 +26,7 @@ from typing import Any
 TIERS = ("T0", "T1", "T2", "T3", "T4")
 ARTIFACT_STATUSES = ("draft", "ready", "approved", "complete")
 RUNTIMES = ("claude", "codex", "opencode", "api", "manual", "self-hosted", "custom:<lowercase-slug>")
-CONDITIONS = ("research_required", "frontend")
+CONDITIONS = ("research_required", "frontend", "behavior_pack_required")
 
 
 # START_BLOCK_LEDGER_IO
@@ -155,7 +155,7 @@ def invalidate_after_policy_change(ledger: dict[str, Any], source: str) -> None:
             record["status"] = "invalidated"
             record["invalidated_by"] = source
     for gate in ledger.setdefault("human_gates", {}):
-        ledger["human_gates"][gate] = {"by": None, "at": None}
+        ledger["human_gates"][gate] = {"by": None, "at": None, "approvals": {}}
 # END_BLOCK_LEDGER_IO
 
 
@@ -348,10 +348,13 @@ def command_attest(args: argparse.Namespace, root: Path, project: Path) -> int:
                 record["status"] = "invalidated"
                 record["invalidated_by"] = source
                 print(f"invalidated {consumer}: upstream {source} changed")
+    for source in refreshed:
         for gate in matching_policy_values(machine.get("gate_invalidations", {}), source):
             signature = ledger.setdefault("human_gates", {}).get(gate)
-            if isinstance(signature, dict) and (signature.get("by") or signature.get("at")):
-                ledger["human_gates"][gate] = {"by": None, "at": None}
+            if isinstance(signature, dict) and (
+                signature.get("by") or signature.get("at") or signature.get("approvals")
+            ):
+                ledger["human_gates"][gate] = {"by": None, "at": None, "approvals": {}}
                 print(f"invalidated human gate {gate}: upstream {source} changed")
     ledger["updated_at"] = timestamp()
     write_json(path, ledger)
@@ -370,10 +373,23 @@ def command_sign(args: argparse.Namespace, root: Path, project: Path) -> int:
     if args.gate not in gates:
         known = ", ".join(sorted(gates)) or "none"
         raise ValueError(f"unknown human gate {args.gate!r}; known: {known}")
-    gates[args.gate] = {"by": args.by, "at": timestamp()}
+    signed_at = timestamp()
+    role = getattr(args, "role", None)
+    if role is not None and role not in {"product_owner", "technical_owner", "accountable_acceptor"}:
+        raise ValueError("--role must be product_owner, technical_owner, or accountable_acceptor")
+    signature = gates[args.gate] if isinstance(gates.get(args.gate), dict) else {"by": None, "at": None}
+    if not isinstance(signature.get("approvals"), dict):
+        signature["approvals"] = {}
+    else:
+        signature.setdefault("approvals", {})
+    if role:
+        signature["approvals"][role] = {"by": args.by, "at": signed_at}
+    else:
+        signature.update({"by": args.by, "at": signed_at})
+    gates[args.gate] = signature
     ledger["updated_at"] = timestamp()
     write_json(path, ledger)
-    print(f"signed {args.gate} by {args.by}")
+    print(f"signed {args.gate}{f' as {role}' if role else ''} by {args.by}")
     return 0
 
 
@@ -408,6 +424,10 @@ def command_enter(args: argparse.Namespace, root: Path, project: Path) -> int:
             f"cannot leave phase {current}; its process validator is blocked:\n  - {rendered}\n"
             f"next action: {current_process_next}"
         )
+    required_process = machine["transitions"][args.phase].get("phase_process")
+    if required_process:
+        preflight.load_phase_process_descriptor(root, required_process)
+        candidate.setdefault("phase_processes", {})[args.phase] = {"skill": required_process}
     failures, warnings, _ = preflight.evaluate(root, project, args.phase, ledger_override=candidate)
     if failures:
         rendered = "\n  - ".join(failures)
@@ -774,7 +794,7 @@ def command_values(args: argparse.Namespace, root: Path, project: Path) -> int:
     print("human request contracts:")
     for request_id, request in machine["human_requests"].items():
         print(f"  {request_id}: authority={request['authority']}, response={request['response']['mode']}")
-    print("route conditions: research_required=true|false, frontend=true|false")
+    print("route conditions: research_required=true|false, frontend=true|false, behavior_pack_required=true|false")
     print("artifact statuses: " + ", ".join(ARTIFACT_STATUSES) + " (invalidated is machine-set)")
     print("capability profiles: " + ", ".join(routing["profiles"]))
     print("runtimes: " + ", ".join(RUNTIMES))
@@ -834,6 +854,7 @@ def build_parser() -> argparse.ArgumentParser:
     sign = subparsers.add_parser("sign", help="record a named human gate signature")
     sign.add_argument("gate")
     sign.add_argument("--by", required=True)
+    sign.add_argument("--role", choices=("product_owner", "technical_owner", "accountable_acceptor"))
     sign.set_defaults(handler=command_sign)
 
     enter = subparsers.add_parser("enter", help="atomically validate and enter the next applicable phase")

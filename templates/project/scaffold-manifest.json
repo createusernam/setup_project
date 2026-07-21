@@ -2,6 +2,7 @@
   "$schema": "./scaffold-manifest.schema.json",
   "version": "1",
   "status": "draft",
+  "issue_id": null,
   "contract_sha256": null,
   "files": [],
   "checks": []

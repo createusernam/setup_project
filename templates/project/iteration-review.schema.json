@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "iteration-review.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "version", "producer", "consumers", "issue_id", "pbs_leaf", "worker", "mechanical", "architect", "test_owner", "acceptor"],
+  "properties": {
+    "$schema": {"const": "./iteration-review.schema.json"},
+    "version": {"const": "1"},
+    "producer": {"const": "trusted-phase6-orchestrator"},
+    "consumers": {"const": ["phase6-semantic-validator", "iteration-dashboard-renderer", "phase7-review"]},
+    "issue_id": {"type": "string", "minLength": 1},
+    "pbs_leaf": {"type": "string", "minLength": 1},
+    "worker": {"$ref": "#/$defs/worker"},
+    "mechanical": {"$ref": "#/$defs/mechanical"},
+    "architect": {"$ref": "#/$defs/architect"},
+    "test_owner": {"$ref": "#/$defs/testOwner"},
+    "acceptor": {"$ref": "#/$defs/acceptor"}
+  },
+  "$defs": {
+    "identity": {
+      "type": "object",
+      "properties": {
+        "model_id": {"type": "string", "minLength": 1},
+        "context_id": {"type": "string", "minLength": 1}
+      }
+    },
+    "worker": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sequence", "model_id", "context_id", "handoff_ref"],
+      "properties": {
+        "sequence": {"const": 1}, "model_id": {"type": "string", "minLength": 1},
+        "context_id": {"type": "string", "minLength": 1}, "handoff_ref": {"type": "string", "minLength": 1}
+      }
+    },
+    "mechanical": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sequence", "verdict", "budget_ref", "scaffold_integrity_ref"],
+      "properties": {
+        "sequence": {"const": 2}, "verdict": {"enum": ["PASS", "SPLIT_REQUIRED", "SCOPE_BREACH", "CONTRACT_GAP", "SCAFFOLD_DRIFT"]},
+        "budget_ref": {"type": "string", "minLength": 1}, "scaffold_integrity_ref": {"type": "string", "minLength": 1}
+      }
+    },
+    "architect": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sequence", "model_id", "context_id", "verdict", "review_ref", "checks"],
+      "properties": {
+        "sequence": {"const": 3}, "model_id": {"type": "string", "minLength": 1},
+        "context_id": {"type": "string", "minLength": 1}, "verdict": {"enum": ["PASS", "REVISE", "CONTRACT_GAP"]},
+        "review_ref": {"type": "string", "minLength": 1},
+        "checks": {
+          "type": "object", "additionalProperties": false,
+          "required": ["one_leaf", "boundaries_interfaces", "requirements_delta", "debt_delta", "explanation_matches_evidence"],
+          "properties": {
+            "one_leaf": {"type": "boolean"}, "boundaries_interfaces": {"type": "boolean"},
+            "requirements_delta": {"type": "boolean"}, "debt_delta": {"type": "boolean"},
+            "explanation_matches_evidence": {"type": "boolean"}
+          }
+        }
+      }
+    },
+    "testOwner": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sequence", "model_id", "context_id", "fresh_context", "verdict", "review_ref"],
+      "properties": {
+        "sequence": {"const": 4}, "model_id": {"type": "string", "minLength": 1},
+        "context_id": {"type": "string", "minLength": 1}, "fresh_context": {"const": true},
+        "verdict": {"enum": ["PASS", "REVISE"]}, "review_ref": {"type": "string", "minLength": 1}
+      }
+    },
+    "acceptor": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sequence", "model_id", "context_id", "fresh_context", "isolated_context", "verdict", "review_ref"],
+      "properties": {
+        "sequence": {"const": 5}, "model_id": {"type": "string", "minLength": 1},
+        "context_id": {"type": "string", "minLength": 1}, "fresh_context": {"const": true},
+        "isolated_context": {"const": true}, "verdict": {"enum": ["PASS", "REVISE", "RESTART"]},
+        "review_ref": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

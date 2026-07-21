@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "runner": "python",
+  "script": "scripts/validate-phase4c.py",
+  "arguments": ["--project", "{project}"],
+  "read_only": true,
+  "timeout_seconds": 30,
+  "failure_next": "repair the required behavior pack or revise the route condition, then rerun setup-pipeline status"
+}

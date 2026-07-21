@@ -96,9 +96,11 @@
     },
     "4c": {
       "skill": "visualization", "tiers": ["T2", "T3", "T4"],
+      "phase_process": "visualization",
       "requires": [
         {"artifact": "contract.json", "attested": true},
-        {"artifact": "judge-report.json", "attested": true, "json_pointer": "/data/verdict", "equals": "PASS"}
+        {"artifact": "judge-report.json", "attested": true, "json_pointer": "/data/verdict", "equals": "PASS"},
+        {"artifact": "docs/stories/index.json", "attested": true}
       ]
     },
     "5": {
@@ -113,6 +115,7 @@
     },
     "5.5": {
       "skill": "scaffold", "tiers": ["T3", "T4"],
+      "phase_process": "scaffold",
       "requires": [
         {"artifact": "contract.json", "attested": true},
         {"artifact": "task_plan.md", "attested": true},
@@ -126,16 +129,22 @@
     },
     "6": {
       "skill": "build-loop, tdd", "tiers": ["T2", "T3", "T4"],
+      "phase_process": "build-loop",
       "requires": [
         {"artifact": "contract.json", "attested": true},
         {"artifact": "issues-manifest.json", "attested": true, "json_pointer": "/status", "equals": "approved"},
-        {"artifact": "scaffold-manifest.json", "attested": true, "json_pointer": "/status", "equals": "ready", "tiers": ["T3", "T4"]}
+        {"artifact": "scaffold-manifest.json", "attested": true, "json_pointer": "/status", "equals": "ready", "tiers": ["T3", "T4"]},
+        {"artifact": "iteration-contract.json", "attested": true, "json_pointer": "/status", "equals": "ready"}
       ],
       "human_gate": "contract_locked"
     },
     "7": {
       "skill": "judge feature, code-review-expert", "tiers": ["T0", "T1", "T2", "T3", "T4"],
       "requires": [
+        {"artifact": "iteration-budget.json", "attested": true, "json_pointer": "/verdict", "equals": "PASS", "tiers": ["T2", "T3", "T4"]},
+        {"artifact": "scaffold-integrity.json", "attested": true, "json_pointer": "/verdict", "in": ["PASS", "SCAFFOLD_DRIFT"], "tiers": ["T2", "T3", "T4"]},
+        {"artifact": "iteration-review.json", "attested": true, "json_pointer": "/acceptor/verdict", "equals": "PASS", "tiers": ["T2", "T3", "T4"]},
+        {"artifact": "iteration-dashboard.json", "attested": true, "json_pointer": "/status", "equals": "PASS", "tiers": ["T2", "T3", "T4"]},
         {"artifact": "build-evidence.json", "attested": true, "json_pointer": "/status", "equals": "complete"},
         {"artifact": "rollout-plan.json", "attested": true, "json_pointer": "/status", "in": ["ready", "complete"], "tiers": ["T4"]},
         {"artifact": "rollout-plan.json", "attested": true, "json_pointer": "/rollback/defined", "equals": true, "tiers": ["T4"]}
@@ -156,6 +165,7 @@
     "docs/research-state.json": {"producer_phase": "0"},
     "CONTEXT.md": {"producer_phase": "1"},
     "task_plan.md": {"producer_phase": "2"},
+    "docs/stories/index.json": {"producer_phases": ["1", "2"], "template": "templates/project/docs/stories/index.json", "schema": "templates/project/docs/stories/index.schema.json", "media_type": "application/json"},
     "pm-review.json": {"producer_phase": "2-PM"},
     "docs/requirements.xml": {"producer_phase": "2b"},
     "docs/technology.xml": {"producer_phase": "2b"},
@@ -174,6 +184,11 @@
     "SUPERVISION.md": {"producer_phase": "4c"},
     "issues-manifest.json": {"producer_phase": "5", "template": "templates/project/issues-manifest.json", "schema": "templates/project/issues-manifest.schema.json", "media_type": "application/json"},
     "scaffold-manifest.json": {"producer_phase": "5.5", "template": "templates/project/scaffold-manifest.json", "schema": "templates/project/scaffold-manifest.schema.json", "media_type": "application/json"},
+    "iteration-contract.json": {"producer_phase": "5.5", "template": "templates/project/iteration-contract.json", "schema": "templates/project/iteration-contract.schema.json", "media_type": "application/json"},
+    "iteration-budget.json": {"producer_phase": "6", "template": "templates/project/iteration-budget.json", "schema": "templates/project/iteration-budget.schema.json", "media_type": "application/json"},
+    "scaffold-integrity.json": {"producer_phase": "6", "template": "templates/project/scaffold-integrity.json", "schema": "templates/project/scaffold-integrity.schema.json", "media_type": "application/json"},
+    "iteration-review.json": {"producer_phase": "6", "template": "templates/project/iteration-review.json", "schema": "templates/project/iteration-review.schema.json", "media_type": "application/json"},
+    "iteration-dashboard.json": {"producer_phase": "6", "template": "templates/project/iteration-dashboard.json", "schema": "templates/project/iteration-dashboard.schema.json", "media_type": "application/json"},
     "build-evidence.json": {"producer_phases": ["6f", "6"], "template": "templates/project/build-evidence.json", "schema": "templates/project/build-evidence.schema.json", "media_type": "application/json"},
     "feature-judge-report.json": {"producer_phase": "7"},
     "code-review.md": {"producer_phase": "7"}
@@ -181,6 +196,7 @@
   "artifact_contracts": {
     ".pipeline-state.json": {"producer": "setup-pipeline", "schema": "templates/project/pipeline-state.schema.json", "media_type": "application/json"},
     "model-bindings.json": {"producer": "project_owner", "schema": "templates/project/model-bindings.schema.json", "media_type": "application/json"},
+    "role-assignment.json": {"producer": "project_owner", "schema": "templates/project/role-assignment.schema.json", "media_type": "application/json"},
     "model-conformance/*.json": {"producer": "model-conformance", "schema": "templates/project/model-conformance.schema.json", "media_type": "application/json"},
     "cross-model-review/*.json": {"producer": "cross-model-review", "schema": "templates/project/cross-model-review.schema.json", "media_type": "application/json"},
     "docs/views/*.json": {"producer": "visualization", "schema": "templates/project/viewpoint.schema.json", "media_type": "application/json"},
@@ -211,15 +227,15 @@
       "resume_action": "Validate model-bindings.json, then rerun setup-pipeline status."
     },
     "contract_locked": {
-      "authority": "product_owner",
+      "authority": "product_owner and technical_owner for T3/T4; product_owner otherwise",
       "question": "Does the judged contract correctly lock scope, user flow, integrations, risks, and acceptance criteria for implementation?",
-      "why_needed": "Implementation must not start until the accountable product owner accepts the reviewed delivery contract.",
+      "why_needed": "Implementation must not start until product authority accepts delivery intent and, for T3/T4, technical authority accepts the implementation boundary.",
       "evidence_refs": ["contract.json", "judge-report.json", "product_brief.md"],
       "setup_refs": ["docs/human/PIPELINE.md"],
       "response": {
         "mode": "inline",
         "format": {"action": "approve|revise", "comment": "required when revise"},
-        "record_command": "setup-pipeline sign contract_locked --by <person-or-account>"
+        "record_command": "setup-pipeline sign contract_locked --role product_owner --by <person-or-account>; for T3/T4 also sign --role technical_owner"
       },
       "allowed_responses": ["approve", "revise"],
       "consequences": {
@@ -229,15 +245,15 @@
       "resume_action": "Record contract_locked only after approve, then rerun setup-pipeline status."
     },
     "viz_before_tickets": {
-      "authority": "product_owner",
+      "authority": "technical_owner",
       "question": "Does the supervision view accurately show the approved plan, dependencies, human gates, and implementation slices before tickets are created?",
-      "why_needed": "Ticket slicing commits the team to a delivery decomposition that the product owner must be able to supervise.",
+      "why_needed": "Ticket slicing commits the team to a technical delivery decomposition that the assigned technical owner must be able to supervise.",
       "evidence_refs": ["SUPERVISION.md", "contract.json", "judge-report.json", "task_plan.md"],
       "setup_refs": ["docs/human/PIPELINE.md"],
       "response": {
         "mode": "inline",
         "format": {"action": "approve|revise", "comment": "required when revise"},
-        "record_command": "setup-pipeline sign viz_before_tickets --by <person-or-account>"
+        "record_command": "setup-pipeline sign viz_before_tickets --role technical_owner --by <person-or-account>"
       },
       "allowed_responses": ["approve", "revise"],
       "consequences": {
@@ -255,7 +271,7 @@
       "response": {
         "mode": "inline",
         "format": {"action": "accept|reject", "comment": "required when reject"},
-        "record_command": "setup-pipeline sign human_acceptance --by <person-or-account>"
+        "record_command": "setup-pipeline sign human_acceptance --role accountable_acceptor --by <person-or-account>"
       },
       "allowed_responses": ["accept", "reject"],
       "consequences": {
@@ -266,33 +282,39 @@
     }
   },
   "invalidations": {
-    "product_brief.md": ["docs/research-state.json", "CONTEXT.md", "task_plan.md", "pm-review.json", "docs/requirements.xml", "docs/technology.xml", "docs/development-plan.xml", "docs/verification-plan.xml", "docs/knowledge-graph.xml", "docs/operational-packets.xml", "risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "build-evidence.json"],
-    "evidence-handoff.json": ["docs/research-state.json", "CONTEXT.md", "task_plan.md", "pm-review.json", "docs/requirements.xml", "docs/technology.xml", "docs/development-plan.xml", "docs/verification-plan.xml", "docs/knowledge-graph.xml", "docs/operational-packets.xml", "risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "build-evidence.json"],
-    "business_model.md": ["CONTEXT.md", "task_plan.md", "pm-review.json", "docs/requirements.xml", "docs/technology.xml", "docs/development-plan.xml", "docs/verification-plan.xml", "docs/knowledge-graph.xml", "docs/operational-packets.xml", "risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "build-evidence.json"],
-    "docs/research-state.json": ["CONTEXT.md", "task_plan.md", "pm-review.json", "docs/requirements.xml", "docs/technology.xml", "docs/development-plan.xml", "docs/verification-plan.xml", "docs/knowledge-graph.xml", "docs/operational-packets.xml", "risk-review.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "build-evidence.json"],
-    "CONTEXT.md": ["task_plan.md", "pm-review.json", "docs/requirements.xml", "docs/technology.xml", "docs/development-plan.xml", "docs/verification-plan.xml", "docs/knowledge-graph.xml", "docs/operational-packets.xml", "risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "build-evidence.json"],
-    "task_plan.md": ["pm-review.json", "docs/requirements.xml", "docs/technology.xml", "docs/development-plan.xml", "docs/verification-plan.xml", "docs/knowledge-graph.xml", "docs/operational-packets.xml", "risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "build-evidence.json"],
-    "pm-review.json": ["docs/requirements.xml", "docs/technology.xml", "docs/development-plan.xml", "docs/verification-plan.xml", "docs/knowledge-graph.xml", "docs/operational-packets.xml", "risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "build-evidence.json"],
-    "docs/requirements.xml": ["risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "build-evidence.json"],
-    "docs/technology.xml": ["risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "build-evidence.json"],
-    "docs/development-plan.xml": ["risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "build-evidence.json"],
-    "docs/verification-plan.xml": ["risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "build-evidence.json"],
-    "docs/knowledge-graph.xml": ["risk-review.json", "rollout-plan.json", "contract.json", "scaffold-manifest.json", "build-evidence.json"],
-    "docs/operational-packets.xml": ["risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "build-evidence.json"],
-    "risk-review.json": ["rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "build-evidence.json"],
-    "rollout-plan.json": ["contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "build-evidence.json", "feature-judge-report.json", "code-review.md"],
-    "api-contract.json": ["contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "build-evidence.json"],
-    "design-contract.json": ["contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "build-evidence.json"],
-    ".design-contract-attestation": ["contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "build-evidence.json"],
-    "docs/wireframe-*.md": ["contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "build-evidence.json"],
-    "contract.json": ["judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "build-evidence.json"],
-    "judge-report.json": ["SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "build-evidence.json"],
-    "SUPERVISION.md": ["issues-manifest.json", "scaffold-manifest.json", "build-evidence.json"],
-    "issues-manifest.json": ["scaffold-manifest.json", "build-evidence.json"],
-    "scaffold-manifest.json": ["build-evidence.json"],
-    "build-evidence.json": ["feature-judge-report.json", "code-review.md"]
+    "product_brief.md": ["docs/research-state.json", "CONTEXT.md", "task_plan.md", "pm-review.json", "docs/requirements.xml", "docs/technology.xml", "docs/development-plan.xml", "docs/verification-plan.xml", "docs/knowledge-graph.xml", "docs/operational-packets.xml", "risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "evidence-handoff.json": ["docs/research-state.json", "CONTEXT.md", "task_plan.md", "pm-review.json", "docs/requirements.xml", "docs/technology.xml", "docs/development-plan.xml", "docs/verification-plan.xml", "docs/knowledge-graph.xml", "docs/operational-packets.xml", "risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "business_model.md": ["CONTEXT.md", "task_plan.md", "pm-review.json", "docs/requirements.xml", "docs/technology.xml", "docs/development-plan.xml", "docs/verification-plan.xml", "docs/knowledge-graph.xml", "docs/operational-packets.xml", "risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "docs/research-state.json": ["CONTEXT.md", "task_plan.md", "pm-review.json", "docs/requirements.xml", "docs/technology.xml", "docs/development-plan.xml", "docs/verification-plan.xml", "docs/knowledge-graph.xml", "docs/operational-packets.xml", "risk-review.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "CONTEXT.md": ["task_plan.md", "pm-review.json", "docs/requirements.xml", "docs/technology.xml", "docs/development-plan.xml", "docs/verification-plan.xml", "docs/knowledge-graph.xml", "docs/operational-packets.xml", "risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "task_plan.md": ["pm-review.json", "docs/requirements.xml", "docs/technology.xml", "docs/development-plan.xml", "docs/verification-plan.xml", "docs/knowledge-graph.xml", "docs/operational-packets.xml", "risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "pm-review.json": ["docs/requirements.xml", "docs/technology.xml", "docs/development-plan.xml", "docs/verification-plan.xml", "docs/knowledge-graph.xml", "docs/operational-packets.xml", "risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "docs/requirements.xml": ["risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "docs/technology.xml": ["risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "docs/development-plan.xml": ["risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "docs/verification-plan.xml": ["risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "docs/knowledge-graph.xml": ["risk-review.json", "rollout-plan.json", "contract.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "docs/operational-packets.xml": ["risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "risk-review.json": ["rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "rollout-plan.json": ["contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json", "feature-judge-report.json", "code-review.md"],
+    "api-contract.json": ["contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "design-contract.json": ["contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    ".design-contract-attestation": ["contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "docs/wireframe-*.md": ["contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "contract.json": ["judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "judge-report.json": ["SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "SUPERVISION.md": ["issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "issues-manifest.json": ["scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "scaffold-manifest.json": ["iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "iteration-contract.json": ["iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "iteration-budget.json": ["iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "scaffold-integrity.json": ["iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "iteration-review.json": ["build-evidence.json", "iteration-dashboard.json"],
+    "build-evidence.json": ["iteration-dashboard.json", "feature-judge-report.json", "code-review.md"],
+    "iteration-dashboard.json": ["feature-judge-report.json", "code-review.md"]
   },
   "gate_invalidations": {
+    "role-assignment.json": ["contract_locked", "viz_before_tickets", "human_acceptance"],
     "product_brief.md": ["contract_locked", "viz_before_tickets", "human_acceptance"],
     "evidence-handoff.json": ["contract_locked", "viz_before_tickets", "human_acceptance"],
     "business_model.md": ["contract_locked", "viz_before_tickets", "human_acceptance"],
@@ -317,6 +339,11 @@
     "rollout-plan.json": ["contract_locked", "viz_before_tickets", "human_acceptance"],
     "issues-manifest.json": ["human_acceptance"],
     "scaffold-manifest.json": ["human_acceptance"],
+    "iteration-contract.json": ["human_acceptance"],
+    "iteration-budget.json": ["human_acceptance"],
+    "scaffold-integrity.json": ["human_acceptance"],
+    "iteration-review.json": ["human_acceptance"],
+    "iteration-dashboard.json": ["human_acceptance"],
     "build-evidence.json": ["human_acceptance"],
     "feature-judge-report.json": ["human_acceptance"],
     "code-review.md": ["human_acceptance"]

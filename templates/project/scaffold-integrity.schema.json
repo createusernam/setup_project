@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "scaffold-integrity.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema", "version", "producer", "consumers", "issue_id", "pbs_leaf",
+    "baseline_commit", "verdict", "baseline_anchor_hashes", "current_anchor_hashes",
+    "violations", "gap"
+  ],
+  "properties": {
+    "$schema": {"const": "./scaffold-integrity.schema.json"},
+    "version": {"const": "1"},
+    "producer": {"const": "trusted-scaffold-integrity-checker"},
+    "consumers": {"const": ["phase6-semantic-validator", "architect-review", "iteration-dashboard-renderer"]},
+    "issue_id": {"type": "string", "minLength": 1},
+    "pbs_leaf": {"type": "string", "minLength": 1},
+    "baseline_commit": {"type": "string", "pattern": "^[a-f0-9]{40}([a-f0-9]{24})?$"},
+    "verdict": {"enum": ["PASS", "CONTRACT_GAP", "SCAFFOLD_DRIFT"]},
+    "baseline_anchor_hashes": {"$ref": "#/$defs/hashMap"},
+    "current_anchor_hashes": {"$ref": "#/$defs/hashMap"},
+    "violations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "type", "anchor"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "type": {"enum": [
+            "original_hash_mismatch", "module_contract_changed", "function_contract_changed",
+            "block_anchor_changed", "log_anchor_changed", "impl_directive_changed",
+            "scaffold_structure_changed", "scaffold_file_missing", "new_file_missing_module_contract"
+          ]},
+          "anchor": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "gap": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["type", "owning_phase", "reason"],
+      "properties": {
+        "type": {"const": "architecture_gap"},
+        "owning_phase": {"const": "5.5"},
+        "reason": {"type": "string", "minLength": 1}
+      }
+    }
+  },
+  "$defs": {
+    "hashMap": {
+      "type": "object",
+      "propertyNames": {"type": "string", "minLength": 1},
+      "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+    }
+  }
+}

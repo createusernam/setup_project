@@ -270,6 +270,25 @@ Phase 7. Never sign acceptance first.
    radius, uncertainty, affected boundaries, and cost of error.
 2. **Carry intent in artifacts.** Briefs, plans, contracts, decisions, evidence, and handoffs live on
    disk; chat history is not a pipeline input.
+
+### Human authority and artifact ownership
+
+`role-assignment.json` is optional for a solo team and may name the same person for every role.
+When present, `product_owner` owns value, scope, and accepted product risk; `technical_owner` owns
+technical boundaries and readability of the pre-ticket supervision view; `accountable_acceptor`
+owns acceptance in the delivery context. AI proposes and verifies but does not silently assume any
+of these authorities. Once any identity is configured, attest `role-assignment.json`; all roles
+required by the selected gate must be assigned, and later changes invalidate human gates. The
+matching gate signature is enforced:
+use `setup-pipeline sign <gate> --role <role> --by <identity>`. T3/T4 `contract_locked` requires
+both product and technical approvals; `viz_before_tickets` requires the technical owner;
+`human_acceptance` requires the accountable acceptor. The same identity may hold multiple roles,
+but each role is recorded explicitly.
+
+Intake is the universal pre-route state: outcome, evidence, and route signals. Deep Discovery is
+the stronger T3/T4 phase; it is not a second name for intake. PBS owns delivery slices and progress;
+GRACE owns code/module graph and verification links; `contract.json` owns acceptance; visualization
+is a read-model only. Reference stable IDs across these artifacts rather than copying their fields.
 3. **Keep evidence status intact.** A planning or approval decision cannot turn an assumption into a
    validated fact.
 4. **Use semantic gates.** File presence is insufficient: verdicts, hashes, invalidation state,
@@ -395,7 +414,7 @@ the common route; it does not override the machine.
 | 5 | create traceable implementation slices | approved issue set | issues link to plan/contract criteria |
 | 5.5 | provide code-native implementation boundaries | scaffolded module skeletons | scaffold readiness and contract preservation |
 | 6f | produce bounded fix evidence for T0/T1 | targeted change or diagnose+TDD, tests, `build-evidence.json` | no contract gate; artifact ownership and schema still apply |
-| 6 | implement and verify | code, tests, traces, `build-evidence.json` | collegium/model and build-evidence requirements |
+| 6 | implement and verify one PBS leaf | code, tests, traces, iteration JSON artifacts, generated `dashboard.md`, `build-evidence.json` | scope/budget, exact criteria, ordered independent review, semantic evidence |
 | 7 | review and accept the completed outcome | `feature-judge-report.json` for T2–T4, `code-review.md`, rollout evidence | entry check first; human acceptance and `--completion` check last |
 
 ## Phase -1: discovery handoff
@@ -440,6 +459,15 @@ phase or component to a journey step and success criterion.
 For multi-actor or branching behavior, use the readable behavior stack defined there: end-to-end
 activity/swimlane flow → textual use cases → local sequence diagrams only for message-order
 hotspots → executable `contract.json` paths. Large all-purpose diagrams are not specifications.
+For T3/T4, and for T2 with `behavior_pack_required=true`, Phase 4c requires the validated
+`docs/behavior/behavior-index.json` traceability map before `viz_before_tickets` can pass.
+
+Every T2–T4 human-view gate also consumes the canonical User Story index at
+`docs/stories/index.json`. A story records actor, goal, trigger, outcome, boundaries, named
+`UC-*` cases, their criterion references, assumptions, and open questions. Views point to `US-*`;
+delivery slices carry those same stable IDs forward to their evidence. A view normally focuses on
+one to three elements, but a larger view is permitted when it explicitly records why aggregation or
+splitting would obscure the stakeholder decision.
 
 The user chooses the architecture method, tool, model, and working surface. The pipeline reviews the
 result, not the private reasoning technique that produced it.
@@ -521,6 +549,25 @@ return to the contract/scaffold owner.
 Use `build-loop` for a contract-driven autonomous cycle or `tdd` for human-paced test-first work.
 The selected route determines required model roles and evidence. Keep implementation, test ownership,
 and acceptance independent where the collegium is required.
+
+Each Phase 6 iteration carries exactly one PBS leaf through plan → `issues-manifest.json` →
+`scaffold-manifest.json` → `iteration-contract.json` → `build-evidence.json`. The iteration contract
+is the sole scope authority: production LOC targets 200/hard max 400, total changed LOC targets
+400/hard max 800, files target 6/hard max 10, and public interfaces target 1/hard max 2. A larger
+leaf returns `SPLIT_REQUIRED`; forbidden paths return `SCOPE_BREACH`. Generated/vendor/lock changes
+are reported separately and never conceal source changes.
+
+Completion is ordered as worker → mechanical checks → architect → test owner → isolated acceptor.
+Trusted validators require exact criterion coverage, must-pass evidence, passing required checks,
+closed typed requirements/debt deltas, and preserved or architect-approved scaffold anchors. The
+architect reviews scope, boundaries, deltas, and evidence claims but does not replace the independent
+test owner or acceptor; required exact model IDs remain distinct.
+
+`iteration-dashboard.json` is canonical trusted state. The visualization skill deterministically
+renders `dashboard.md` and the archived per-issue view, while `SUPERVISION.md` keeps the stable
+`[Current iteration dashboard](dashboard.md)` link. PASS, REVISE, SPLIT_REQUIRED, CONTRACT_GAP, and
+RESTART each expose one legal next action. Worker explanation and uncertainty are displayed but
+never compute PASS.
 
 Verification is layered:
 
@@ -630,7 +677,7 @@ setup-pipeline sign viz_before_tickets --by "name-or-account"
 | 5 | `to-issues` after `viz_before_tickets` is signed | `issues-manifest.json` with status `approved` |
 | 5.5 | `scaffold` | `scaffold-manifest.json` with status `ready` |
 | 6f | T0: targeted change; T1: `triage` → `diagnose` → `tdd` | `build-evidence.json` with route `targeted` or `tdd` and status `complete` |
-| 6 | `build-loop` or `tdd` after `contract_locked` is signed | `build-evidence.json` with status `complete` |
+| 6 | `build-loop` or `tdd` after `contract_locked` is signed | `iteration-budget.json`, `scaffold-integrity.json`, `iteration-review.json`, canonical `iteration-dashboard.json`, generated `dashboard.md`, and `build-evidence.json` with status `complete` |
 | 7 | T0/T1: `code-review-expert`; T2–T4: `judge feature`, then `code-review-expert` | stable final reports, then `human_acceptance`, then `setup-preflight 7 . --completion` |
 
 For a workctl-managed task, inspect `workctl status <task-id>` after pipeline status and preflight.
@@ -643,8 +690,8 @@ When an upstream artifact changes, mark every declared downstream consumer inval
 gate. Common examples:
 
 - brief/evidence change → research/context/plan/contract may be stale;
-- task plan change → PM review, visualization, issues, scaffold may be stale;
-- contract change → judge report, visualization, issues, scaffold, and build evidence are stale;
+- task plan change → PM review, visualization, issues, scaffold, iteration, evidence, and dashboard artifacts may be stale;
+- contract change → judge report, visualization, issues, scaffold, iteration, build evidence, and dashboard artifacts are stale;
 - code/scaffold boundary change → tests, traces, review, and acceptance evidence may be stale.
 
 Exact invalidation declarations live in `pipeline-machine.json` and the producing skill contracts.
@@ -659,6 +706,8 @@ carried across changed bytes.
 - choose the review concern and scale before notation;
 - use a stable Markdown/Mermaid filename next to the reviewed state artifact;
 - link gate views from `SUPERVISION.md`;
+- retain `[Current iteration dashboard](dashboard.md)` and render it from canonical
+  `iteration-dashboard.json` with the existing visualization skill;
 - obtain the required signature before tickets or release.
 
 The plan owner supplies the view; a separate human reviewer approves it.

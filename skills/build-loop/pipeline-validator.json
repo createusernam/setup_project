@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "runner": "python",
+  "script": "scripts/validate-phase6.py",
+  "arguments": ["--project", "{project}"],
+  "read_only": true,
+  "timeout_seconds": 30,
+  "failure_next": "repair Phase 6 evidence or reopen its owning upstream artifact, then rerun setup-pipeline status"
+}

@@ -20,7 +20,8 @@
           "required": ["research_required", "frontend"],
           "properties": {
             "research_required": {"type": ["boolean", "null"]},
-            "frontend": {"type": ["boolean", "null"]}
+            "frontend": {"type": ["boolean", "null"]},
+            "behavior_pack_required": {"type": ["boolean", "null"]}
           }
         }
       }
@@ -69,7 +70,21 @@
       "required": ["by", "at"],
       "properties": {
         "by": {"type": ["string", "null"]},
-        "at": {"type": ["string", "null"], "format": "date-time"}
+        "at": {"type": ["string", "null"], "format": "date-time"},
+        "approvals": {
+          "type": "object",
+          "propertyNames": {"enum": ["product_owner", "technical_owner", "accountable_acceptor"]},
+          "additionalProperties": {"$ref": "#/$defs/approval"}
+        }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["by", "at"],
+      "properties": {
+        "by": {"type": "string", "minLength": 1},
+        "at": {"type": "string", "format": "date-time"}
       }
     }
   }

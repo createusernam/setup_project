@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "role-assignment.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "product_owner", "technical_owner", "accountable_acceptor"],
+  "properties": {
+    "version": {"const": "1"},
+    "product_owner": {"type": ["string", "null"], "pattern": ".*\\S.*"},
+    "technical_owner": {"type": ["string", "null"], "pattern": ".*\\S.*"},
+    "accountable_acceptor": {"type": ["string", "null"], "pattern": ".*\\S.*"}
+  }
+}

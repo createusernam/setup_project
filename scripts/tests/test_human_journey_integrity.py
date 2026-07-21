@@ -65,6 +65,18 @@ class HumanJourneyIntegrityTests(unittest.TestCase):
         self.assertIn("phase-process failure overrides global READY", skill)
         self.assertIn("checked downstream requirement", skill)
 
+    def test_workctl_session_entry_requires_an_explicit_or_unambiguous_task(self) -> None:
+        human = (ROOT / "docs/human/WORKCTL.md").read_text(encoding="utf-8")
+        skill = (ROOT / "skills/workctl/SKILL.md").read_text(encoding="utf-8")
+        template = (ROOT / "templates/project/CLAUDE.md").read_text(encoding="utf-8")
+        for text in (human, skill, template):
+            normalized = " ".join(text.split())
+            self.assertIn("A fresh CLI/chat session does not automatically load any workctl task.", normalized)
+            self.assertIn("Continue workctl task <task-id>", normalized)
+            self.assertIn("WORKCTL_TASK", normalized)
+            self.assertIn("current Git branch", normalized)
+            self.assertIn("exactly one task", normalized)
+
     def test_every_human_input_has_values_or_a_discovery_owner(self) -> None:
         setup = (ROOT / "docs/human/SETUP.md").read_text(encoding="utf-8")
         pipeline = (ROOT / "docs/human/PIPELINE.md").read_text(encoding="utf-8")
@@ -86,7 +98,7 @@ class HumanJourneyIntegrityTests(unittest.TestCase):
         self.assertEqual(set(machine["transitions"]), set(routing["phases"]))
         self.assertEqual(ledger["phase"], "-1")
         self.assertIsNone(ledger["policy"]["risk_tier"])
-        self.assertEqual(set(ledger["policy"]["conditions"]), {"research_required", "frontend"})
+        self.assertEqual(set(ledger["policy"]["conditions"]), {"research_required", "frontend", "behavior_pack_required"})
         self.assertEqual(machine["transitions"]["0"]["when"], {"condition": "research_required", "equals": True})
         self.assertEqual(machine["transitions"]["3"]["when"], {"condition": "frontend", "equals": True})
         self.assertNotIn("human_gate", machine["transitions"]["7"])

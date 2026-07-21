@@ -13,6 +13,31 @@ set -euo pipefail
 
 PROJECT_DIR=${1:-$(pwd)}
 cd "$PROJECT_DIR"
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+
+# Static contract semantics and iteration authority are checked before any loop state is written.
+[ -f iteration-contract.json ] || { echo "[build-loop] HALT — iteration-contract.json is missing." >&2; exit 1; }
+python3 "$SCRIPT_DIR/validate-prerequisites.py" --project "$PROJECT_DIR"
+python3 "$SCRIPT_DIR/../../scaffold/scripts/validate-iteration-contract.py" --project "$PROJECT_DIR"
+
+# Runtime capabilities cannot be inferred from repository files. The orchestrator sets these only
+# after proving reachability in the evaluator context and a clean dev-server startup.
+if [ "${BUILD_LOOP_PLAYWRIGHT_READY:-0}" != "1" ]; then
+  echo "[build-loop] HALT — BUILD_LOOP_PLAYWRIGHT_READY=1 was not supplied by the trusted orchestrator." >&2
+  exit 1
+fi
+if [ "${BUILD_LOOP_DEV_SERVER_READY:-0}" != "1" ]; then
+  echo "[build-loop] HALT — BUILD_LOOP_DEV_SERVER_READY=1 was not supplied after running contract.json verify_commands.dev_server." >&2
+  exit 1
+fi
+
+setup-preflight 6 "$PROJECT_DIR"
+mapfile -t SCAFFOLD_FILES < <(python3 "$SCRIPT_DIR/validate-prerequisites.py" --project "$PROJECT_DIR" --print-scaffold-files)
+if [ "${#SCAFFOLD_FILES[@]}" -eq 0 ]; then
+  echo "[build-loop] HALT — iteration-contract.json has no scaffold_files to lint." >&2
+  exit 1
+fi
+setup-grace-lint --profile autonomous "${SCAFFOLD_FILES[@]}"
 
 # Contract present?
 if [ ! -f contract.json ]; then
@@ -34,8 +59,8 @@ if [ "$EXPECTED" != "$ACTUAL" ]; then
   exit 2
 fi
 
-# Git clean?
-if ! git diff --quiet HEAD 2>/dev/null; then
+# Git clean, including untracked files?
+if [ -n "$(git status --porcelain)" ]; then
   echo "[build-loop] Working tree dirty. Commit or stash before /build-loop — restart-from-scratch needs a clean rollback point." >&2
   exit 3
 fi

@@ -139,13 +139,16 @@ Example shape (identifiers are placeholders, not recommendations):
 
 The adjacent `model-bindings.schema.json` is authoritative for shape. `setup-model-check` additionally
 checks the profiles used by one phase and role independence. Core preflight also validates required
-conformance evidence: model ID, harness version, pass rate, and qualified verdict.
+conformance evidence: model ID, harness version, profile, pass rate, critical-probe coverage, and
+qualified verdict. `implementation_general` and `implementation_ui` require `profile: coding_worker`;
+one failed or missing critical probe blocks qualification even when aggregate pass rate exceeds 0.8.
 
 Run a bounded API qualification without putting a key on the command line:
 
 ```bash
 python3 scripts/model-conformance.py --provider PROVIDER --base-url BASE_URL \
-  --model MODEL_ID --output model-conformance/provider-model.json --api-key-stdin
+  --model MODEL_ID --profile coding_worker \
+  --output model-conformance/provider-model.json --api-key-stdin
 ```
 
 For models reached through an already authenticated OpenCode provider, use the isolated runtime
@@ -154,8 +157,13 @@ filesystem tool and multi-hop artifacts:
 
 ```bash
 python3 scripts/opencode-conformance.py --model PROVIDER/MODEL \
-  --output model-conformance/provider-model.json
+  --profile coding_worker --output model-conformance/provider-model.json
 ```
+
+The coding-worker critical set covers bounded patch/scope, compiler and targeted-test feedback,
+scaffold preservation and contract-gap stopping, secret/destructive/hostile-content safety,
+schema-valid handoff/dashboard input, and recovery after compiler/test failure. General conformance
+remains available for non-implementation roles.
 
 The credential is read from stdin (or the named environment variable) and is never written to the
 result. A legacy binding file with no `conformance_policy` remains advisory until explicitly migrated;
@@ -191,13 +199,14 @@ to a different `model_id`.
 Typical build flow:
 
 ```text
-implementer (implementation_general)
-  → handoff.json
-test owner (review_test, different model_id)
-  → tests + AGREE/DISAGREE
-acceptor (review_acceptance, different model_id and isolated context)
-  → final verdict
+worker → mechanical checks → architect → test owner → isolated acceptor
 ```
+
+The worker uses the exact implementation binding. Trusted scripts own budget, scaffold, schema, and
+evidence mechanics. The architect uses the exact reasoning binding and reviews one-leaf scope,
+interfaces, requirements delta, debt delta, and whether explanations match evidence. The test owner
+uses a different `review_test` model ID; the acceptor uses a third distinct `review_acceptance` model
+ID in fresh isolated context. Context isolation never substitutes for distinct model IDs.
 
 For artifact judgment outside a collegium, isolated context is still required even if the same
 capability profile is reused later.

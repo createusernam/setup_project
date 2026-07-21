@@ -505,6 +505,8 @@ Before changing files:
 
 During work, keep `{directory / 'progress.md'}` and `{directory / 'decisions.md'}` current. Before intentionally switching runtimes, run `workctl handoff {state['task_id']} --to <runtime> --next-action "..."`. If you cannot complete the task, leave observable files and checks in a resumable state.
 
+Do not end your turn merely to report intermediate progress. While a locally executable safe next action remains, continue the tool/work loop in this same turn. Stop only when the task contract is complete, a genuine authority/external-state blocker prevents further progress, or the runtime/provider forces an exit. A progress update is not a terminal condition.
+
 Target runtime for this handoff: {runtime}.
 """
 
@@ -797,6 +799,12 @@ def command_handoff(args: argparse.Namespace) -> int:
         raise WorkctlError(f"unknown target runtime {args.to!r}")
     run_dir = directory / "runs" / "handoffs"
     snapshot = git_snapshot(repo, run_dir, f"handoff-r{state.get('revision', 0)}")
+    runs = state.get("runs", []) if isinstance(state.get("runs", []), list) else []
+    last_run = runs[-1] if runs and isinstance(runs[-1], dict) else {}
+    identity_source = "launcher_recorded" if last_run else "self_attested"
+    identity_runtime = last_run.get("runtime") or state.get("last_runtime") or "unknown"
+    identity_model = last_run.get("model") or "unknown"
+    identity_session = last_run.get("session_id") or "not-recorded"
     text = f"""# Handoff: {task_id}
 
 ## Generated
@@ -808,6 +816,14 @@ def command_handoff(args: argparse.Namespace) -> int:
 - previous runtime: `{state.get('last_runtime') or 'unknown'}`
 - target runtime: `{args.to}`
 - task revision before handoff: `{state.get('revision')}`
+
+## Execution identity evidence
+
+- source: `{identity_source}`
+- runtime: `{identity_runtime}`
+- configured model: `{identity_model}`
+- runtime session: `{identity_session}`
+- actual runtime/model identity: `self_attested` unless a provider-issued evidence artifact is linked in `checks.json`
 
 ## What was completed
 
@@ -979,7 +995,7 @@ def command_launch(args: argparse.Namespace, mode: str) -> int:
                 assert process.stdout is not None
                 for line in process.stdout:
                     sys.stdout.write(line)
-                    log.write(line)
+                    log.write(f"[Workctl][command_run][STREAM] {line}")
                     captured = (captured + line)[-65536:]
                 code = process.wait()
         else:

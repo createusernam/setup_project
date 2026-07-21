@@ -4,8 +4,23 @@
   "status": "incomplete",
   "route": "tdd",
   "contract_ref": null,
+  "contract_sha256": null,
+  "issue_id": null,
+  "pbs_leaf": null,
+  "iteration_budget_ref": null,
+  "iteration_review_ref": null,
+  "iteration_dashboard_json_ref": null,
+  "iteration_dashboard_ref": null,
   "checks": [],
   "criteria": [],
   "trace_refs": [],
+  "requirements_delta": {"status": "blocked", "items": []},
+  "debt_delta": {
+    "status": "blocked",
+    "items": [],
+    "reviewed_types": [],
+    "reviewer": {"role": "architect", "id": "", "evidence_ref": ""}
+  },
+  "scaffold_integrity": {"status": "unchecked", "report_ref": null, "architect_review_ref": null},
   "residual_risks": []
 }

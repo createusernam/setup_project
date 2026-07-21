@@ -72,6 +72,15 @@ Every file starts with:
 
 ## Continuity & memory (cross-session and cross-CLI)
 
+A fresh CLI/chat session does not automatically load any workctl task. To resume inside an existing
+agent session, say `Continue workctl task <task-id>`; the agent reads durable task state and reports
+Done/Now/Next before acting. From a normal terminal, use
+`workctl continue <task-id> --runtime <runtime>`.
+
+Calling workctl without an ID is safe only when `WORKCTL_TASK` is set, exactly one task is bound to
+the current Git branch, or the repository contains exactly one task. Otherwise stop and require the
+task ID; never guess by recency.
+
 For material work that must cross a CLI/session boundary or coexist with other active tasks, use one
 named workctl task (`workctl init <task-id> --goal "..."`). Its
 `.workctl/tasks/<task-id>/` directory owns Done/Now/Next, checks, and runtime handoff. Never infer the

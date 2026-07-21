@@ -3,13 +3,20 @@
   "$id": "build-evidence.schema.json",
   "type": "object",
   "additionalProperties": false,
-  "required": ["$schema", "version", "status", "route", "contract_ref", "checks", "criteria", "trace_refs", "residual_risks"],
+  "required": ["$schema", "version", "status", "route", "contract_ref", "contract_sha256", "issue_id", "pbs_leaf", "iteration_budget_ref", "iteration_review_ref", "iteration_dashboard_json_ref", "iteration_dashboard_ref", "checks", "criteria", "trace_refs", "requirements_delta", "debt_delta", "scaffold_integrity", "residual_risks"],
   "properties": {
     "$schema": {"type": "string"},
     "version": {"const": "1"},
     "status": {"enum": ["incomplete", "complete"]},
     "route": {"enum": ["targeted", "tdd", "build-loop"]},
     "contract_ref": {"type": ["string", "null"]},
+    "contract_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "issue_id": {"type": ["string", "null"], "minLength": 1},
+    "pbs_leaf": {"type": ["string", "null"], "minLength": 1},
+    "iteration_budget_ref": {"type": ["string", "null"], "minLength": 1},
+    "iteration_review_ref": {"type": ["string", "null"], "minLength": 1},
+    "iteration_dashboard_json_ref": {"type": ["string", "null"], "minLength": 1},
+    "iteration_dashboard_ref": {"type": ["string", "null"], "minLength": 1},
     "checks": {
       "type": "array",
       "items": {
@@ -19,7 +26,7 @@
         "properties": {
           "command": {"type": "string", "minLength": 1},
           "status": {"enum": ["pass", "fail", "not_run"]},
-          "evidence_ref": {"type": "string"}
+          "evidence_ref": {"type": "string", "minLength": 1}
         }
       }
     },
@@ -32,11 +39,101 @@
         "properties": {
           "id": {"type": "string", "minLength": 1},
           "status": {"enum": ["PASS", "FAIL", "PARTIAL"]},
-          "evidence_ref": {"type": "string"}
+          "evidence_ref": {"type": "string", "minLength": 1}
         }
       }
     },
     "trace_refs": {"type": "array", "items": {"type": "string"}},
+    "requirements_delta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "items"],
+      "properties": {
+        "status": {"enum": ["none", "resolved", "blocked"]},
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "type", "material", "description", "resolution"],
+            "properties": {
+              "id": {"type": "string", "minLength": 1},
+              "type": {"enum": ["implementation_assumption", "architecture_gap", "product_gap", "evidence_gap"]},
+              "material": {"type": "boolean"},
+              "description": {"type": "string", "minLength": 1},
+              "resolution": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["status", "authority_role", "authority_id", "owning_phase", "evidence_ref"],
+                "properties": {
+                  "status": {"enum": ["accepted", "returned_upstream", "accepted_risk", "removed", "open"]},
+                  "authority_role": {"enum": ["architect", "product_owner", "research_owner", "risk_owner", "technical_owner", "worker"]},
+                  "authority_id": {"type": "string"},
+                  "owning_phase": {"type": "string"},
+                  "evidence_ref": {"type": "string"}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "debt_delta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "items", "reviewed_types", "reviewer"],
+      "properties": {
+        "status": {"enum": ["none", "resolved", "accepted", "blocked"]},
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "type", "description", "resolution"],
+            "properties": {
+              "id": {"type": "string", "minLength": 1},
+              "type": {"enum": ["new_todo_fixme", "suppression", "skipped_test", "dependency_addition", "dead_unreachable_code", "duplication", "public_api_growth", "contract_anchor_drift", "test_without_criterion_ref", "criterion_without_executable_evidence"]},
+              "description": {"type": "string", "minLength": 1},
+              "resolution": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["status", "owner_id", "reason", "follow_up_task", "evidence_ref"],
+                "properties": {
+                  "status": {"enum": ["removed", "owner_accepted", "open"]},
+                  "owner_id": {"type": "string"},
+                  "reason": {"type": "string"},
+                  "follow_up_task": {"type": "string"},
+                  "evidence_ref": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "reviewed_types": {
+          "type": "array", "uniqueItems": true,
+          "items": {"enum": ["new_todo_fixme", "suppression", "skipped_test", "dependency_addition", "dead_unreachable_code", "duplication", "public_api_growth", "contract_anchor_drift", "test_without_criterion_ref", "criterion_without_executable_evidence"]}
+        },
+        "reviewer": {
+          "type": "object", "additionalProperties": false,
+          "required": ["role", "id", "evidence_ref"],
+          "properties": {
+            "role": {"const": "architect"},
+            "id": {"type": "string", "minLength": 1},
+            "evidence_ref": {"type": "string", "minLength": 1}
+          }
+        }
+      }
+    },
+    "scaffold_integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "report_ref", "architect_review_ref"],
+      "properties": {
+        "status": {"enum": ["unchecked", "unchanged", "drifted", "architect_approved"]},
+        "report_ref": {"type": ["string", "null"], "minLength": 1},
+        "architect_review_ref": {"type": ["string", "null"], "minLength": 1}
+      }
+    },
     "residual_risks": {"type": "array", "items": {"type": "string"}}
   },
   "allOf": [{

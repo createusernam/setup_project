@@ -108,7 +108,12 @@ class TaskSelectionTests(WorkctlTestCase):
         prompt = prompts[0].read_text(encoding="utf-8")
         self.assertIn("CONTINUE TASK alpha ONLY", prompt)
         self.assertIn(str(task / "state.json"), prompt)
+        self.assertIn("Do not end your turn merely to report intermediate progress", prompt)
+        self.assertIn("locally executable safe next action", prompt)
         self.assertIn("Finish parser tests", (task / "resume.md").read_text(encoding="utf-8"))
+        handoff = (task / "handoff.md").read_text(encoding="utf-8")
+        self.assertIn("Execution identity evidence", handoff)
+        self.assertIn("self_attested", handoff)
 
     def test_unique_branch_binding_selects_task_and_ambiguity_halts(self) -> None:
         self.init_task("alpha")

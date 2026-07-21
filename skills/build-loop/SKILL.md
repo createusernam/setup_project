@@ -32,7 +32,11 @@ For **bugfixes**: don't use this skill. Use `/diagnose` → `/tdd`. /build-loop 
 
 ## Prerequisites — HARD GATE
 
-Validate before any iteration starts. Halt with a clear message if any check fails. **Do not proceed with partial setup** — the whole point of the contract is that the autonomous cycle has no humans in the loop.
+`scripts/run.sh` enforces every item below before it creates mutable loop state. Static contract and
+attestation checks run in `validate-prerequisites.py`; the iteration contract has its dedicated
+validator; runtime reachability is represented only by trusted orchestrator environment handoffs;
+preflight and GRACE lint run directly. Halt with a clear message if any check fails. **Do not proceed
+with partial setup** — the whole point of the contract is that the autonomous cycle has no humans in the loop.
 
 ```
 1. contract.json exists at project root
@@ -54,12 +58,15 @@ Validate before any iteration starts. Halt with a clear message if any check fai
 10. Routed models available: run `setup-preflight 6` — implementer/
     implementation/test/acceptance profiles are bound in `model-bindings.json` and distinct where required.
     (Closes the "cycle stalls on a missing model" gap.)
-11. GRACE Lite markup is clean on the code the loop will edit:
-    `setup-grace-lint --profile autonomous` exits 0.
+11. GRACE Lite markup is clean on every path in the iteration contract's `scaffold_files`:
+    `setup-grace-lint --profile autonomous <scaffold_files...>` exits 0.
     Not cosmetic: the loop has no human in it. The generator navigates by MODULE_CONTRACT /
     FUNCTION_CONTRACT anchors, and the evaluator's `trace` criteria grade against the
     [Module][function][BLOCK] log anchors. Unmarked code blinds both halves of the cycle.
     If this fails on a greenfield feature, you skipped `/scaffold` — run it.
+12. `iteration-contract.json` is `ready`, names exactly one approved issue/PBS leaf, records the
+    iteration baseline, allowed/forbidden paths, hard budgets, scaffold anchors, verification commands,
+    and exact role model IDs; the scaffold phase-process validator passes.
 ```
 
 If any check fails, print a precise diagnostic:
@@ -75,9 +82,18 @@ Cycle aborted. No code generated.
 ```
 
 At terminal PASS, update root `build-evidence.json` from the project template: set
-`route: "build-loop"`, record every executed check and criterion evidence, retain trace/screenshot
-references and residual risks, then set `status: "complete"`. Allowed values are defined by
-`build-evidence.schema.json`. Phase 7 consumes this stable artifact; iteration logs do not replace it.
+`route: "build-loop"`; record the current contract SHA, selected issue ID and PBS leaf, the canonical
+`iteration-budget.json` ref, every
+executed check and exact criterion evidence, iteration dashboard ref, typed requirements/debt
+deltas, scaffold-integrity verdict, traces/screenshots, and residual risks. Requirements are `none`
+or resolved under their type-specific authority (a worker cannot close a material gap). Debt is zero,
+removed with evidence, or owner-accepted with owner ID, reason, and follow-up task after the architect
+reviews every canonical debt category. Set `status: "complete"`
+only after the ordered `iteration-review.json` records worker → trusted mechanical checks → architect
+review → fresh independent test owner → fresh isolated acceptor, with all required verdicts PASS, and
+`scripts/validate-phase6.py --project .` passes. Phase 6 entry automatically binds this
+skill's read-only `pipeline-validator.json`; its failure blocks forward exit through the standard
+phase-process mechanism. Phase 7 consumes the stable evidence; iteration logs do not replace it.
 
 ## Workflow
 
@@ -131,9 +147,21 @@ Inputs the generator does NOT receive:
 Generator's task:
 - Implement against the contract, using critique.json to target what failed last time
 - Make minimal, focused diff
-- Write `iterations/<n>/generator-summary.md` — a short (≤500 word) report of what was changed and why
+- Change only the single PBS leaf and paths authorized by `iteration-contract.json`. After the patch,
+  the trusted orchestrator runs `scripts/check-iteration-budget.py --project .`; only `PASS` may continue.
+  `SPLIT_REQUIRED` ends this iteration for replanning, and `SCOPE_BREACH` rejects the patch. The worker
+  cannot write or override the canonical `iteration-budget.json` verdict. The checker refuses to measure
+  while `iteration-contract.json` differs from its committed HEAD version (iteration authority changes
+  only through Phase 5.5 re-attestation), excludes orchestrator-owned loop state from the worker diff
+  (`.build-loop/**`, root `build-evidence.json`/`iteration-review.json`/`scaffold-integrity.json`/
+  `iteration-dashboard.json`/`dashboard.md`, `iterations/*/dashboard.md`, `docs/views/iteration-*.json`),
+  and counts public interfaces only in production files.
+- The orchestrator then runs `scripts/check-scaffold-integrity.py --project .`. A normal implementation
+  may replace block bodies, but MODULE/FUNCTION contracts, block names/order, `IMPL:` directives, and
+  log anchors are immutable. `CONTRACT_GAP` returns upstream; `SCAFFOLD_DRIFT` requires architect review.
+- Write `.build-loop/iterations/<n>/generator-summary.md` — a short (≤500 word) report of what was changed and why
 - Update `progress.md` with what was done
-- Write `iterations/<n>/handoff.json` in the COMPAT schema (`handoff.md`): `agent_role` = generator
+- Write `.build-loop/iterations/<n>/handoff.json` in the COMPAT schema (`handoff.md`): `agent_role` = generator
   persona (frontend/backend-implementer), `model_used`, `done`, `files_touched`, `uncertain_about`,
   `collegium_verdict: "needs-review"`, `next_agent: "evaluator"`. This is an **audit record for the
   orchestrator** — it is NOT handed to the evaluator (the isolation in 2b is deliberate).
@@ -152,7 +180,7 @@ Inputs the evaluator receives:
 - `design-contract.json` (if present)
 - The **diff** of changes in this iteration (not the generator's summary, not its reasoning)
 - Playwright MCP access
-- `iterations/<n>/screenshots/` — empty directory to write into
+- `.build-loop/iterations/<n>/screenshots/` — empty directory to write into
 
 Inputs the evaluator does NOT receive:
 - `generator-summary.md` (would muddy critical thinking per Anthropic talk)
@@ -163,9 +191,9 @@ Evaluator's task:
 - Start the dev server (`verify_commands.dev_server`)
 - For each criterion in `contract.json`:
   - If `verify.method` is `grep`/`test`/`typecheck`/`build`/`lint` — run the command, exit code 0 = pass
-  - If `verify.method` is `playwright` — execute the steps via Playwright MCP, screenshot key states to `iterations/<n>/screenshots/`, score 0–1
+  - If `verify.method` is `playwright` — execute the steps via Playwright MCP, screenshot key states to `.build-loop/iterations/<n>/screenshots/`, score 0–1
   - If `verify.method` is `trace` — run `verify.command`, capture stdout+stderr to
-    `iterations/<n>/traces/<criterion-id>.log`, then grade the **trajectory**:
+    `.build-loop/iterations/<n>/traces/<criterion-id>.log`, then grade the **trajectory**:
       1. every anchor in `expect_sequence` appears, **in that order** (interleaving lines are fine) — a
          missing or reordered anchor scores 0;
       2. no anchor in `forbid` appears — any match scores 0;
@@ -176,14 +204,19 @@ Evaluator's task:
     generator can satisfy assertions with code that is wrong everywhere they don't look — the trajectory
     is far harder to fake. (Contract-side schema: `/contract` §Verify methods.)
   - If `verify.method` is `manual` — make a judgment call, write reasoning into critique
-- Compute weighted score: `Σ(score_i × weight_i) / Σ(weight_i)`
-- Check must_pass criteria — any failure with `must_pass: true` → verdict `fail` regardless of weighted score
-- Write `iterations/<n>/critique.json`:
+- Score every contract criterion exactly once and attach non-empty critique plus evidence refs for each.
+- Write `.build-loop/iterations/<n>/critique.json` against `critique.schema.json`. The evaluator may include a
+  `weighted_score` for explanation, but it is untrusted; `scripts/verdict.sh` validates exact ID
+  coverage, score ranges, support evidence, per-criterion floor, and must-pass failures before it
+  computes the authoritative weighted score.
 
 ```json
 {
   "iteration": 3,
+  "$schema": "../../critique.schema.json",
+  "version": "1",
   "evaluator_started": "2026-05-19T13:42:00Z",
+  "evaluator_finished": "2026-05-19T13:44:00Z",
   "scores": {
     "c1": 1.0,
     "c2": 0.4,
@@ -194,22 +227,54 @@ Evaluator's task:
   "verdict": "fail",
   "blocking_criteria": ["c2"],
   "critique_per_criterion": {
-    "c2": "Submit button uses hardcoded #007aff at src/components/Form.tsx:42. Expected: var(--color-action-primary). Screenshot: iterations/3/screenshots/form-submit.png."
+    "c1": "Successful submission was observed in the live flow.",
+    "c2": "Submit button uses hardcoded #007aff at src/components/Form.tsx:42. Expected: var(--color-action-primary). Screenshot: iterations/3/screenshots/form-submit.png.",
+    "c3": "The required trace anchors appeared in order."
   },
-  "summary": "Functionality passes (c1, c3). Design token violation in c2 — single grep hit. Targeted fix should resolve in next iteration."
+  "evidence_per_criterion": {
+    "c1": ["iterations/3/screenshots/success.png"],
+    "c2": ["iterations/3/screenshots/form-submit.png"],
+    "c3": ["iterations/3/traces/c3.log"]
+  },
+  "summary": "Functionality passes (c1, c3). Design token violation in c2 — single grep hit. Targeted fix should resolve in next iteration.",
+  "recommend_restart": false
 }
 ```
 
-Then write `iterations/<n>/handoff.json` (COMPAT schema): `agent_role: "test-owner"`, `model_used`,
+Then write `.build-loop/iterations/<n>/handoff.json` (COMPAT schema): `agent_role: "test-owner"`, `model_used`,
 `collegium_verdict` (`agreed` if verdict pass, else `disagreed`), `test_status`, `blocking_criteria`
 → `uncertain_about`, `next_agent: "orchestrator"`. Also an audit record — the evaluator stays blind
 to the generator's handoff.
 
+After every evaluator run, the exact `reasoning_high` architect writes
+`.build-loop/iterations/<n>/architect-checkpoint.json`: identity and review ref; verdict
+`CONTINUE|REVISE|CONTRACT_GAP|RESTART`; one-leaf, boundary, and evidence checks; and classified
+requirements, architecture, and debt deltas. Before the orchestrator starts another worker attempt,
+run `check-attempt-transition.py --project . --iteration <n> --check-next`. It combines the trusted
+budget/scaffold reports, deterministic evaluator verdict, and architect checkpoint into an archived
+attempt-local `attempt-dashboard.json` and `dashboard.md`.
+
+Only evaluator `continue` plus architect `CONTINUE`, PASS mechanical reports, no material
+requirements/architecture delta, no blocked debt, and all architect checks true opens attempt
+`n + 1`. Evaluator `pass` enters terminal ordered architect/test/acceptance review and explicitly
+does not open another worker attempt. `REVISE`, `CONTRACT_GAP`, `SPLIT_REQUIRED`, `SCOPE_BREACH`,
+`SCAFFOLD_DRIFT`, `RESTART`, `ABORT`, missing checkpoints, and unresolved material/debt deltas fail
+closed to their named upstream authority.
+
 #### 2c. Decision
+
+Before an evaluator PASS can become terminal completion, the trusted orchestrator composes
+`iteration-review.json`. The architect (the exact `reasoning_high` binding) checks one-leaf scope,
+boundaries/interfaces, requirement and debt classification, and whether the explanation matches the
+mechanical evidence. A fresh `review_test` owner then runs independent tests; a different
+`review_acceptance` model in a fresh isolated context makes acceptance. None of these roles substitutes
+for another, and implementer/test-owner/acceptor model IDs must remain distinct.
 
 Verdict rules (in order):
 
-1. **pass** — `weighted_score ≥ 1.0 - epsilon` AND no `must_pass` failures AND no `criteria_floor` violations → cycle ends successfully
+1. **pass** — trusted `verdict.sh` reports exact criterion/support coverage, every score meets
+   `criteria_floor`, authoritative `weighted_score ≥ 1.0 - epsilon`, and no `must_pass` failures
+   → cycle ends successfully
 2. **restart** — `n > restart_threshold.no_progress_iterations` AND weighted score has not improved in that window → roll back to `start_commit`, increment restart counter, reset to iteration 1.
 3. **abort** — total restart count ≥ 2, or `n ≥ max_iterations` even after restart — halt and hand back to user
 4. **continue** — otherwise, loop to step 2a with `n+1`
@@ -224,8 +289,14 @@ When verdict is `restart`:
 git stash push -m "build-loop restart $(date -Iseconds)"  # preserve in case user wants forensics
 git reset --hard $(cat .build-loop/start-commit)
 echo "Restarting from clean state. Critiques from prior attempts archived under .build-loop/restart-<n>/"
-mv iterations/ .build-loop/restart-$(date +%s)/iterations/
+RESTART_DIR=.build-loop/restart-$(date +%s)
+mkdir -p "$RESTART_DIR"
+mv .build-loop/iterations/ "$RESTART_DIR/iterations/"
+mkdir -p .build-loop/iterations
 ```
+
+The root `iterations/<issue-id>/dashboard.md` archive belongs to human supervision, not to loop
+state; a restart must never move or delete it.
 
 **Important**: per the Anthropic talk, restart is most effective when the *evaluator* triggers it — not the generator. The evaluator says "criterion X has not progressed across 3 iterations; the approach is wrong, not the polish." Then a fresh generator starts with all prior critiques in its context (so it doesn't repeat the same approach).
 
@@ -296,8 +367,23 @@ the loop's *control* state is JSON — small, schema'd, parsed by scripts, read 
 
 - `contract.json` (the rubric — also parsed by `verdict.sh`, `pipeline-preflight.sh`)
 - `iteration-log.json` (append-only audit; the orchestrator reads it, agents don't)
-- `iterations/<n>/critique.json`
-- `iterations/<n>/handoff.json` (COMPAT audit record per role — orchestrator reads it; never passed between the isolated roles)
+- root `iteration-budget.json` (producer: trusted budget checker; schema:
+  `templates/project/iteration-budget.schema.json`; consumers: Phase 6 semantic validator and the
+  iteration dashboard renderer)
+- root `scaffold-integrity.json` (producer: trusted scaffold-integrity checker; schema:
+  `templates/project/scaffold-integrity.schema.json`; consumers: Phase 6 semantic validator,
+  architect review, and iteration dashboard renderer)
+- root `iteration-review.json` (producer: trusted ordered-review orchestrator; schema:
+  `templates/project/iteration-review.schema.json`; consumers: Phase 6 semantic validator,
+  build evidence, and dashboard renderer)
+- root `iteration-dashboard.json` (producer: trusted visualization renderer; schema:
+  `templates/project/iteration-dashboard.schema.json`; consumers: Phase 6 semantic validator and
+  Phase 7 human review); `dashboard.md` is its deterministic human view
+- root `build-evidence.json` (producer: Phase 6 trusted orchestrator; schema:
+  `templates/project/build-evidence.schema.json`; consumers: Phase 6 semantic validator and Phase 7)
+- `.build-loop/iterations/<n>/critique.json` (producer: isolated evaluator; schema: `critique.schema.json`;
+  consumer and deterministic validator: `scripts/verdict.sh`)
+- `.build-loop/iterations/<n>/handoff.json` (COMPAT audit record per role — orchestrator reads it; never passed between the isolated roles)
 - `.build-loop/start-commit` (file, single sha)
 
 **Where JSON stops:** the *evidence* the agents read in bulk — traces, graphs, plans — is XML-like,
@@ -306,7 +392,7 @@ guide says the same, and it is why GRACE artifacts are `.xml`). The two findings
 they're about different operations, write-resistance vs read-navigability. The rule and the size
 threshold: `docs/agent/COMPAT.md` §State format.
 
-Concretely, in this loop: `iterations/<n>/traces/*.log` carry `[Module][function][BLOCK]` anchors and
+Concretely, in this loop: `.build-loop/iterations/<n>/traces/*.log` carry `[Module][function][BLOCK]` anchors and
 are read by the evaluator for `trace` criteria; `docs/*.xml` carry the graph the generator navigates.
 Neither is ever converted to JSON to "keep the state uniform".
 
@@ -377,5 +463,6 @@ This is weaker than Claude Code's true separate contexts (the model may "remembe
 - `scripts/run.sh` — orchestrator (sets up dirs, runs git snapshot, dispatches to Agent invocations)
 - `scripts/restart.sh` — rollback to start commit, archive iterations
 - `scripts/verdict.sh` — compute weighted score from critique.json
+- `critique.schema.json` — structural contract for isolated evaluator output
 - `templates/critique.json` — example evaluator output
 - `templates/iteration-log.json` — example state file

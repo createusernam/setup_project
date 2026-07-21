@@ -4,6 +4,27 @@
 not transfer chat history. It transfers durable task state: identity, goal, constraints, decisions,
 progress, checks, Git snapshots, and the exact next action.
 
+## Session entry
+
+A fresh CLI/chat session does not automatically load any workctl task.
+
+Inside an already open agent session, resume one task by naming it explicitly:
+
+```text
+Continue workctl task <task-id>.
+Read its durable state first and report Done / Now / Next before acting.
+```
+
+From a normal terminal, launch the target runtime with the same explicit ID:
+
+```bash
+workctl continue <task-id> --runtime <runtime>
+```
+
+Calling workctl without an ID is safe only when `WORKCTL_TASK` is set, exactly one task is bound to
+the current Git branch, or the repository contains exactly one task. Otherwise workctl stops and
+requires the task ID; it never guesses by recency.
+
 ## Do you need workctl?
 
 Usually, the human should not start with a workctl command.
@@ -94,6 +115,18 @@ workctl continue auth-refresh --runtime opencode
 The receiving runtime gets an explicit `CONTINUE TASK auth-refresh ONLY` prompt, absolute paths to
 task material, and an instruction to read state before acting. Each launch records pre/post Git
 snapshots and exit information under `runs/` and `state.json`.
+
+Generated handoffs disclose execution identity separately from configured intent. Workctl records
+the launcher runtime/model/session when it controls the run; this is `launcher_recorded`, not proof
+that the provider actually served that identity. Link provider-issued identity evidence in
+`checks.json` when available. Otherwise the handoff labels the actual runtime/model identity
+`self_attested` so final acceptance never mistakes configuration for independent provenance.
+
+That prompt also carries a persistence condition: an intermediate progress report does not end the
+task. The runtime keeps taking safe, locally executable next actions in the same turn until the task
+contract is complete, a real authority/external-state blocker is reached, or the provider forces an
+exit. If an agent repeatedly stops while its own next action is executable, that is an execution-loop
+failure; do not treat repeated human “continue” messages as the normal workctl protocol.
 
 ## Persistent role sessions
 

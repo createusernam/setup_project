@@ -88,7 +88,8 @@ Do NOT close or modify any parent issue.
 ### 6. Write the machine handoff
 
 Update root `issues-manifest.json` from its project template. Set `status` to `approved` only after
-every published issue has a real ID and traces to its journey/contract criteria. Allowed issue
+every published issue has a real ID, exactly one `pbs_leaf` (one PBS leaf), and traces to canonical
+`US-*` IDs through non-empty `story_refs` or `technical_enabler_for`, plus contract criteria. Allowed issue
 types are `HITL` and `AFK`; allowed manifest statuses are `draft` and `approved` (authoritative shape:
 `issues-manifest.schema.json`). The next phase attests this stable file; a chat-only issue list is
 not a Phase 5 output.

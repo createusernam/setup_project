@@ -10,10 +10,12 @@
     "view_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
     "stakeholder": {"type": "string", "minLength": 1},
     "decision": {"type": "string", "minLength": 1},
-    "story_ref": {"type": ["string", "null"]},
+    "story_ref": {"type": "string", "pattern": "^US-[A-Z0-9-]+$"},
     "concern": {"enum": ["structural", "behavioral", "functional", "data", "goal", "flow_and_overflow", "dynamics"]},
     "scale": {"enum": ["context", "system", "subsystem", "operation"]},
-    "focal_elements": {"type": "array", "minItems": 1, "maxItems": 3, "items": {"type": "string"}},
+    "focal_elements": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "aggregation_rationale": {"type": ["string", "null"]},
+    "split_reason": {"type": ["string", "null"]},
     "actors": {"type": "array", "items": {"type": "string"}},
     "metaphor": {
       "type": ["object", "null"],
@@ -38,5 +40,16 @@
         "at": {"type": ["string", "null"], "format": "date-time"}
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"focal_elements": {"minItems": 4}}, "required": ["focal_elements"]},
+      "then": {
+        "anyOf": [
+          {"properties": {"aggregation_rationale": {"type": "string", "minLength": 1}}, "required": ["aggregation_rationale"]},
+          {"properties": {"split_reason": {"type": "string", "minLength": 1}}, "required": ["split_reason"]}
+        ]
+      }
+    }
+  ]
 }

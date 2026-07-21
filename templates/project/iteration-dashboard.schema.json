@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "iteration-dashboard.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "version", "producer", "consumers", "view_id", "status", "issue_id", "pbs_leaf", "goal", "models", "budget", "criteria", "tests", "trace_evidence", "requirements_delta", "architecture_delta", "debt_delta", "links", "human_summary", "worker_explanation", "uncertainty", "legal_next_action"],
+  "properties": {
+    "$schema": {"const": "./iteration-dashboard.schema.json"},
+    "version": {"const": "1"},
+    "producer": {"const": "trusted-iteration-dashboard-renderer"},
+    "consumers": {"const": ["human-supervision", "phase6-semantic-validator"]},
+    "view_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "status": {"enum": ["PASS", "REVISE", "SPLIT_REQUIRED", "CONTRACT_GAP", "RESTART"]},
+    "issue_id": {"type": "string", "minLength": 1},
+    "pbs_leaf": {"type": "string", "minLength": 1},
+    "goal": {"type": "string", "minLength": 1},
+    "models": {"type": "object", "additionalProperties": false, "required": ["worker", "architect", "test_owner", "acceptor"], "properties": {"worker": {"type": "string", "minLength": 1}, "architect": {"type": "string", "minLength": 1}, "test_owner": {"type": "string", "minLength": 1}, "acceptor": {"type": "string", "minLength": 1}}},
+    "budget": {"type": "object", "additionalProperties": {"$ref": "#/$defs/budgetMetric"}, "minProperties": 4},
+    "criteria": {"type": "object", "additionalProperties": false, "required": ["coverage", "must_pass", "missing", "failed"], "properties": {"coverage": {"type": "string", "pattern": "^[0-9]+/[0-9]+$"}, "must_pass": {"type": "string", "pattern": "^[0-9]+/[0-9]+$"}, "missing": {"type": "array", "items": {"type": "string"}}, "failed": {"type": "array", "items": {"type": "string"}}}},
+    "tests": {"type": "array", "items": {"type": "object"}},
+    "trace_evidence": {"type": "array", "items": {"type": "string"}},
+    "requirements_delta": {"type": "object"},
+    "architecture_delta": {"type": "object"},
+    "debt_delta": {"type": "object"},
+    "links": {"type": "object", "additionalProperties": false, "required": ["diff", "critique", "screenshots", "traces"], "properties": {"diff": {"type": "string", "minLength": 1}, "critique": {"type": ["string", "null"]}, "screenshots": {"type": "array", "items": {"type": "string"}}, "traces": {"type": "array", "items": {"type": "string"}}}},
+    "human_summary": {"type": "string", "minLength": 1},
+    "worker_explanation": {"type": "string"},
+    "uncertainty": {"type": "array", "items": {"type": "string"}},
+    "legal_next_action": {"type": "string", "minLength": 1}
+  },
+  "$defs": {
+    "budgetMetric": {"type": "object", "required": ["actual", "target", "max"], "properties": {"actual": {"type": "integer", "minimum": 0}, "target": {"type": "integer", "minimum": 0}, "max": {"type": "integer", "minimum": 0}}, "additionalProperties": true}
+  }
+}

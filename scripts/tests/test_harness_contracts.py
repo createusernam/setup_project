@@ -52,6 +52,53 @@ class HarnessContractTests(unittest.TestCase):
         optional = [item for item in machine["transitions"]["1"]["requires"] if item["artifact"] == "business_model.md"]
         self.assertEqual(optional, [{"artifact": "business_model.md", "attested": True, "when_present": True}])
 
+    def test_every_tier_terminal_requirement_has_a_producer_on_its_route(self) -> None:
+        machine = json.loads((ROOT / "pipeline-machine.json").read_text(encoding="utf-8"))
+        terminal_requirements = machine["transitions"]["7"]["requires"]
+        for tier, policy in machine["risk_policy"]["tiers"].items():
+            route = set(policy["required_phases"])
+            route.update(policy.get("conditional_phases", {}))
+            for requirement in terminal_requirements:
+                if tier not in requirement.get("tiers", ["T0", "T1", "T2", "T3", "T4"]):
+                    continue
+                ownership = machine["artifact_owners"][requirement["artifact"]]
+                producers = set(ownership.get("producer_phases") or [ownership.get("producer_phase")])
+                self.assertTrue(
+                    producers & route,
+                    f"{tier} cannot produce terminal requirement {requirement['artifact']} on route {sorted(route)}",
+                )
+
+    def test_configured_human_authorities_are_enforced_per_gate(self) -> None:
+        machine = json.loads((ROOT / "pipeline-machine.json").read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as raw:
+            project = Path(raw)
+            write_json(project / "role-assignment.json", {
+                "version": "1", "product_owner": "product@example.test",
+                "technical_owner": "tech@example.test", "accountable_acceptor": "accept@example.test",
+            })
+            signature = {
+                "by": None, "at": None,
+                "approvals": {"product_owner": {"by": "product@example.test", "at": "2026-07-22T00:00:00Z"}},
+            }
+            failures, configured = preflight.human_authority_errors(
+                ROOT, project, "contract_locked", "T3", signature, machine,
+                {"artifacts": {"role-assignment.json": {
+                    "status": "approved", "sha256": hashlib.sha256((project / "role-assignment.json").read_bytes()).hexdigest()
+                }}},
+            )
+            self.assertTrue(configured)
+            self.assertTrue(any("technical_owner" in failure for failure in failures))
+            signature["approvals"]["technical_owner"] = {
+                "by": "tech@example.test", "at": "2026-07-22T00:00:00Z"
+            }
+            failures, _ = preflight.human_authority_errors(
+                ROOT, project, "contract_locked", "T3", signature, machine,
+                {"artifacts": {"role-assignment.json": {
+                    "status": "approved", "sha256": hashlib.sha256((project / "role-assignment.json").read_bytes()).hexdigest()
+                }}},
+            )
+            self.assertEqual(failures, [])
+
     def test_attest_rejects_schema_invalid_bytes_without_ledger_mutation(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             project = Path(raw)
@@ -82,7 +129,8 @@ class HarnessContractTests(unittest.TestCase):
             evidence = {
                 "$schema": "../model-conformance.schema.json",
                 "version": "1",
-                "harness_version": "1",
+                "harness_version": "2",
+                "profile": "coding_worker",
                 "provider": "fixture",
                 "runtime": "api",
                 "model_id": "fixture/model",
@@ -90,15 +138,21 @@ class HarnessContractTests(unittest.TestCase):
                 "executed_at": "2026-07-20T00:00:00Z",
                 "settings": {"temperature": 0, "max_tokens": 1, "timeout_seconds": 1, "max_repair_attempts": 0, "thinking": "disabled"},
                 "scenarios": [
-                    {"id": f"p{index}", "status": "pass", "attempts": 1, "latency_ms": 0, "evidence": {}}
-                    for index in range(8)
+                    {"id": probe, "critical": True, "status": "pass", "attempts": 1, "latency_ms": 0, "evidence": {}}
+                    for probe in (
+                        "bounded_patch", "allowed_path_compliance", "compiler_typecheck_feedback",
+                        "targeted_test_execution", "scaffold_anchor_preservation", "stop_on_contract_gap",
+                        "secret_non_disclosure", "destructive_command_refusal",
+                        "untrusted_repository_instruction_resistance", "schema_valid_handoff_dashboard_input",
+                        "failure_recovery",
+                    )
                 ],
-                "summary": {"passed": 8, "total": 8, "pass_rate": 1, "threshold": 0.8, "qualified": True},
+                "summary": {"passed": 11, "total": 11, "pass_rate": 1, "threshold": 0.8, "critical_passed": 11, "critical_total": 11, "critical_failures": [], "qualified": True},
                 "provenance": {"setup_git_sha": "fixture", "runner_sha256": "0" * 64},
             }
             write_json(project / "model-conformance/fixture.json", evidence)
             binding = {"runtime": "api", "model_id": "fixture/model", "enabled": True, "conformance_ref": "model-conformance/fixture.json"}
-            policy = {"mode": "required", "minimum_pass_rate": 0.8, "harness_version": "1"}
+            policy = {"mode": "required", "minimum_pass_rate": 0.8, "harness_version": "2"}
             machine = json.loads((ROOT / "pipeline-machine.json").read_text())
             self.assertEqual(preflight.model_conformance_errors(ROOT, project, machine, "implementation_general", binding, policy), [])
             binding["model_id"] = "other/model"

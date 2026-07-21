@@ -258,7 +258,7 @@ class PipelineStateTests(unittest.TestCase):
                 )
             rendered = output.getvalue()
             self.assertIn("human request: viz_before_tickets", rendered)
-            self.assertIn("authority: product_owner", rendered)
+            self.assertIn("authority: technical_owner", rendered)
             self.assertIn(str(project / "SUPERVISION.md"), rendered)
             self.assertIn("response format: inline", rendered)
             self.assertIn('"action": "approve|revise"', rendered)
@@ -386,7 +386,7 @@ class PipelineStateTests(unittest.TestCase):
             module.command_migrate(SimpleNamespace(), ROOT, project)
             migrated = json.loads((project / ".pipeline-state.json").read_text(encoding="utf-8"))
             self.assertEqual(migrated["phase"], "-1")
-            self.assertEqual(set(migrated["policy"]["conditions"]), {"research_required", "frontend"})
+            self.assertEqual(set(migrated["policy"]["conditions"]), {"research_required", "frontend", "behavior_pack_required"})
             self.assertNotIn("skipped_gates", migrated["policy"])
             self.assertNotIn("stakeholder_input_confirmed", migrated["human_gates"])
             self.assertTrue(list(project.glob(".pipeline-state.json.bak-*")))
@@ -418,9 +418,28 @@ class PipelineStateTests(unittest.TestCase):
             ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
             ledger["phase"] = "4b"
             ledger_path.write_text(json.dumps(ledger), encoding="utf-8")
-            module.command_sign(SimpleNamespace(gate="contract_locked", by="owner@example.test"), ROOT, project)
+            module.command_sign(SimpleNamespace(gate="contract_locked", by="owner@example.test", role=None), ROOT, project)
             ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
             self.assertEqual(ledger["human_gates"]["contract_locked"]["by"], "owner@example.test")
+
+            module.command_sign(
+                SimpleNamespace(gate="contract_locked", by="architect@example.test", role="technical_owner"),
+                ROOT,
+                project,
+            )
+            ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+            self.assertEqual(
+                ledger["human_gates"]["contract_locked"]["approvals"]["technical_owner"]["by"],
+                "architect@example.test",
+            )
+
+            (project / "role-assignment.json").write_text(json.dumps({
+                "version": "1", "product_owner": "owner@example.test",
+                "technical_owner": "architect@example.test", "accountable_acceptor": "owner@example.test",
+            }) + "\n", encoding="utf-8")
+            module.command_attest(SimpleNamespace(artifacts=["role-assignment.json"], status="approved"), ROOT, project)
+            ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+            self.assertEqual(ledger["human_gates"]["contract_locked"]["approvals"], {})
 
             (project / "product_brief.md").write_text("v3\n", encoding="utf-8")
             ledger = json.loads(ledger_path.read_text(encoding="utf-8"))

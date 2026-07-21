@@ -119,6 +119,7 @@ def main() -> None:
         artifacts = {
             "task_plan.md": "plan\n",
             "evidence-handoff.json": evidence_document("delivery"),
+            "docs/stories/index.json": {"version": "1", "stories": []},
             "design-contract.json": {"version": "1"},
             "api-contract.json": {"version": "1"},
             "docs/wireframe-home.md": "approved wireframe\n",
@@ -143,7 +144,7 @@ def main() -> None:
                 "viz_before_tickets": {"by": None, "at": None},
                 "human_acceptance": {"by": None, "at": None},
             },
-            "phase_processes": {},
+            "phase_processes": {"4c": {"skill": "visualization"}},
         }
         write(frontend_project, ".pipeline-state.json", ledger)
         failures, _, _ = module.evaluate(ROOT, frontend_project, "4")
@@ -170,6 +171,7 @@ def main() -> None:
         contract_document["scope"] = "x"
         contract_hash = write(project, "contract.json", contract_document)
         judge_hash = write(project, "judge-report.json", {"data": {"verdict": "FAIL"}})
+        stories_hash = write(project, "docs/stories/index.json", {"version": "1", "stories": []})
         ledger = {
             "version": "2",
             "phase": "4c",
@@ -178,13 +180,14 @@ def main() -> None:
             "artifacts": {
                 "contract.json": {"sha256": contract_hash, "status": "ready", "invalidated_by": None},
                 "judge-report.json": {"sha256": judge_hash, "status": "ready", "invalidated_by": None},
+                "docs/stories/index.json": {"sha256": stories_hash, "status": "ready", "invalidated_by": None},
             },
             "human_gates": {
                 "contract_locked": {"by": None, "at": None},
                 "viz_before_tickets": {"by": None, "at": None},
                 "human_acceptance": {"by": None, "at": None},
             },
-            "phase_processes": {},
+            "phase_processes": {"4c": {"skill": "visualization"}},
         }
         write(project, ".pipeline-state.json", ledger)
         failures, _, _ = module.evaluate(ROOT, project, "4c")
@@ -195,6 +198,14 @@ def main() -> None:
         write(project, ".pipeline-state.json", ledger)
         failures, _, _ = module.evaluate(ROOT, project, "4c")
         assert not failures, failures
+
+        ledger["policy"] = {"risk_tier": "T3", "conditions": {"research_required": False, "frontend": False}}
+        write(project, ".pipeline-state.json", ledger)
+        failures, _, _ = module.evaluate(ROOT, project, "4c")
+        assert any("behavior_pack: missing" in item for item in failures), failures
+
+        ledger["policy"] = {"risk_tier": "T2", "conditions": {"research_required": False, "frontend": False}}
+        write(project, ".pipeline-state.json", ledger)
 
         failures, _, _ = module.evaluate(ROOT, project, "3")
         assert any("unnecessary" in item and "frontend" in item for item in failures), failures

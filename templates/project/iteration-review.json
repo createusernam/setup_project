@@ -1,0 +1,13 @@
+{
+  "$schema": "./iteration-review.schema.json",
+  "version": "1",
+  "producer": "trusted-phase6-orchestrator",
+  "consumers": ["phase6-semantic-validator", "iteration-dashboard-renderer", "phase7-review"],
+  "issue_id": "",
+  "pbs_leaf": "",
+  "worker": {"sequence": 1, "model_id": "", "context_id": "", "handoff_ref": ""},
+  "mechanical": {"sequence": 2, "verdict": "CONTRACT_GAP", "budget_ref": "iteration-budget.json", "scaffold_integrity_ref": "scaffold-integrity.json"},
+  "architect": {"sequence": 3, "model_id": "", "context_id": "", "verdict": "CONTRACT_GAP", "review_ref": "", "checks": {"one_leaf": false, "boundaries_interfaces": false, "requirements_delta": false, "debt_delta": false, "explanation_matches_evidence": false}},
+  "test_owner": {"sequence": 4, "model_id": "", "context_id": "", "fresh_context": true, "verdict": "REVISE", "review_ref": ""},
+  "acceptor": {"sequence": 5, "model_id": "", "context_id": "", "fresh_context": true, "isolated_context": true, "verdict": "REVISE", "review_ref": ""}
+}

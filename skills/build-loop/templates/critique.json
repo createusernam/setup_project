@@ -1,4 +1,6 @@
 {
+  "$schema": "../critique.schema.json",
+  "version": "1",
   "iteration": 1,
   "evaluator_started": "REPLACE-WITH-ISO-8601",
   "evaluator_finished": "REPLACE-WITH-ISO-8601",
@@ -15,6 +17,11 @@
     "c1": "Form submits valid input, success toast appears within 1.2s. Screenshot iterations/1/screenshots/success-toast.png. PASS.",
     "c2": "Submit button uses hardcoded #007aff at src/components/Form.tsx:42. Expected var(--color-action-primary). Single grep hit. Targeted fix.",
     "c3": "Unit test 'invalid email' covers the branch in __tests__/form.spec.ts:18-32. PASS."
+  },
+  "evidence_per_criterion": {
+    "c1": ["iterations/1/screenshots/success-toast.png"],
+    "c2": ["iterations/1/screenshots/form-submit.png"],
+    "c3": ["iterations/1/traces/c3.log"]
   },
   "summary": "Functionality and craft pass. Single design-token violation in c2 (one-line fix). Recommend patch, not restart.",
   "recommend_restart": false,

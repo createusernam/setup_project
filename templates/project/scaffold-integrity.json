@@ -1,0 +1,14 @@
+{
+  "$schema": "./scaffold-integrity.schema.json",
+  "version": "1",
+  "producer": "trusted-scaffold-integrity-checker",
+  "consumers": ["phase6-semantic-validator", "architect-review", "iteration-dashboard-renderer"],
+  "issue_id": "",
+  "pbs_leaf": "",
+  "baseline_commit": "0000000000000000000000000000000000000000",
+  "verdict": "PASS",
+  "baseline_anchor_hashes": {},
+  "current_anchor_hashes": {},
+  "violations": [],
+  "gap": null
+}

@@ -99,7 +99,6 @@ def source_files():
 EXPORTED = re.compile(
     r"^\s*(?:export\s+(?:async\s+)?function\s+(\w+)"          # export function foo
     r"|export\s+const\s+(\w+)\s*[:=]\s*(?:async\s*)?\("        # export const foo = (…)
-    r"|def\s+(?!_)(\w+)\s*\("                                   # python def foo (not _private)
     r"|func\s+(?!\w*\btest\b)([A-Z]\w*)\s*\()"                  # go exported func
 )
 
@@ -147,11 +146,16 @@ for path in source_files():
 
     if profile == "autonomous":
         # Rule 2b — every exported symbol carries a FUNCTION_CONTRACT.
+        python_exports = set()
+        if path.endswith(".py"):
+            for names in re.findall(r"(?m)^__all__\s*=\s*\(([^)]*)\)", text):
+                python_exports.update(re.findall(r"['\"]([A-Za-z_]\w*)['\"]", names))
         for i, line in enumerate(lines, 1):
             m = EXPORTED.match(line)
-            if not m:
+            python_match = re.match(r"^def\s+(\w+)\s*\(", line)
+            if not m and not (python_match and python_match.group(1) in python_exports):
                 continue
-            name = next((g for g in m.groups() if g), None)
+            name = python_match.group(1) if python_match else next((g for g in m.groups() if g), None)
             if not name:
                 continue
             if not re.search(rf"START_CONTRACT:\s*{re.escape(name)}\b", text):

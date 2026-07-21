@@ -59,8 +59,9 @@ The machine-readable order is:
 4. **Projection** — actors and optional metaphor with explicit mapping, limits, and hidden aggregation.
 5. **Notation** — only now pick the diagram language that encodes the concern and scale.
 
-The focal-elements budget is 1–3. More than three means aggregate explicitly or link a next-scale
-view. This is a local readability heuristic, not a cognitive-science standard. A metaphor is a
+Keep approximately 1–3 focal elements where that makes the decision easier to read. More than three
+is valid only when the view records an aggregation rationale or a reason not to split it; this is a
+reviewable readability heuristic, not a schema cap or a cognitive-science standard. A metaphor is a
 human projection, never canonical ontology; process/structure truth remains in the canonical refs.
 
 ### Rule 2 — The plan owner supplies the view before tickets
@@ -135,15 +136,54 @@ loops). When those dynamics materially affect a decision, use Graphviz DOT with 
 documented inline-SVG convention. Do not use causal-loop notation for an ordinary structural or
 behavioral review.
 
+## Behavior Pack — readable behavior before tickets
+
+Use this mode for every T3/T4 route and for T2 when the project records
+`behavior_pack_required=true`: multiple actors or an external service, asynchronous state or
+retry/idempotency, a criterion-critical recovery path, or high interaction density/fidelity/cost of
+error are sufficient reasons. Do not make a pack for T0/T1 or a simple one-boundary T2 change.
+
+Build: a `flow-<id>.md` overview → one numbered `uc-<id>.md` per actor goal → an interaction file
+only for a named `UC-ID/step-N` message-order question → `behavior-index.json` with links,
+contract paths, risk-probe evidence, and coverage. Run
+`python3 <visualization-skill-root>/scripts/check-behavior-pack.py --project .` before presenting
+`SUPERVISION.md` for `viz_before_tickets`.
+
+| Review question | Default artifact | Escalate only when |
+|---|---|---|
+| What happens from trigger to outcome? | flow/activity swimlane | one actor promise needs precision |
+| What does the system promise one actor? | textual use case | message order is genuinely unclear |
+| Who sends what, in which order? | local sequence | it is one named UC step |
+| Can the promise be replayed? | `contract.json` path | behavior has been resolved |
+
+The index is canonical for traceability; diagrams stay readable projections. A sequence diagram
+never exists merely for completeness. The checker fails unresolved critical coverage, a critical UC
+without a contract path, broken links, or an over-budget interaction without a `SPLIT_REQUIRED`
+justification.
+
 ---
 
 ## Obsidian supervision (no plugin)
 
 - Each gate writes a **stably-named `*.md`** (not only inline JSON) with a ` ```mermaid ` block.
 - One **`SUPERVISION.md`** index per project links the human-review artifacts.
+- During Phase 4c, include the stable link `[Current iteration dashboard](dashboard.md)`. Phase 6
+  replaces only the generated `dashboard.md` projection and archives the same view under
+  `iterations/<issue-id>/dashboard.md`; it never rewrites the attested upstream supervision index.
 - Index each durable view as `story → concern → scale → view → decision → approval` and link both
   its viewpoint JSON and rendered Markdown/HTML projection.
+- When a Behavior Pack is required, link its `flow → UC → interaction → contract` map from the
+  Phase 4c section before approval.
 - A **`.pipeline-state.json`** convention (current phase · last gate · open questions) lets Obsidian show "where the agent is" at a glance.
+
+### Phase 6 iteration dashboard
+
+Run `python3 <visualization-skill-root>/scripts/render-iteration-dashboard.py --project .` after trusted
+budget, scaffold-integrity, review-chain, and build-evidence artifacts exist. It produces canonical
+`iteration-dashboard.json`, validates an operation-scale dynamics viewpoint at
+`docs/views/iteration-<issue-id>.json`, and deterministically renders `dashboard.md` plus the iteration
+archive. Status and legal next action come only from trusted artifacts; worker explanation and
+uncertainty remain visibly untrusted text. Use `--check` at the Phase 6 exit.
 
 ---
 

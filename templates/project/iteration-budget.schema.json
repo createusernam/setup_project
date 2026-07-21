@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "iteration-budget.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema", "version", "producer", "consumers", "issue_id", "pbs_leaf",
+    "baseline_commit", "verdict", "changed_files", "observed_pbs_leaves",
+    "metrics", "budget", "scope_breaches", "split_reasons"
+  ],
+  "properties": {
+    "$schema": {"const": "./iteration-budget.schema.json"},
+    "version": {"const": "1"},
+    "producer": {"const": "trusted-iteration-budget-checker"},
+    "consumers": {
+      "type": "array",
+      "const": ["phase6-semantic-validator", "iteration-dashboard-renderer"]
+    },
+    "issue_id": {"type": "string", "minLength": 1},
+    "pbs_leaf": {"type": "string", "minLength": 1},
+    "baseline_commit": {"type": "string", "pattern": "^[a-f0-9]{40}([a-f0-9]{24})?$"},
+    "verdict": {"enum": ["PASS", "SPLIT_REQUIRED", "SCOPE_BREACH"]},
+    "changed_files": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "category", "added", "deleted", "changed_loc"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "category": {"enum": ["production", "tests", "docs", "generated", "vendor", "lock"]},
+          "added": {"type": "integer", "minimum": 0},
+          "deleted": {"type": "integer", "minimum": 0},
+          "changed_loc": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "observed_pbs_leaves": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["production", "tests", "docs", "generated", "vendor", "lock"],
+      "properties": {
+        "production": {"$ref": "#/$defs/categoryMetrics"},
+        "tests": {"$ref": "#/$defs/categoryMetrics"},
+        "docs": {"$ref": "#/$defs/categoryMetrics"},
+        "generated": {"$ref": "#/$defs/categoryMetrics"},
+        "vendor": {"$ref": "#/$defs/categoryMetrics"},
+        "lock": {"$ref": "#/$defs/categoryMetrics"}
+      }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["production_loc", "total_loc", "files", "public_interfaces"],
+      "properties": {
+        "production_loc": {"$ref": "#/$defs/budgetMetric"},
+        "total_loc": {"$ref": "#/$defs/budgetMetric"},
+        "files": {"$ref": "#/$defs/budgetMetric"},
+        "public_interfaces": {"$ref": "#/$defs/budgetMetric"}
+      }
+    },
+    "scope_breaches": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "split_reasons": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"enum": ["multiple_pbs_leaves", "production_loc_max", "total_loc_max", "max_files", "max_public_interfaces"]}
+    }
+  },
+  "$defs": {
+    "categoryMetrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["files", "added", "deleted", "changed_loc"],
+      "properties": {
+        "files": {"type": "integer", "minimum": 0},
+        "added": {"type": "integer", "minimum": 0},
+        "deleted": {"type": "integer", "minimum": 0},
+        "changed_loc": {"type": "integer", "minimum": 0}
+      }
+    },
+    "budgetMetric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actual", "target", "max", "target_exceeded", "hard_max_exceeded"],
+      "properties": {
+        "actual": {"type": "integer", "minimum": 0},
+        "target": {"type": "integer", "minimum": 0},
+        "max": {"type": "integer", "minimum": 0},
+        "target_exceeded": {"type": "boolean"},
+        "hard_max_exceeded": {"type": "boolean"}
+      }
+    }
+  }
+}

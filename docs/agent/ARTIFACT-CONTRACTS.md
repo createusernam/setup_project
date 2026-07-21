@@ -16,6 +16,28 @@ For registered JSON artifacts:
 The portable validator in `scripts/json_schema.py` supports the bounded Draft 2020-12 vocabulary
 used by committed schemas. Unsupported external references or formats fail closed.
 
+## Phase 6 bounded-iteration chain
+
+One PBS leaf remains traceable from canonical `task_plan.json`/generated `task_plan.md`, through
+`issues-manifest.json` and `scaffold-manifest.json`, into `iteration-contract.json`, and finally into
+`build-evidence.json` and `iteration-dashboard.json`. JSON is canonical; `dashboard.md` is a
+deterministic human view and must never be maintained as a second state writer.
+
+| Artifact | Producer | Schema / deterministic validator | Consumers |
+|---|---|---|---|
+| `issues-manifest.json` | Phase 5 `to-issues` | `issues-manifest.schema.json`; Phase 5 phase-process validator | scaffold, iteration contract |
+| `scaffold-manifest.json` | Phase 5.5 `scaffold` | `scaffold-manifest.schema.json`; scaffold phase-process validator | iteration contract, integrity checker |
+| `iteration-contract.json` | Phase 5.5 `scaffold` | `iteration-contract.schema.json`; `validate-iteration-contract.py` | worker boundary, budget/integrity checkers, Phase 6 validator |
+| `iteration-budget.json` | trusted diff checker | `iteration-budget.schema.json`; `check-iteration-budget.py` | architect, evidence, dashboard, Phase 6 validator |
+| `scaffold-integrity.json` | trusted integrity checker | `scaffold-integrity.schema.json`; `check-scaffold-integrity.py` | architect, evidence, dashboard, Phase 6 validator |
+| `iteration-review.json` | trusted review orchestrator | `iteration-review.schema.json`; `validate-iteration-review.py` | evidence, dashboard, Phase 6 validator |
+| `build-evidence.json` | trusted Phase 6 orchestrator | `build-evidence.schema.json`; `validate-phase6.py` | dashboard, Phase 7 |
+| `iteration-dashboard.json` | visualization renderer | `iteration-dashboard.schema.json`; `render-iteration-dashboard.py --check` | generated `dashboard.md`, `SUPERVISION.md` link, Phase 7 human review |
+
+The enforced sequence is worker → mechanical checks → architect → test owner → isolated acceptor.
+The architect owns leaf/boundary and delta classification, but cannot replace independent testing or
+acceptance. Any upstream byte change invalidates the registered downstream artifacts and their gates.
+
 ## Common state envelope
 
 New cross-model exchange artifacts should use `templates/project/artifact-envelope.schema.json` as

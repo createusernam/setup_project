@@ -17,11 +17,21 @@ open_questions: []
 criterion_refs: []
 ```
 
+## Numbered scenario and executable trace
+
+Keep each step observable and short. Use the stable `UC-ID/step-N` anchor when a reader or IDE
+agent needs the local context; do not make a sequence diagram carry the scenario itself.
+
+| Step | Actor/system action | Criterion / contract path | Local interaction |
+|---|---|---|---|
+| 1 | ... | `C-...` / `contract.json#/...` | — |
+| 2 | ... | `C-...` / `contract.json#/...` | `INT-...` only if message order is the question |
+
 ## Local interaction view
 
 Add a sequence diagram only when one fragment requires review of message order between actors,
-components, or external systems. Link it to the numbered scenario step; do not redraw the entire
-end-to-end flow.
+components, or external systems. Link it to one `UC-ID/step-N` and state the unresolved question;
+do not redraw the entire end-to-end flow. Use `interaction-template.md` for the local artifact.
 
 ## Executable mapping
 

@@ -3,11 +3,12 @@
   "$id": "scaffold-manifest.schema.json",
   "type": "object",
   "additionalProperties": false,
-  "required": ["$schema", "version", "status", "contract_sha256", "files", "checks"],
+  "required": ["$schema", "version", "status", "issue_id", "contract_sha256", "files", "checks"],
   "properties": {
     "$schema": {"type": "string"},
     "version": {"const": "1"},
     "status": {"enum": ["draft", "ready"]},
+    "issue_id": {"type": ["string", "null"]},
     "contract_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
     "files": {
       "type": "array",
@@ -37,6 +38,7 @@
     {
       "if": {"properties": {"status": {"const": "ready"}}, "required": ["status"]},
       "then": {"properties": {
+        "issue_id": {"type": "string", "minLength": 1},
         "contract_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
         "files": {"minItems": 1},
         "checks": {"minItems": 1}

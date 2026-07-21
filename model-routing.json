@@ -35,6 +35,7 @@
       "Do not select by role title alone; architecture can use a balanced profile when constraints are standard and explicit.",
       "Escalate requirement work when requirement_uncertainty or cost_of_error is high; resolve blocking specification gaps before code.",
       "Escalate the first implementation pass when knowledge_rarity or fidelity_need is high; later continuation may use a cheaper compatible binding with the generated code as evidence.",
+      "After a recorded risk probe resolves a material technical or behavior uncertainty, de-escalate the resulting bounded, reversible, well-specified work to the cheapest compatible binding; preserve independent review and tests.",
       "De-escalate bounded, reversible, well-specified work when all consequential signals are low and tests provide fast feedback.",
       "Never de-escalate a role below its phase profile or bypass distinct-role and isolated-context requirements."
     ],
@@ -120,12 +121,13 @@
     "6": {
       "skill": "build-loop, tdd",
       "roles": {
+        "architect": "reasoning_high",
         "implementer": "implementation_general",
         "test_owner": "review_test",
         "acceptor": "review_acceptance"
       },
       "distinct_roles": [["implementer", "test_owner", "acceptor"]],
-      "note": "All collegium roles resolve to different concrete model IDs."
+      "note": "The architect reviews after trusted mechanical checks. Implementer, test owner, and isolated acceptor resolve to different concrete model IDs; architect does not replace either independent review role."
     },
     "7": {
       "skill": "judge feature, code-review-expert",

@@ -32,7 +32,7 @@ brief promised?** — before a single line of code.
 
 If either input is missing, HALT and say which one — do not invent a plan or a brief.
 
-## The five checks
+## The eight checks
 
 ```xml
 <role>
@@ -41,7 +41,7 @@ You have NOT seen the planning reasoning — only task_plan.md and product_brief
 Your job: refuse to let work start on a plan that won't deliver what the brief promised.
 </role>
 <goal>
-GOAL: APPROVE only if the plan is traceable to the brief on all five checks below.
+GOAL: APPROVE only if the plan is traceable to the brief on all eight checks below.
 Not success: waving through a plan because it "looks reasonable".
 Success: every architectural layer maps to a user-journey step and a measurable criterion,
 or a specific REVISE list the planner can act on.
@@ -62,6 +62,8 @@ or a specific REVISE list the planner can act on.
    assumption; dispositions and accountable owners trace to `evidence-handoff.json`.
 7. **Behavior stays readable.** End-to-end flow, textual use cases, local interaction views, and
    executable contract references agree without one oversized diagram carrying every concern.
+8. **GRACE decision is recorded.** When at least two GRACE Full criteria apply, the plan records the
+   selected GRACE route; otherwise it records why Lite or no GRACE is sufficient.
 </guide>
 <checklist>
 - [ ] Every arch layer → a user-journey step (product_brief §7)     [no orphan layers, no orphan steps]
@@ -85,7 +87,10 @@ or a specific REVISE list the planner can act on.
     "layers_map_to_criteria": true,
     "edge_cases_have_tasks": true,
     "decisions_and_risks_explicit": true,
-    "scope_bounded": true
+    "scope_bounded": true,
+    "specification_gaps_visible": true,
+    "behavior_readable": true,
+    "grace_decision_recorded": true
   },
   "issues": [
     { "check": "edge_cases_have_tasks", "detail": "product_brief §7.2 dependency outage has no task", "fix": "add failure handling and recovery verification to the relevant phase" }
@@ -108,7 +113,7 @@ to Phase 3 (`/design-first`, if frontend) or Phase 4 (`/contract`).
   "model_id": "[resolved binding]",
   "task_ref": "task_plan.md",
   "goal_achieved": true,
-  "done": ["reviewed plan against product_brief §7/§8", "5 checks run"],
+  "done": ["reviewed plan against product_brief §7/§8", "eight checks run"],
   "files_touched": ["pm-review.json"],
   "uncertain_about": [],
   "collegium_verdict": "APPROVE | REVISE",

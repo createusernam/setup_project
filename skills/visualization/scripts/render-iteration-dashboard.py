@@ -86,6 +86,7 @@ def derive_status(
 
 def build_dashboard(project: Path) -> tuple[dict[str, Any], dict[str, Any]]:
     iteration = load(project, "iteration-contract.json")
+    story_index = load(project, "docs/stories/index.json")
     contract = load(project, "contract.json")
     budget = load(project, "iteration-budget.json")
     integrity = load(project, "scaffold-integrity.json")
@@ -108,6 +109,26 @@ def build_dashboard(project: Path) -> tuple[dict[str, Any], dict[str, Any]]:
         and len(observed_commands) == len(set(observed_commands))
         and set(observed_commands) == set(required_commands)
     )
+    story_refs = iteration["story_refs"]
+    criterion_refs = set(iteration["criterion_refs"])
+    story_use_cases = []
+    for story in story_index.get("stories", []):
+        if not isinstance(story, dict) or story.get("id") not in story_refs:
+            continue
+        relevant = sorted({
+            use_case["id"]
+            for use_case in story.get("use_cases", [])
+            if isinstance(use_case, dict)
+            and isinstance(use_case.get("id"), str)
+            and criterion_refs.intersection(use_case.get("criterion_refs", []))
+        })
+        if relevant:
+            story_use_cases.append({"story_ref": story["id"], "use_case_refs": relevant})
+    use_case_refs = sorted({
+        use_case_ref
+        for mapping in story_use_cases
+        for use_case_ref in mapping["use_case_refs"]
+    })
     status = derive_status(budget, integrity, review, evidence, expected, evidence_items, commands_exact)
     actions = {
         "PASS": "Proceed to Phase 7 independent feature/code review.",
@@ -131,6 +152,8 @@ def build_dashboard(project: Path) -> tuple[dict[str, Any], dict[str, Any]]:
         "producer": "trusted-iteration-dashboard-renderer",
         "consumers": ["human-supervision", "phase6-semantic-validator"],
         "view_id": view_id, "status": status, "issue_id": iteration["issue_id"],
+        "story_refs": story_refs, "use_case_refs": use_case_refs,
+        "story_use_cases": story_use_cases,
         "pbs_leaf": iteration["pbs_leaf"], "goal": iteration["goal"], "models": models,
         "budget": budget.get("budget", {}),
         "criteria": {"coverage": f"{len(set(expected) & set(actual_items))}/{len(expected)}", "must_pass": f"{passed_must}/{len(must_pass)}", "missing": missing, "failed": failed},
@@ -149,7 +172,7 @@ def build_dashboard(project: Path) -> tuple[dict[str, Any], dict[str, Any]]:
         "story_ref": iteration["story_refs"][0], "concern": "dynamics", "scale": "operation",
         "focal_elements": ["scope_and_budget", "evidence_and_deltas", "review_chain"],
         "actors": ["worker", "architect", "test_owner", "acceptor", "human_supervisor"],
-        "metaphor": None, "canonical_refs": ["iteration-dashboard.json", "iteration-contract.json", "build-evidence.json"],
+        "metaphor": None, "canonical_refs": ["iteration-dashboard.json", "iteration-contract.json", "docs/stories/index.json", "build-evidence.json"],
         "hidden_aggregation": ["full diff content", "full test logs", "model reasoning traces"],
         "next_scale_views": [], "approval": {"status": "draft", "by": None, "at": None},
     }
@@ -170,11 +193,41 @@ def cell(value: Any) -> str:
     return str(value).replace("|", "\\|").replace("\n", " ")
 
 
+def mermaid_label(value: Any) -> str:
+    return str(value).replace("&", "&amp;").replace('"', "&quot;").replace("\n", " ")
+
+
 def markdown(dashboard: dict[str, Any]) -> str:
+    stories = ", ".join(dashboard["story_refs"])
+    models = dashboard["models"]
+    review_status = dashboard["status"]
+    diagram = ["flowchart LR"]
+    use_case_number = 0
+    for story_number, mapping in enumerate(dashboard["story_use_cases"], start=1):
+        story_node = f"Story{story_number}"
+        diagram.append(f'    {story_node}["Story: {mermaid_label(mapping["story_ref"])}"]')
+        for use_case_ref in mapping["use_case_refs"]:
+            use_case_number += 1
+            use_case_node = f"UseCase{use_case_number}"
+            diagram.append(f'    {use_case_node}["Use case: {mermaid_label(use_case_ref)}"]')
+            diagram.append(f"    {story_node} --> {use_case_node}")
+            diagram.append(f"    {use_case_node} --> Scope")
+    diagram += [
+        f'    Scope["PBS leaf: {mermaid_label(dashboard["pbs_leaf"])}"]',
+        f'    Scope --> Worker["Worker<br/>{mermaid_label(models["worker"])}"]',
+        f'    Worker --> Checks["Trusted checks<br/>budget, scaffold, tests, traces"]',
+        f'    Checks --> Architect["Architect<br/>{mermaid_label(models["architect"])}"]',
+        f'    Architect --> TestOwner["Test owner<br/>{mermaid_label(models["test_owner"])}"]',
+        f'    TestOwner --> Acceptor["Acceptor<br/>{mermaid_label(models["acceptor"])}"]',
+        f'    Acceptor -->|{mermaid_label(review_status)}| Next["{mermaid_label(dashboard["legal_next_action"])}"]',
+    ]
     lines = [
         f"# Iteration dashboard — {dashboard['issue_id']}", "",
         f"**Status:** `{dashboard['status']}`  ", f"**Goal:** {dashboard['goal']}  ",
-        f"**PBS leaf:** `{dashboard['pbs_leaf']}`", "", "## Models", "",
+        f"**Stories:** `{stories}`  ", f"**PBS leaf:** `{dashboard['pbs_leaf']}`", "",
+        "## Iteration map", "", "```mermaid",
+    ] + diagram + [
+        "```", "", "## Models", "",
         "| Role | Model ID |", "|---|---|",
     ]
     lines += [f"| {role} | `{cell(model)}` |" for role, model in dashboard["models"].items()]

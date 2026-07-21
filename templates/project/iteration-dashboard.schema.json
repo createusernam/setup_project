@@ -3,7 +3,7 @@
   "$id": "iteration-dashboard.schema.json",
   "type": "object",
   "additionalProperties": false,
-  "required": ["$schema", "version", "producer", "consumers", "view_id", "status", "issue_id", "pbs_leaf", "goal", "models", "budget", "criteria", "tests", "trace_evidence", "requirements_delta", "architecture_delta", "debt_delta", "links", "human_summary", "worker_explanation", "uncertainty", "legal_next_action"],
+  "required": ["$schema", "version", "producer", "consumers", "view_id", "status", "issue_id", "story_refs", "use_case_refs", "story_use_cases", "pbs_leaf", "goal", "models", "budget", "criteria", "tests", "trace_evidence", "requirements_delta", "architecture_delta", "debt_delta", "links", "human_summary", "worker_explanation", "uncertainty", "legal_next_action"],
   "properties": {
     "$schema": {"const": "./iteration-dashboard.schema.json"},
     "version": {"const": "1"},
@@ -12,6 +12,19 @@
     "view_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$"},
     "status": {"enum": ["PASS", "REVISE", "SPLIT_REQUIRED", "CONTRACT_GAP", "RESTART"]},
     "issue_id": {"type": "string", "minLength": 1},
+    "story_refs": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^US-[A-Z0-9-]+$"}, "uniqueItems": true},
+    "use_case_refs": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^UC-[A-Z0-9-]+$"}, "uniqueItems": true},
+    "story_use_cases": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["story_ref", "use_case_refs"],
+        "properties": {
+          "story_ref": {"type": "string", "pattern": "^US-[A-Z0-9-]+$"},
+          "use_case_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^UC-[A-Z0-9-]+$"}}
+        }
+      }
+    },
     "pbs_leaf": {"type": "string", "minLength": 1},
     "goal": {"type": "string", "minLength": 1},
     "models": {"type": "object", "additionalProperties": false, "required": ["worker", "architect", "test_owner", "acceptor"], "properties": {"worker": {"type": "string", "minLength": 1}, "architect": {"type": "string", "minLength": 1}, "test_owner": {"type": "string", "minLength": 1}, "acceptor": {"type": "string", "minLength": 1}}},

@@ -567,7 +567,11 @@ test owner or acceptor; required exact model IDs remain distinct.
 renders `dashboard.md` and the archived per-issue view, while `SUPERVISION.md` keeps the stable
 `[Current iteration dashboard](dashboard.md)` link. PASS, REVISE, SPLIT_REQUIRED, CONTRACT_GAP, and
 RESTART each expose one legal next action. Worker explanation and uncertainty are displayed but
-never compute PASS.
+never compute PASS. Every rendered dashboard includes a compact Mermaid map connecting its canonical
+User Story and matching Use Cases to the bounded PBS leaf, trusted checks, ordered review roles,
+verdict, and legal next action. Each inner build-loop attempt likewise visualizes its worker,
+evaluator, mechanical, and architect checkpoint path; tables or verdict bullets alone are
+insufficient human supervision.
 
 Verification is layered:
 

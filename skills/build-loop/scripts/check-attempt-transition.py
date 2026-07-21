@@ -148,9 +148,26 @@ def decision(
 def render_markdown(dashboard: dict[str, Any]) -> str:
     architect = dashboard.get("architect") or {}
     checks = architect.get("checks") or {}
+    scope = dashboard["scope"]
+    stories = ", ".join(scope["story_refs"])
+    def label(value: Any) -> str:
+        return str(value).replace("&", "&amp;").replace('"', "&quot;").replace("\n", " ")
     return (
         f"# Attempt {dashboard['iteration']} dashboard\n\n"
         f"**Status:** `{dashboard['status']}`\n\n"
+        f"**Stories:** `{stories}`  \n"
+        f"**PBS leaf:** `{scope['pbs_leaf']}`  \n"
+        f"**Goal:** {scope['goal']}\n\n"
+        "## Attempt map\n\n"
+        "```mermaid\n"
+        "flowchart LR\n"
+        f'    Story["Story: {label(stories)}"] --> Leaf["PBS leaf: {label(scope["pbs_leaf"])}"]\n'
+        f'    Leaf --> Attempt["Worker attempt {dashboard["iteration"]}"]\n'
+        f'    Attempt --> Evaluator["Evaluator<br/>{label(dashboard["evaluator"]["verdict"])}"]\n'
+        f'    Evaluator --> Mechanical["Trusted mechanical checks<br/>budget: {label(dashboard["mechanical"]["budget_verdict"])}; scaffold: {label(dashboard["mechanical"]["scaffold_verdict"])}"]\n'
+        f'    Mechanical --> Architect["Architect checkpoint<br/>{label(architect.get("verdict", "MISSING"))}"]\n'
+        f'    Architect -->|{label(dashboard["status"])}| Next["{label(dashboard["legal_next_action"])}"]\n'
+        "```\n\n"
         f"- evaluator: `{dashboard['evaluator']['verdict']}`\n"
         f"- budget: `{dashboard['mechanical']['budget_verdict']}`\n"
         f"- scaffold: `{dashboard['mechanical']['scaffold_verdict']}`\n"
@@ -182,6 +199,8 @@ def main() -> int:
             {"PASS", "CONTRACT_GAP", "SCAFFOLD_DRIFT"},
         )
         iteration_contract = read_object(project / "iteration-contract.json")
+        if not isinstance(iteration_contract.get("story_refs"), list) or not iteration_contract["story_refs"]:
+            raise ValueError("iteration-contract.json requires story_refs for the human attempt dashboard")
         lineage_failures = report_lineage_errors(iteration_contract, budget, scaffold)
         if lineage_failures:
             raise ValueError("; ".join(lineage_failures))
@@ -198,6 +217,12 @@ def main() -> int:
         "version": "2",
         "producer": "trusted-attempt-transition-checker",
         "iteration": args.iteration,
+        "scope": {
+            "issue_id": iteration_contract["issue_id"],
+            "story_refs": iteration_contract["story_refs"],
+            "pbs_leaf": iteration_contract["pbs_leaf"],
+            "goal": iteration_contract.get("goal", "Bounded worker attempt"),
+        },
         "status": status,
         "evaluator": evaluator,
         "mechanical": {

@@ -121,6 +121,15 @@ class Phase6EvidenceTests(unittest.TestCase):
             }
             iteration.update(iteration_overrides or {})
             (project / "iteration-contract.json").write_text(json.dumps(iteration) + "\n", encoding="utf-8")
+            story_index = project / "docs" / "stories" / "index.json"
+            story_index.parent.mkdir(parents=True)
+            story_index.write_text(json.dumps({
+                "version": "1",
+                "stories": [{
+                    "id": "US-1",
+                    "use_cases": [{"id": "UC-1", "criterion_refs": iteration["criterion_refs"]}],
+                }],
+            }) + "\n", encoding="utf-8")
             for command in (
                 ("git", "init", "-q"),
                 ("git", "config", "user.email", "tests@example.invalid"),

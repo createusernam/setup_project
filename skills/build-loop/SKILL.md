@@ -252,7 +252,9 @@ After every evaluator run, the exact `reasoning_high` architect writes
 requirements, architecture, and debt deltas. Before the orchestrator starts another worker attempt,
 run `check-attempt-transition.py --project . --iteration <n> --check-next`. It combines the trusted
 budget/scaffold reports, deterministic evaluator verdict, and architect checkpoint into an archived
-attempt-local `attempt-dashboard.json` and `dashboard.md`.
+attempt-local `attempt-dashboard.json` and `dashboard.md`. The Markdown includes a deterministic
+Mermaid map of story/PBS scope, worker attempt, evaluator, mechanical checks, architect checkpoint,
+verdict, and legal next action; a text-only verdict list does not satisfy human supervision.
 
 Only evaluator `continue` plus architect `CONTINUE`, PASS mechanical reports, no material
 requirements/architecture delta, no blocked debt, and all architect checks true opens attempt
@@ -378,7 +380,8 @@ the loop's *control* state is JSON — small, schema'd, parsed by scripts, read 
   build evidence, and dashboard renderer)
 - root `iteration-dashboard.json` (producer: trusted visualization renderer; schema:
   `templates/project/iteration-dashboard.schema.json`; consumers: Phase 6 semantic validator and
-  Phase 7 human review); `dashboard.md` is its deterministic human view
+  Phase 7 human review); `dashboard.md` is its deterministic human view with the canonical
+  story/use-case/PBS/review Mermaid map
 - root `build-evidence.json` (producer: Phase 6 trusted orchestrator; schema:
   `templates/project/build-evidence.schema.json`; consumers: Phase 6 semantic validator and Phase 7)
 - `.build-loop/iterations/<n>/critique.json` (producer: isolated evaluator; schema: `critique.schema.json`;

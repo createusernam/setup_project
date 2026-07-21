@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # START_MODULE_CONTRACT
 # PURPOSE: Regression-test canonical iteration dashboards in the existing viewpoint and SUPERVISION flow.
-# SCOPE: Cover five statuses, trusted metrics, deterministic Markdown tables, viewpoint metadata, and supervision links.
+# SCOPE: Cover five statuses, trusted metrics, deterministic human diagrams/tables, viewpoint metadata, and supervision links.
 # DEPENDS: Python unittest, visualization renderer, and dashboard/viewpoint schemas.
 # END_MODULE_CONTRACT
 from __future__ import annotations
@@ -29,6 +29,16 @@ class IterationDashboardTests(unittest.TestCase):
             "story_refs": ["US-1"],
             "criterion_refs": ["C1", "C2"], "verify_commands": ["pytest"],
             "models": {"worker": "model/worker", "architect": "model/architect", "test_owner": "model/test", "acceptor": "model/acceptor"},
+        })
+        self.write("docs/stories/index.json", {
+            "version": "1",
+            "stories": [{
+                "id": "US-1", "path": "docs/stories/US-1.md", "actor": "operator",
+                "goal": "complete the bounded outcome", "trigger": "the issue is ready",
+                "outcome": "the behavior is verified", "boundaries": ["system"],
+                "use_cases": [{"id": "UC-1", "criterion_refs": ["C1", "C2"]}],
+                "assumptions": [], "open_questions": [],
+            }],
         })
         self.write("contract.json", {"criteria": [{"id": "C1", "must_pass": True}, {"id": "C2", "must_pass": False}]})
         self.write("iteration-budget.json", {
@@ -73,7 +83,7 @@ class IterationDashboardTests(unittest.TestCase):
         markdown = markdown_path.read_text(encoding="utf-8") if markdown_path.is_file() else ""
         return result, dashboard, markdown
 
-    def test_pass_dashboard_uses_tables_and_trusted_artifacts(self) -> None:
+    def test_pass_dashboard_visualizes_story_scope_and_review_path_from_trusted_artifacts(self) -> None:
         result, dashboard, markdown = self.render()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(dashboard["status"], "PASS")
@@ -81,8 +91,15 @@ class IterationDashboardTests(unittest.TestCase):
         self.assertEqual(dashboard["criteria"]["coverage"], "2/2")
         self.assertEqual(dashboard["criteria"]["must_pass"], "1/1")
         self.assertEqual(dashboard["models"]["worker"], "model/worker")
+        self.assertEqual(dashboard["story_use_cases"], [{"story_ref": "US-1", "use_case_refs": ["UC-1"]}])
         self.assertIn("| Metric | Actual | Target | Hard max |", markdown)
-        self.assertNotIn("```mermaid", markdown)
+        self.assertIn("```mermaid", markdown)
+        self.assertIn("US-1", markdown)
+        self.assertIn("UC-1", markdown)
+        self.assertIn("PBS-LEAF-1", markdown)
+        self.assertIn("Worker", markdown)
+        self.assertIn("Architect", markdown)
+        self.assertIn("Phase 7", markdown)
 
     def test_all_five_dashboard_states_have_legal_next_action(self) -> None:
         cases = [
@@ -103,10 +120,12 @@ class IterationDashboardTests(unittest.TestCase):
                     target = document[section] if section else document
                     target[key] = value
                     self.write(name, document)
-                result, dashboard, _ = self.render()
+                result, dashboard, markdown = self.render()
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 self.assertEqual(dashboard["status"], expected)
                 self.assertTrue(dashboard["legal_next_action"])
+                self.assertIn("```mermaid", markdown)
+                self.assertIn(expected, markdown)
 
     def test_renderer_is_deterministic_and_updates_supervision_and_viewpoint(self) -> None:
         first, dashboard, _ = self.render()

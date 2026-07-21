@@ -31,7 +31,8 @@ class AttemptTransitionTests(unittest.TestCase):
             "restart_threshold": {"max_iterations": 5, "no_progress_iterations": 3, "criteria_floor": 0.4}
         }) + "\n", encoding="utf-8")
         (self.project / "iteration-contract.json").write_text(json.dumps({
-            "issue_id": "ISSUE-1", "pbs_leaf": "PBS-1"
+            "issue_id": "ISSUE-1", "pbs_leaf": "PBS-1", "story_refs": ["US-1"],
+            "goal": "Implement the bounded behavior"
         }) + "\n", encoding="utf-8")
         (self.project / "iteration-budget.json").write_text(json.dumps({
             "producer": "trusted-iteration-budget-checker", "verdict": "PASS",
@@ -72,12 +73,21 @@ class AttemptTransitionTests(unittest.TestCase):
         self.assertEqual(dashboard["status"], "CONTINUE")
         self.assertEqual(dashboard["mechanical"]["budget_verdict"], "PASS")
         self.assertEqual(dashboard["architect"]["verdict"], "CONTINUE")
+        markdown = (self.project / ".build-loop" / "iterations" / "1" / "dashboard.md").read_text()
+        self.assertIn("```mermaid", markdown)
+        self.assertIn("US-1", markdown)
+        self.assertIn("PBS-1", markdown)
+        self.assertIn("Architect checkpoint", markdown)
+        self.assertIn("next bounded worker attempt", markdown)
 
     def test_pass_enters_terminal_review_and_never_starts_another_worker(self) -> None:
         self.write_critique(1.0)
         result = self.run_check()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("terminal ordered review", result.stdout)
+        markdown = (self.project / ".build-loop" / "iterations" / "1" / "dashboard.md").read_text()
+        self.assertIn("```mermaid", markdown)
+        self.assertIn("terminal ordered review", markdown)
 
     def test_material_delta_blocks_next_worker(self) -> None:
         path = self.project / ".build-loop" / "iterations" / "1" / "architect-checkpoint.json"

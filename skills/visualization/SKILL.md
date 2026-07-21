@@ -182,8 +182,11 @@ Run `python3 <visualization-skill-root>/scripts/render-iteration-dashboard.py --
 budget, scaffold-integrity, review-chain, and build-evidence artifacts exist. It produces canonical
 `iteration-dashboard.json`, validates an operation-scale dynamics viewpoint at
 `docs/views/iteration-<issue-id>.json`, and deterministically renders `dashboard.md` plus the iteration
-archive. Status and legal next action come only from trusted artifacts; worker explanation and
-uncertainty remain visibly untrusted text. Use `--check` at the Phase 6 exit.
+archive. The human Markdown must include a Mermaid map from the canonical User Story and matching
+Use Cases through the bounded PBS leaf, trusted checks, ordered review roles, verdict, and single
+legal next action; tables alone are not a visualization. Status and legal next action come only
+from trusted artifacts; worker explanation and uncertainty remain visibly untrusted text. Use
+`--check` at the Phase 6 exit.
 
 ---
 

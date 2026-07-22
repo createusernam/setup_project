@@ -39,6 +39,7 @@ def write_json(path: Path, document: dict) -> None:
 
 
 class HarnessContractTests(unittest.TestCase):
+    # START_BLOCK_ROUTE_AND_AUTHORITY_CONTRACTS
     def test_every_tier_route_is_ordered_and_short_routes_own_evidence(self) -> None:
         machine = json.loads((ROOT / "pipeline-machine.json").read_text(encoding="utf-8"))
         phase_order = list(machine["transitions"])
@@ -51,6 +52,14 @@ class HarnessContractTests(unittest.TestCase):
         self.assertEqual(machine["artifact_owners"]["build-evidence.json"]["producer_phases"], ["6f", "6"])
         optional = [item for item in machine["transitions"]["1"]["requires"] if item["artifact"] == "business_model.md"]
         self.assertEqual(optional, [{"artifact": "business_model.md", "attested": True, "when_present": True}])
+
+    def test_phase_minus_one_distinguishes_universal_intake_from_tier_route(self) -> None:
+        machine = json.loads((ROOT / "pipeline-machine.json").read_text(encoding="utf-8"))
+        intake = machine["transitions"]["-1"]
+        self.assertEqual(intake["entry_mode"], "pre_route")
+        self.assertEqual(intake["required_after_classification_for"], ["T3", "T4"])
+        generated = (ROOT / "docs" / "agent" / "PIPELINE-MACHINE.md").read_text(encoding="utf-8")
+        self.assertIn("universal pre-route intake; required after classification for T3, T4", generated)
 
     def test_every_tier_terminal_requirement_has_a_producer_on_its_route(self) -> None:
         machine = json.loads((ROOT / "pipeline-machine.json").read_text(encoding="utf-8"))
@@ -98,7 +107,9 @@ class HarnessContractTests(unittest.TestCase):
                 }}},
             )
             self.assertEqual(failures, [])
+    # END_BLOCK_ROUTE_AND_AUTHORITY_CONTRACTS
 
+    # START_BLOCK_ATTESTATION_AND_MODEL_CONTRACTS
     def test_attest_rejects_schema_invalid_bytes_without_ledger_mutation(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             project = Path(raw)
@@ -157,7 +168,9 @@ class HarnessContractTests(unittest.TestCase):
             self.assertEqual(preflight.model_conformance_errors(ROOT, project, machine, "implementation_general", binding, policy), [])
             binding["model_id"] = "other/model"
             self.assertTrue(preflight.model_conformance_errors(ROOT, project, machine, "implementation_general", binding, policy))
+    # END_BLOCK_ATTESTATION_AND_MODEL_CONTRACTS
 
+    # START_BLOCK_STATE_AND_PLANNING_CONTRACTS
     def test_state_envelope_viewpoint_and_kaeru_contracts(self) -> None:
         valid_documents = {
             "artifact-envelope.schema.json": {
@@ -196,6 +209,7 @@ class HarnessContractTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue((directory / "task_plan.md").read_text().startswith("<!-- GENERATED FROM task_plan.json"))
             self.assertIn("No entries yet", (directory / "progress.md").read_text())
+    # END_BLOCK_STATE_AND_PLANNING_CONTRACTS
 
 
 if __name__ == "__main__":

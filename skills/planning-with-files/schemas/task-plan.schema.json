@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "task-plan.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "created", "goal", "current_phase", "phases", "decisions", "errors"],
+  "properties": {
+    "version": {"const": "2"},
+    "created": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},
+    "goal": {"type": "string", "minLength": 1},
+    "current_phase": {"type": "integer", "minimum": 1},
+    "phases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["n", "name", "status", "tasks", "blockers"],
+        "properties": {
+          "n": {"type": "integer", "minimum": 1},
+          "name": {"type": "string", "minLength": 1},
+          "status": {"enum": ["pending", "in_progress", "complete", "blocked"]},
+          "tasks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["text", "done"],
+              "properties": {
+                "text": {"type": "string", "minLength": 1},
+                "done": {"type": "boolean"}
+              }
+            }
+          },
+          "blockers": {"type": "array", "items": {"type": "string"}},
+          "started": {"type": ["string", "null"]},
+          "finished": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["decision", "rationale"],
+        "properties": {
+          "decision": {"type": "string", "minLength": 1},
+          "rationale": {"type": "string"}
+        }
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["error", "resolution"],
+        "properties": {
+          "error": {"type": "string", "minLength": 1},
+          "resolution": {"type": "string"}
+        }
+      }
+    }
+  }
+}

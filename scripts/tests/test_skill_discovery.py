@@ -17,6 +17,11 @@ import unittest
 
 
 REPO = Path(__file__).resolve().parents[2]
+REFERENCE_PACKAGE = next(
+    (directory for directory in (REPO / "skills").iterdir() if directory.is_dir() and not (directory / "SKILL.md").is_file()),
+    None,
+)
+REFERENCE_NAME = REFERENCE_PACKAGE.name if REFERENCE_PACKAGE else "reference-only"
 
 
 def load_script(name: str):
@@ -32,6 +37,7 @@ ROUTING = load_script("install-skill-routing.py")
 DISCOVERY = load_script("check-skill-discovery.py")
 
 
+# START_BLOCK_ROUTING_TESTS
 class SkillRoutingTests(unittest.TestCase):
     def test_managed_block_preserves_content_and_is_idempotent(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -62,8 +68,10 @@ class SkillRoutingTests(unittest.TestCase):
 
             self.assertEqual(len(targets), 2)  # Claude+OpenCode share one; Codex is separate.
             self.assertTrue(any(set(names) == {"claude", "opencode"} for names, _ in targets))
+# END_BLOCK_ROUTING_TESTS
 
 
+# START_BLOCK_DISCOVERY_TESTS
 class SkillDiscoveryTests(unittest.TestCase):
     def make_setup(self, root: Path) -> Path:
         setup = root / "setup"
@@ -74,6 +82,10 @@ class SkillDiscoveryTests(unittest.TestCase):
         scripts.mkdir()
         (scripts / "install-skill-routing.py").write_text(
             (REPO / "scripts" / "install-skill-routing.py").read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
+        (scripts / "list-installable-skills.py").write_text(
+            (REPO / "scripts" / "list-installable-skills.py").read_text(encoding="utf-8"),
             encoding="utf-8",
         )
         docs = setup / "docs" / "agent"
@@ -119,8 +131,10 @@ class SkillDiscoveryTests(unittest.TestCase):
             errors, _ = DISCOVERY.check_discovery(setup, home)
 
             self.assertEqual(errors, [])
+# END_BLOCK_DISCOVERY_TESTS
 
 
+# START_BLOCK_INSTALLER_TESTS
 class InstallerIntegrationTests(unittest.TestCase):
     def test_collision_is_all_or_none_then_migrated_with_backup(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -129,6 +143,13 @@ class InstallerIntegrationTests(unittest.TestCase):
             stale = home / ".agents" / "skills" / "planning-with-files"
             stale.mkdir(parents=True)
             (stale / "keep.txt").write_text("user data", encoding="utf-8")
+            reference_only = home / ".agents" / "skills" / REFERENCE_NAME
+            reference_only.mkdir(parents=True)
+            (reference_only / "keep.txt").write_text("unrelated user data", encoding="utf-8")
+            obsolete = home / ".claude" / "skills" / REFERENCE_NAME
+            if REFERENCE_PACKAGE:
+                obsolete.parent.mkdir(parents=True)
+                obsolete.symlink_to(REFERENCE_PACKAGE)
             bindir = home / "bin"
             env = {**os.environ, "HOME": str(home), "WORKCTL_BIN_DIR": str(bindir), "PATH": "/usr/bin:/bin"}
 
@@ -138,6 +159,8 @@ class InstallerIntegrationTests(unittest.TestCase):
             self.assertEqual(refused.returncode, 1, refused.stdout + refused.stderr)
             self.assertFalse((home / ".claude" / "skills" / "startup").exists())
             self.assertEqual((stale / "keep.txt").read_text(encoding="utf-8"), "user data")
+            if REFERENCE_PACKAGE:
+                self.assertTrue(obsolete.is_symlink(), "failed preflight must not clean links")
 
             migrated = subprocess.run(
                 ["bash", str(REPO / "install.sh"), "--migrate-skill-collisions"],
@@ -150,6 +173,10 @@ class InstallerIntegrationTests(unittest.TestCase):
             expected = (REPO / "skills" / "planning-with-files").resolve()
             self.assertEqual(stale.resolve(), expected)
             self.assertEqual((home / ".claude" / "skills" / "planning-with-files").resolve(), expected)
+            if REFERENCE_PACKAGE:
+                self.assertFalse(obsolete.exists())
+                self.assertFalse(obsolete.is_symlink())
+            self.assertEqual((reference_only / "keep.txt").read_text(encoding="utf-8"), "unrelated user data")
             expected_commands = {
                 "workctl": REPO / "scripts" / "workctl.py",
                 "setup-skill-doctor": REPO / "scripts" / "check-skill-discovery.py",
@@ -163,6 +190,31 @@ class InstallerIntegrationTests(unittest.TestCase):
             backups = list((home / ".setup-skill-backups").glob("*/agents/planning-with-files/keep.txt"))
             self.assertEqual(len(backups), 1)
             self.assertEqual(backups[0].read_text(encoding="utf-8"), "user data")
+
+    def test_reference_only_directory_is_not_an_installable_skill(self) -> None:
+        if REFERENCE_PACKAGE is None:
+            self.skipTest("this projection has no bundled reference-only package")
+        sources = DISCOVERY.skill_sources(REPO)
+        self.assertNotIn(REFERENCE_NAME, sources)
+
+    def test_doctor_reports_obsolete_setup_owned_non_skill_link(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            fixture = SkillDiscoveryTests()
+            setup = fixture.make_setup(root)
+            reference = setup / "skills" / "reference-only"
+            reference.mkdir()
+            home = root / "home"
+            for runtime_root in (home / ".claude" / "skills", home / ".agents" / "skills"):
+                runtime_root.mkdir(parents=True)
+                (runtime_root / "alpha").symlink_to(setup / "skills" / "alpha")
+            (home / ".claude" / "skills" / "reference-only").symlink_to(reference)
+            fixture.install_routing(setup, home)
+
+            errors, _ = DISCOVERY.check_discovery(setup, home)
+
+            self.assertTrue(any("extraneous setup-owned non-skill" in error for error in errors), errors)
+# END_BLOCK_INSTALLER_TESTS
 
 
 if __name__ == "__main__":

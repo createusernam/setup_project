@@ -51,7 +51,12 @@ def render(machine: dict) -> str:
         completion_view = "<br>".join(completion_inputs + ([f"gate `{completion_gate}`"] if completion_gate else [])) or "—"
         when = transition.get("when")
         when_view = f'`{when["condition"]}={str(when["equals"]).lower()}`' if when else "always on selected tier"
-        lines.append(f'| {phase} | `{transition["skill"]}` | {", ".join(transition["tiers"])} | {when_view} | {"<br>".join(inputs) or "—"} | `{transition.get("human_gate", "—")}` | {completion_view} |')
+        tiers_view = ", ".join(transition["tiers"])
+        if transition.get("entry_mode") == "pre_route":
+            required = ", ".join(transition.get("required_after_classification_for", []))
+            when_view = f"universal pre-route intake; required after classification for {required}"
+            tiers_view = f"all before classification; {required} after"
+        lines.append(f'| {phase} | `{transition["skill"]}` | {tiers_view} | {when_view} | {"<br>".join(inputs) or "—"} | `{transition.get("human_gate", "—")}` | {completion_view} |')
     lines.extend(["", "Risk policy: " + " · ".join(f"{tier}={data['label']}" for tier, data in machine["risk_policy"]["tiers"].items())])
     conditions = []
     for tier, data in machine["risk_policy"]["tiers"].items():

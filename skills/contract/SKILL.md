@@ -346,7 +346,7 @@ OpenCode MCP config (`~/.config/opencode/opencode.json` or project `.opencode/op
   "mcp": {
     "playwright": {
       "type": "local",
-      "command": ["npx", "@playwright/mcp@latest", "--headless"],
+      "command": ["npx", "@playwright/mcp@0.0.78", "--headless"],
       "enabled": true
     }
   }

@@ -115,8 +115,8 @@ require it. Configure and verify it in the runtime that will host the evaluator:
 
 | Runtime | Configure | Verify |
 |---|---|---|
-| Claude Code | `claude mcp add playwright -- npx -y @playwright/mcp@latest --headless` | `claude mcp list` |
-| Codex | `codex mcp add playwright -- npx -y @playwright/mcp@latest --headless` | `codex mcp list` or `/mcp` in the TUI |
+| Claude Code | `claude mcp add playwright -- npx -y @playwright/mcp@0.0.78 --headless` | `claude mcp list` |
+| Codex | `codex mcp add playwright -- npx -y @playwright/mcp@0.0.78 --headless` | `codex mcp list` or `/mcp` in the TUI |
 | OpenCode | add the JSON block below | `opencode mcp list` |
 | Terminal/API | provide an equivalent Playwright/browser tool adapter | run its tool-list/health check; otherwise select `tdd` |
 
@@ -127,7 +127,7 @@ OpenCode configuration block:
   "mcp": {
     "playwright": {
       "type": "local",
-      "command": ["npx", "-y", "@playwright/mcp@latest", "--headless"],
+      "command": ["npx", "-y", "@playwright/mcp@0.0.78", "--headless"],
       "enabled": true
     }
   }
@@ -136,7 +136,9 @@ OpenCode configuration block:
 
 The Codex command and `~/.codex/config.toml` ownership follow the current official Codex MCP manual.
 Do not install Playwright merely because it appears here; the operator path in `PIPELINE.md` tells
-you when the selected build route needs it.
+you when the selected build route needs it. `toolchain-versions.json` owns the tested package pin;
+updates require a smoke test and a dedicated commit. A deliberate override must be recorded as the
+resolved package version in `build-evidence.json.tool_versions.playwright_mcp`.
 
 ## Manual fallback when `install.sh` fails
 
@@ -154,7 +156,7 @@ If automatic installation itself is unavailable, register the shared roots and r
 
 ```bash
 mkdir -p ~/.claude/skills ~/.agents/skills ~/.local/bin
-for skill in ~/setup/skills/*/; do
+python3 ~/setup/scripts/list-installable-skills.py --setup-dir ~/setup | while IFS= read -r skill; do
   ln -s "$skill" ~/.claude/skills/"$(basename "$skill")"
   ln -s "$skill" ~/.agents/skills/"$(basename "$skill")"
 done

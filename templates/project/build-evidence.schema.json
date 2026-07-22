@@ -44,6 +44,10 @@
       }
     },
     "trace_refs": {"type": "array", "items": {"type": "string"}},
+    "tool_versions": {
+      "type": "object",
+      "additionalProperties": {"type": "string", "minLength": 1}
+    },
     "requirements_delta": {
       "type": "object",
       "additionalProperties": false,

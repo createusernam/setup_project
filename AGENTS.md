@@ -14,9 +14,10 @@
 
 ## Skills
 
-All skills in `skills/` are symlinked by `install.sh` into both `~/.claude/skills/` (Claude) and
-`~/.agents/skills/` (Codex and the shared Agent Skills convention). OpenCode scans both; the links
-must resolve to the same canonical source.
+Every direct child of `skills/` with a regular `SKILL.md` is symlinked by `install.sh` into both
+`~/.claude/skills/` (Claude) and `~/.agents/skills/` (Codex and the shared Agent Skills convention).
+Reference-only packages are not runtime skills. OpenCode scans both roots; the links must resolve to
+the same canonical source.
 
 | Skill | Purpose |
 |-------|---------|

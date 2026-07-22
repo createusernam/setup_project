@@ -22,6 +22,11 @@ SCRIPTS_DST="$CLAUDE_DIR/scripts"
 BIN_DST="${WORKCTL_BIN_DIR:-$HOME/.local/bin}"
 ROUTING_SRC="$SETUP_DIR/docs/agent/SKILL-ROUTING.md"
 MIGRATE_COLLISIONS=0
+mapfile -t INSTALLABLE_SKILLS < <(python3 "$SETUP_DIR/scripts/list-installable-skills.py" --setup-dir "$SETUP_DIR")
+if [ "${#INSTALLABLE_SKILLS[@]}" -eq 0 ]; then
+  echo "No installable skills found under $SKILLS_SRC" >&2
+  exit 2
+fi
 
 if [ "${1:-}" = "--migrate-skill-collisions" ] && [ "$#" -eq 1 ]; then
   MIGRATE_COLLISIONS=1
@@ -42,7 +47,7 @@ COLLISIONS=()
 for root_spec in "claude|$CLAUDE_SKILLS_DST" "agents|$AGENT_SKILLS_DST"; do
   root_name="${root_spec%%|*}"
   root_path="${root_spec#*|}"
-  for skill_dir in "$SKILLS_SRC"/*/; do
+  for skill_dir in "${INSTALLABLE_SKILLS[@]}"; do
     skill_name="$(basename "$skill_dir")"
     target="$root_path/$skill_name"
     if [ -L "$target" ]; then
@@ -105,11 +110,29 @@ EOF
   done
 fi
 
+# Remove only obsolete symlinks that still resolve into this setup's skills tree but no longer
+# identify an installable skill. Real user paths and links to any other source are preserved.
+for root_path in "$CLAUDE_SKILLS_DST" "$AGENT_SKILLS_DST"; do
+  [ -d "$root_path" ] || continue
+  for target in "$root_path"/*; do
+    [ -L "$target" ] || continue
+    resolved="$(readlink -f "$target" 2>/dev/null || true)"
+    case "$resolved" in
+      "$SKILLS_SRC"/*)
+        if [ ! -f "$resolved/SKILL.md" ]; then
+          rm "$target"
+          echo "  ↪ removed obsolete setup-owned non-skill link $target"
+        fi
+        ;;
+    esac
+  done
+done
+
 # 2. Link one canonical skill tree into every supported discovery root.
 echo ""
 echo "→ Registering skills in ~/.claude/skills and ~/.agents/skills..."
 mkdir -p "$CLAUDE_SKILLS_DST" "$AGENT_SKILLS_DST"
-for skill_dir in "$SKILLS_SRC"/*/; do
+for skill_dir in "${INSTALLABLE_SKILLS[@]}"; do
   skill_name="$(basename "$skill_dir")"
   for target in "$CLAUDE_SKILLS_DST/$skill_name" "$AGENT_SKILLS_DST/$skill_name"; do
     if [ ! -L "$target" ]; then
@@ -187,10 +210,10 @@ fi
 echo "  ✓ Skills: OpenCode reads ~/.claude/skills and ~/.agents/skills; both resolve to setup/skills"
 # instructions must be an ARRAY of file paths incl. the docs/ subdirs (a prose string loads nothing)
 if [ -f "$OC_CFG" ]; then
-  if grep -q "docs/human/PIPELINE.md" "$OC_CFG" 2>/dev/null; then
-    echo "  ✓ opencode.json instructions reference PIPELINE.md"
+  if python3 "$SETUP_DIR/scripts/check-opencode-config.py" "$OC_CFG" --setup-dir "$SETUP_DIR"; then
+    echo "  ✓ opencode.json instructions contract is complete"
   else
-    echo "  ⚠ opencode.json instructions don't point at $SETUP_DIR/docs/ — set (array, not string):"
+    echo "  ⚠ opencode.json instructions contract is incomplete — set:"
     echo "      \"instructions\": [\"$SETUP_DIR/docs/human/PIPELINE.md\", \"$SETUP_DIR/docs/agent/COMPAT.md\"],"
   fi
 else
@@ -204,7 +227,7 @@ echo ""
 echo "=== Done ==="
 echo ""
 "$BIN_DST/setup-skill-doctor" --setup-dir "$SETUP_DIR" --home "$HOME" --quiet
-echo "Every skill in $SKILLS_SRC now has one source across Claude, Codex, and OpenCode."
+echo "Every installable skill in $SKILLS_SRC now has one source across Claude, Codex, and OpenCode."
 echo ""
 echo "Next step: open any supported agent in a project and ask:"
 echo "  What stage are we at, and what should we do next?"

@@ -323,7 +323,7 @@ Microsoft's official `@playwright/mcp` — works with any MCP-compatible CLI. Th
 
 **Claude Code:**
 ```bash
-claude mcp add playwright -- npx -y @playwright/mcp@latest
+claude mcp add playwright -- npx -y @playwright/mcp@0.0.78
 ```
 
 **OpenCode** — add to `~/.config/opencode/opencode.json` (or project `.opencode/opencode.json`):
@@ -333,7 +333,7 @@ claude mcp add playwright -- npx -y @playwright/mcp@latest
   "mcp": {
     "playwright": {
       "type": "local",
-      "command": ["npx", "@playwright/mcp@latest", "--headless"],
+      "command": ["npx", "@playwright/mcp@0.0.78", "--headless"],
       "enabled": true
     }
   }
@@ -346,7 +346,7 @@ claude mcp add playwright -- npx -y @playwright/mcp@latest
   "mcpServers": {
     "playwright": {
       "command": "npx",
-      "args": ["@playwright/mcp@latest", "--headless"]
+      "args": ["@playwright/mcp@0.0.78", "--headless"]
     }
   }
 }

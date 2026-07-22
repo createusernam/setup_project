@@ -17,12 +17,13 @@ from typing import Any
 
 # START_BLOCK_DISCOVERY
 def skill_sources(setup_dir: Path) -> dict[str, Path]:
-    root = setup_dir / "skills"
-    return {
-        directory.name: directory.resolve()
-        for directory in sorted(root.iterdir())
-        if directory.is_dir() and (directory / "SKILL.md").is_file()
-    }
+    path = setup_dir / "scripts" / "list-installable-skills.py"
+    spec = importlib.util.spec_from_file_location("list_installable_skills", path)
+    if not spec or not spec.loader:
+        raise RuntimeError(f"cannot load {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.skill_sources(setup_dir)
 
 
 def inspect_target(target: Path, expected: Path) -> tuple[bool, str]:
@@ -66,6 +67,18 @@ def check_discovery(setup_dir: Path, home: Path) -> tuple[list[str], list[str]]:
                 resolved[runtime] = target.resolve()
         if len(set(resolved.values())) > 1:
             errors.append(f"{name}: discovery roots resolve to different targets")
+
+    source_root = (setup_dir / "skills").resolve()
+    for runtime, root in roots.items():
+        if not root.is_dir():
+            continue
+        for target in sorted(root.iterdir()):
+            if target.name in sources or not target.is_symlink():
+                continue
+            actual = target.resolve(strict=False)
+            if actual == source_root or source_root in actual.parents:
+                lines.append(f"FAIL {runtime:7} {target.name}: setup-owned link is not an installable skill")
+                errors.append(f"{runtime}/{target.name}: extraneous setup-owned non-skill link")
 
     routing = load_routing_module(setup_dir)
     managed = routing.managed_text(setup_dir / "docs" / "agent" / "SKILL-ROUTING.md")

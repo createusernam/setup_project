@@ -14,6 +14,7 @@
   "checks": [],
   "criteria": [],
   "trace_refs": [],
+  "tool_versions": {"playwright_mcp": "0.0.78"},
   "requirements_delta": {"status": "blocked", "items": []},
   "debt_delta": {
     "status": "blocked",

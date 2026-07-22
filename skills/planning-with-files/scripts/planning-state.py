@@ -10,10 +10,16 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+import importlib.util
 import json
 from pathlib import Path
+import sys
 import tempfile
 from typing import Any
+
+
+class PlanningStateError(ValueError):
+    """A user-fixable planning state or schema error."""
 
 
 def write_json(path: Path, value: Any) -> None:
@@ -26,7 +32,55 @@ def write_json(path: Path, value: Any) -> None:
 
 
 def write_text(path: Path, value: str) -> None:
-    path.write_text(value.rstrip() + "\n", encoding="utf-8")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, prefix=f".{path.name}.", delete=False) as stream:
+        stream.write(value.rstrip() + "\n")
+        temporary = Path(stream.name)
+    temporary.replace(path)
+
+
+def schema_validator() -> Any:
+    path = Path(__file__).resolve().parents[3] / "scripts" / "json_schema.py"
+    spec = importlib.util.spec_from_file_location("setup_json_schema", path)
+    if not spec or not spec.loader:
+        raise PlanningStateError(f"cannot load schema validator at {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def load_and_validate(directory: Path) -> dict[str, dict[str, Any]]:
+    validator = schema_validator()
+    documents: dict[str, dict[str, Any]] = {}
+    failures: list[str] = []
+    for stem in ("task_plan", "findings", "progress"):
+        document_path = directory / f"{stem}.json"
+        schema_path = Path(__file__).resolve().parents[1] / "schemas" / f"{stem.replace('_', '-')}.schema.json"
+        try:
+            document = json.loads(document_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            failures.append(f"{document_path.name}: {error}")
+            continue
+        documents[stem] = document
+        failures.extend(f"{document_path.name}: {error}" for error in validator.validate_file(document_path, schema_path))
+
+    plan = documents.get("task_plan")
+    if isinstance(plan, dict):
+        phases = plan.get("phases", [])
+        numbers = [phase.get("n") for phase in phases if isinstance(phase, dict)]
+        if len(numbers) != len(set(numbers)):
+            failures.append("task_plan.json: $.phases phase numbers must be unique")
+        active = [phase for phase in phases if isinstance(phase, dict) and phase.get("status") == "in_progress"]
+        current = plan.get("current_phase")
+        if active and (len(active) != 1 or active[0].get("n") != current):
+            failures.append("task_plan.json: $.current_phase must identify the single in_progress phase")
+        if not active and phases and not all(phase.get("status") == "complete" for phase in phases if isinstance(phase, dict)):
+            failures.append("task_plan.json: exactly one phase must be in_progress until all phases are complete")
+        if current not in numbers:
+            failures.append("task_plan.json: $.current_phase must identify an existing phase")
+    if failures:
+        raise PlanningStateError("planning state validation failed:\n  - " + "\n  - ".join(failures))
+    return documents
 
 
 def default_plan(created: str, template: str) -> dict[str, Any]:
@@ -84,9 +138,10 @@ def render_entries(title: str, entries: list[dict[str, Any]]) -> str:
 
 
 def render_all(directory: Path) -> None:
-    plan = json.loads((directory / "task_plan.json").read_text(encoding="utf-8"))
-    findings = json.loads((directory / "findings.json").read_text(encoding="utf-8"))
-    progress = json.loads((directory / "progress.json").read_text(encoding="utf-8"))
+    documents = load_and_validate(directory)
+    plan = documents["task_plan"]
+    findings = documents["findings"]
+    progress = documents["progress"]
     write_text(directory / "task_plan.md", render_plan(plan))
     write_text(directory / "findings.md", render_entries("Findings", findings.get("entries", [])))
     write_text(directory / "progress.md", render_entries("Progress", progress.get("entries", [])))
@@ -131,4 +186,8 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except PlanningStateError as error:
+        print(str(error), file=sys.stderr)
+        raise SystemExit(2)

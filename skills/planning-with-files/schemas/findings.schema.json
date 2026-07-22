@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "findings.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "entries"],
+  "properties": {
+    "version": {"const": "2"},
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["timestamp", "topic", "finding", "source"],
+        "properties": {
+          "timestamp": {"type": "string", "format": "date-time"},
+          "topic": {"type": "string", "minLength": 1},
+          "finding": {"type": "string"},
+          "source": {"type": "string"}
+        }
+      }
+    }
+  }
+}

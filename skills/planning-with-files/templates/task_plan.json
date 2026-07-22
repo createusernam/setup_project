@@ -1,0 +1,17 @@
+{
+  "version": "2",
+  "created": "2026-01-01",
+  "goal": "Describe the intended end state.",
+  "current_phase": 1,
+  "phases": [
+    {
+      "n": 1,
+      "name": "Requirements & Discovery",
+      "status": "in_progress",
+      "tasks": [{"text": "Understand user intent", "done": false}],
+      "blockers": []
+    }
+  ],
+  "decisions": [],
+  "errors": []
+}

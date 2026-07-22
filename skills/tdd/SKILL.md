@@ -157,7 +157,8 @@ For a standalone bugfix (`/diagnose` → `/tdd`, no contract), the regression te
 skip `handoff.json`.
 
 For every pipeline route, including a standalone T0/T1 change in machine Phase `6f`, update root
-`build-evidence.json`: choose `route` from `targeted|tdd|build-loop`, record commands and actual
+`build-evidence.json`: choose `route` from `targeted|tdd|build-loop`, record commands, resolved
+external tool versions in `tool_versions`, and actual
 `pass|fail|not_run` results, criterion evidence when a contract exists, trace references and
 residual risks. Set `status` to `complete` only when the checks needed for review pass. The exact
 shape and allowed values are in `build-evidence.schema.json`.

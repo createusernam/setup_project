@@ -28,6 +28,16 @@ provider renamed or replaced a model.
 
 Runtime differences affect invocation, not artifact contracts.
 
+Runtime skill discovery is equally structural: only a direct `skills/` child with a regular
+`SKILL.md` is installable. `scripts/list-installable-skills.py` owns that set for the installer and
+doctor; reference packages must never be registered by directory glob. OpenCode readiness requires
+valid JSON whose `instructions` is an array containing the exact resolved `PIPELINE.md` and
+`COMPAT.md` paths.
+
+Executable browser adapters are versioned inputs. `toolchain-versions.json` owns the tested
+Playwright MCP pin, committed command examples are checked against it, and a deliberate runtime
+override is recorded as the resolved version in `build-evidence.json.tool_versions`.
+
 Canonical pipeline documents therefore name portable skills without runtime punctuation. The only
 translation table for Claude Code, Codex, OpenCode, and terminal/API invocation lives in
 `../human/SETUP.md`. Run `setup-pipeline values` for allowed project values and exact schema-owner

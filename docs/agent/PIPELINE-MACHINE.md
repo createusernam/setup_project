@@ -38,7 +38,7 @@ flowchart LR
 
 | Phase | Skill | Tiers | Run when | Entry inputs | Entry gate | Completion |
 |---|---|---|---|---|---|---|
-| -1 | `discovery process` | T3, T4 | always on selected tier | — | `—` | — |
+| -1 | `discovery process` | all before classification; T3, T4 after | universal pre-route intake; required after classification for T3, T4 | — | `—` | — |
 | 0 | `researcher` | T2, T3, T4 | `research_required=true` | `product_brief.md`<br>`evidence-handoff.json/decision` ['alpha', 'delivery'] | `—` | — |
 | 1 | `grill-with-docs` | T2, T3, T4 | always on selected tier | `product_brief.md`<br>`evidence-handoff.json/decision` delivery<br>`business_model.md`<br>`docs/research-state.json`  when research_required=true | `—` | — |
 | 2 | `planning-with-files` | T2, T3, T4 | always on selected tier | `product_brief.md`<br>`evidence-handoff.json/validation_stage` ['alpha', 'live']<br>`CONTEXT.md` | `—` | — |

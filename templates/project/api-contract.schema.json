@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "api-contract.schema.json",
+  "title": "Frontend-derived API contract",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "$schema": {"const": "./api-contract.schema.json"},
+    "version": {"type": ["string", "number"]},
+    "lifecycle_status": {"enum": ["draft", "ready", "approved", "complete"]},
+    "status": {"enum": ["draft", "ready", "approved", "complete", "success"]},
+    "data": {"type": "object"},
+    "next_action": {"type": "string"}
+  }
+}

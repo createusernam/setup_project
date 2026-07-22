@@ -47,6 +47,7 @@
     },
     "2-PM": {
       "skill": "pm-review", "tiers": ["T3", "T4"],
+      "outcomes": {"APPROVE": {"next": "2b"}, "REVISE": {"return_to": "2"}},
       "requires": [
         {"artifact": "task_plan.md", "attested": true},
         {"artifact": "product_brief.md", "attested": true}
@@ -69,6 +70,7 @@
     },
     "3r": {
       "skill": "risk-review", "tiers": ["T4"],
+      "outcomes": {"PASS": {"next": "4"}, "REVISE": {"return_to": "2"}, "STOP": {"stop": true}},
       "requires": [
         {"artifact": "task_plan.md", "attested": true},
         {"artifact": "pm-review.json", "attested": true, "json_pointer": "/status", "equals": "APPROVE"},
@@ -98,6 +100,7 @@
     },
     "4b": {
       "skill": "judge contract", "tiers": ["T2", "T3", "T4"],
+      "outcomes": {"PASS": {"next": "4c"}, "CONDITIONAL": {"return_to": "4"}, "FAIL": {"return_to": "4"}},
       "requires": [{"artifact": "contract.json", "attested": true}]
     },
     "4c": {
@@ -136,6 +139,7 @@
     "6": {
       "skill": "build-loop, tdd", "tiers": ["T2", "T3", "T4"],
       "phase_process": "build-loop",
+      "outcomes": {"PASS": {"next": "7"}, "CONTRACT_GAP": {"return_to": "4"}, "SCAFFOLD_DRIFT": {"return_to": "5.5"}, "RESTART": {"return_to": "5"}, "SPLIT_REQUIRED": {"return_to": "5"}},
       "requires": [
         {"artifact": "contract.json", "attested": true},
         {"artifact": "issues-manifest.json", "attested": true, "json_pointer": "/status", "equals": "approved"},
@@ -146,6 +150,7 @@
     },
     "7": {
       "skill": "judge feature, code-review-expert", "tiers": ["T0", "T1", "T2", "T3", "T4"],
+      "outcomes": {"PASS": {"stop": true}, "CONDITIONAL": {"return_to": "6"}, "FAIL": {"return_to": "6"}},
       "requires": [
         {"artifact": "iteration-budget.json", "attested": true, "json_pointer": "/verdict", "equals": "PASS", "tiers": ["T2", "T3", "T4"]},
         {"artifact": "scaffold-integrity.json", "attested": true, "json_pointer": "/verdict", "in": ["PASS", "SCAFFOLD_DRIFT"], "tiers": ["T2", "T3", "T4"]},
@@ -168,25 +173,25 @@
     "product_brief.md": {"producer_phase": "-1", "template": "templates/project/product_brief.md"},
     "evidence-handoff.json": {"producer_phase": "-1", "template": "templates/project/evidence-handoff.json", "schema": "templates/project/evidence-handoff.schema.json", "media_type": "application/json"},
     "business_model.md": {"producer_phase": "-1"},
-    "docs/research-state.json": {"producer_phase": "0"},
+    "docs/research-state.json": {"producer_phase": "0", "template": "templates/project/docs/research-state.json", "schema": "templates/project/research-state.schema.json", "media_type": "application/json", "template_mode": "draft-valid"},
     "CONTEXT.md": {"producer_phase": "1"},
     "task_plan.md": {"producer_phase": "2"},
     "docs/stories/index.json": {"producer_phases": ["1", "2"], "template": "templates/project/docs/stories/index.json", "schema": "templates/project/docs/stories/index.schema.json", "media_type": "application/json"},
-    "pm-review.json": {"producer_phase": "2-PM"},
+    "pm-review.json": {"producer_phase": "2-PM", "template": "templates/project/pm-review.json", "schema": "templates/project/pm-review.schema.json", "media_type": "application/json", "template_mode": "draft-valid"},
     "docs/requirements.xml": {"producer_phase": "2b"},
     "docs/technology.xml": {"producer_phase": "2b"},
     "docs/development-plan.xml": {"producer_phase": "2b", "template": "templates/project/docs/development-plan.xml"},
     "docs/verification-plan.xml": {"producer_phase": "2b", "template": "templates/project/docs/verification-plan.xml"},
     "docs/knowledge-graph.xml": {"producer_phase": "2b", "template": "templates/project/docs/knowledge-graph.xml"},
     "docs/operational-packets.xml": {"producer_phase": "2b"},
-    "design-contract.json": {"producer_phase": "3"},
+    "design-contract.json": {"producer_phase": "3", "template": "templates/project/design-contract.json", "schema": "templates/project/design-contract.schema.json", "media_type": "application/json", "template_mode": "draft-valid"},
     ".design-contract-attestation": {"producer_phase": "3"},
-    "api-contract.json": {"producer_phase": "3"},
+    "api-contract.json": {"producer_phase": "3", "template": "templates/project/api-contract.json", "schema": "templates/project/api-contract.schema.json", "media_type": "application/json", "template_mode": "draft-valid"},
     "docs/wireframe-*.md": {"producer_phase": "3"},
     "risk-review.json": {"producer_phase": "3r", "template": "templates/project/risk-review.json", "schema": "templates/project/risk-review.schema.json", "media_type": "application/json"},
     "rollout-plan.json": {"producer_phase": "3r", "template": "templates/project/rollout-plan.json", "schema": "templates/project/rollout-plan.schema.json", "media_type": "application/json"},
     "contract.json": {"producer_phase": "4", "template": "templates/project/contract.json", "schema": "templates/project/contract.schema.json", "media_type": "application/json"},
-    "judge-report.json": {"producer_phase": "4b"},
+    "judge-report.json": {"producer_phase": "4b", "template": "templates/project/judge-report.json", "schema": "templates/project/judge-report.schema.json", "media_type": "application/json", "template_mode": "draft-valid"},
     "SUPERVISION.md": {"producer_phase": "4c"},
     "issues-manifest.json": {"producer_phase": "5", "template": "templates/project/issues-manifest.json", "schema": "templates/project/issues-manifest.schema.json", "media_type": "application/json"},
     "scaffold-manifest.json": {"producer_phase": "5.5", "template": "templates/project/scaffold-manifest.json", "schema": "templates/project/scaffold-manifest.schema.json", "media_type": "application/json"},
@@ -196,7 +201,7 @@
     "iteration-review.json": {"producer_phase": "6", "template": "templates/project/iteration-review.json", "schema": "templates/project/iteration-review.schema.json", "media_type": "application/json"},
     "iteration-dashboard.json": {"producer_phase": "6", "template": "templates/project/iteration-dashboard.json", "schema": "templates/project/iteration-dashboard.schema.json", "media_type": "application/json"},
     "build-evidence.json": {"producer_phases": ["6f", "6"], "template": "templates/project/build-evidence.json", "schema": "templates/project/build-evidence.schema.json", "media_type": "application/json"},
-    "feature-judge-report.json": {"producer_phase": "7"},
+    "feature-judge-report.json": {"producer_phase": "7", "template": "templates/project/feature-judge-report.json", "schema": "templates/project/feature-judge-report.schema.json", "media_type": "application/json", "template_mode": "draft-valid"},
     "code-review.md": {"producer_phase": "7"}
   },
   "artifact_contracts": {
@@ -206,6 +211,8 @@
     "model-conformance/*.json": {"producer": "model-conformance", "schema": "templates/project/model-conformance.schema.json", "media_type": "application/json"},
     "cross-model-review/*.json": {"producer": "cross-model-review", "schema": "templates/project/cross-model-review.schema.json", "media_type": "application/json"},
     "docs/views/*.json": {"producer": "visualization", "schema": "templates/project/viewpoint.schema.json", "media_type": "application/json"},
+    ".build-loop/iterations/*/handoff.json": {"producer": "phase-6-role", "schema": "templates/project/role-handoff.schema.json", "media_type": "application/json"},
+    "handoff.json": {"producer": "phase-6-role", "schema": "templates/project/role-handoff.schema.json", "media_type": "application/json"},
     ".kaeru/*.json": {"producer": "kaeru-adapter", "schema": "templates/project/kaeru-memory-ref.schema.json", "media_type": "application/json"}
   },
   "gate_owners": {
@@ -293,8 +300,8 @@
     "business_model.md": ["CONTEXT.md", "task_plan.md", "pm-review.json", "docs/requirements.xml", "docs/technology.xml", "docs/development-plan.xml", "docs/verification-plan.xml", "docs/knowledge-graph.xml", "docs/operational-packets.xml", "risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
     "docs/research-state.json": ["CONTEXT.md", "task_plan.md", "pm-review.json", "docs/requirements.xml", "docs/technology.xml", "docs/development-plan.xml", "docs/verification-plan.xml", "docs/knowledge-graph.xml", "docs/operational-packets.xml", "risk-review.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
     "CONTEXT.md": ["task_plan.md", "pm-review.json", "docs/requirements.xml", "docs/technology.xml", "docs/development-plan.xml", "docs/verification-plan.xml", "docs/knowledge-graph.xml", "docs/operational-packets.xml", "risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
-    "task_plan.md": ["pm-review.json", "docs/requirements.xml", "docs/technology.xml", "docs/development-plan.xml", "docs/verification-plan.xml", "docs/knowledge-graph.xml", "docs/operational-packets.xml", "risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
-    "pm-review.json": ["docs/requirements.xml", "docs/technology.xml", "docs/development-plan.xml", "docs/verification-plan.xml", "docs/knowledge-graph.xml", "docs/operational-packets.xml", "risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "task_plan.md": ["design-contract.json", ".design-contract-attestation", "api-contract.json", "docs/wireframe-*.md", "pm-review.json", "docs/requirements.xml", "docs/technology.xml", "docs/development-plan.xml", "docs/verification-plan.xml", "docs/knowledge-graph.xml", "docs/operational-packets.xml", "risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "pm-review.json": ["design-contract.json", ".design-contract-attestation", "api-contract.json", "docs/wireframe-*.md", "docs/requirements.xml", "docs/technology.xml", "docs/development-plan.xml", "docs/verification-plan.xml", "docs/knowledge-graph.xml", "docs/operational-packets.xml", "risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
     "docs/requirements.xml": ["risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
     "docs/technology.xml": ["risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
     "docs/development-plan.xml": ["risk-review.json", "rollout-plan.json", "contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
@@ -309,6 +316,7 @@
     "docs/wireframe-*.md": ["contract.json", "judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
     "contract.json": ["judge-report.json", "SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
     "judge-report.json": ["SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
+    "docs/stories/index.json": ["SUPERVISION.md", "issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json", "feature-judge-report.json", "code-review.md"],
     "SUPERVISION.md": ["issues-manifest.json", "scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
     "issues-manifest.json": ["scaffold-manifest.json", "iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
     "scaffold-manifest.json": ["iteration-contract.json", "iteration-budget.json", "scaffold-integrity.json", "iteration-review.json", "build-evidence.json", "iteration-dashboard.json"],
@@ -328,6 +336,7 @@
     "CONTEXT.md": ["contract_locked", "viz_before_tickets", "human_acceptance"],
     "task_plan.md": ["contract_locked", "viz_before_tickets", "human_acceptance"],
     "pm-review.json": ["contract_locked", "viz_before_tickets", "human_acceptance"],
+    "docs/stories/index.json": ["viz_before_tickets", "human_acceptance"],
     "docs/requirements.xml": ["contract_locked", "viz_before_tickets", "human_acceptance"],
     "docs/technology.xml": ["contract_locked", "viz_before_tickets", "human_acceptance"],
     "docs/development-plan.xml": ["contract_locked", "viz_before_tickets", "human_acceptance"],

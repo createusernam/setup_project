@@ -578,6 +578,31 @@ def artifact_flow_errors(machine: dict[str, Any]) -> list[str]:
     return failures
 
 
+def outcome_contract_errors(machine: dict[str, Any]) -> list[str]:
+    """Ensure every typed verdict resolves to exactly one executable continuation."""
+    transitions = machine.get("transitions", {})
+    failures: list[str] = []
+    for phase, transition in transitions.items():
+        outcomes = transition.get("outcomes", {})
+        if not isinstance(outcomes, dict):
+            failures.append(f"outcomes: phase {phase!r} outcomes must be an object")
+            continue
+        for verdict, outcome in outcomes.items():
+            if not isinstance(outcome, dict):
+                failures.append(f"outcomes: {phase}/{verdict} must be an object")
+                continue
+            choices = [key for key in ("next", "return_to", "stop") if key in outcome]
+            if len(choices) != 1:
+                failures.append(f"outcomes: {phase}/{verdict} must have exactly one of next, return_to, stop")
+                continue
+            target = outcome.get("next") or outcome.get("return_to")
+            if target is not None and target not in transitions:
+                failures.append(f"outcomes: {phase}/{verdict} targets unknown phase {target!r}")
+            if outcome.get("stop") is not True and target is None:
+                failures.append(f"outcomes: {phase}/{verdict} has no target or terminal stop")
+    return failures
+
+
 def human_request_contract_errors(machine: dict[str, Any]) -> list[str]:
     """Fail closed when a machine-emitted human wait lacks an actionable response contract."""
     failures: list[str] = []
@@ -684,6 +709,7 @@ def evaluate(
             for error in validator.validate_file(ledger_path, ledger_schema)
         )
     failures.extend(artifact_flow_errors(machine))
+    failures.extend(outcome_contract_errors(machine))
     failures.extend(human_request_contract_errors(machine))
     warnings: list[str] = []
     policy = ledger.get("policy", {})

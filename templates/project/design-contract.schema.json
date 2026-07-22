@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "design-contract.schema.json",
+  "title": "Frontend design contract",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "$schema": {"const": "./design-contract.schema.json"},
+    "version": {"type": ["string", "number"]},
+    "lifecycle_status": {"enum": ["draft", "ready", "approved", "complete"]},
+    "status": {"enum": ["draft", "ready", "approved", "complete", "success"]},
+    "screens": {"type": "array"},
+    "next_action": {"type": "string"}
+  }
+}

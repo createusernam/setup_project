@@ -19,21 +19,44 @@ flowchart LR
     P6f["6f · targeted change or diagnose+tdd"]
     P6["6 · build-loop, tdd"]
     P7["7 · judge feature, code-review-expert"]
-    Pm1 --> P0
-    P0 --> P1
-    P1 --> P2
-    P2 --> P2mPM
-    P2mPM --> P2b
-    P2b --> P3
-    P3 --> P3r
-    P3r --> P4
-    P4 --> P4b
-    P4b --> P4c
-    P4c --> P5
-    P5 --> P5d5
-    P5d5 --> P6f
-    P6f --> P6
-    P6 --> P7
+    Pm1 -->|T3 conditional, T4 conditional| P0
+    Pm1 -->|T3, T3 conditional, T4, T4 conditional| P1
+    P0 -->|T2 conditional, T3 conditional, T4 conditional| P1
+    P1 -->|T2, T2 conditional, T3, T3 conditional, T4, T4 conditional| P2
+    P2 -->|T3, T3 conditional, T4, T4 conditional| P2mPM
+    P2 -->|T2 conditional| P3
+    P2 -->|T2, T2 conditional| P4
+    P2mPM -->|T3, T3 conditional, T4, T4 conditional| P2b
+    P2b -->|T3 conditional, T4 conditional| P3
+    P2b -->|T4, T4 conditional| P3r
+    P2b -->|T3, T3 conditional| P4
+    P3 -->|T4 conditional| P3r
+    P3 -->|T2 conditional, T3 conditional| P4
+    P3r -->|T4, T4 conditional| P4
+    P4 -->|T2, T2 conditional, T3, T3 conditional, T4, T4 conditional| P4b
+    P4b -->|T2, T2 conditional, T3, T3 conditional, T4, T4 conditional| P4c
+    P4c -->|T2, T2 conditional, T3, T3 conditional, T4, T4 conditional| P5
+    P5 -->|T3, T3 conditional, T4, T4 conditional| P5d5
+    P5 -->|T2, T2 conditional| P6
+    P5d5 -->|T3, T3 conditional, T4, T4 conditional| P6
+    P6f -->|T0, T1| P7
+    P6 -->|T2, T2 conditional, T3, T3 conditional, T4, T4 conditional| P7
+    P2mPM -. APPROVE (next) .-> P2b
+    P2mPM -. REVISE (return) .-> P2
+    P3r -. PASS (next) .-> P4
+    P3r -. REVISE (return) .-> P2
+    P3r -. STOP (stop) .-> STOP["stop"]
+    P4b -. PASS (next) .-> P4c
+    P4b -. CONDITIONAL (return) .-> P4
+    P4b -. FAIL (return) .-> P4
+    P6 -. PASS (next) .-> P7
+    P6 -. CONTRACT_GAP (return) .-> P4
+    P6 -. SCAFFOLD_DRIFT (return) .-> P5d5
+    P6 -. RESTART (return) .-> P5
+    P6 -. SPLIT_REQUIRED (return) .-> P5
+    P7 -. PASS (stop) .-> STOP["stop"]
+    P7 -. CONDITIONAL (return) .-> P6
+    P7 -. FAIL (return) .-> P6
 ```
 
 | Phase | Skill | Tiers | Run when | Entry inputs | Entry gate | Completion |

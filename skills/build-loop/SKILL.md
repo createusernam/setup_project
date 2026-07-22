@@ -161,10 +161,11 @@ Generator's task:
   log anchors are immutable. `CONTRACT_GAP` returns upstream; `SCAFFOLD_DRIFT` requires architect review.
 - Write `.build-loop/iterations/<n>/generator-summary.md` — a short (≤500 word) report of what was changed and why
 - Update `progress.md` with what was done
-- Write `.build-loop/iterations/<n>/handoff.json` in the COMPAT schema (`handoff.md`): `agent_role` = generator
-  persona (frontend/backend-implementer), `model_used`, `done`, `files_touched`, `uncertain_about`,
-  `collegium_verdict: "needs-review"`, `next_agent: "evaluator"`. This is an **audit record for the
+- Write `.build-loop/iterations/<n>/handoff.json` in `role-handoff.schema.json`: `agent_role` = generator
+  persona (frontend/backend-implementer), `model_id`, `lifecycle_status`, `verdict`, `next_transition`, `done`, `files_touched`, `uncertain_about`,
+  `next_agent: "evaluator"`. This is an **audit record for the
   orchestrator** — it is NOT handed to the evaluator (the isolation in 2b is deliberate).
+  The orchestrator runs `python3 scripts/validate-role-handoff.py .build-loop/iterations/<n>/handoff.json` before consuming it.
 
 Generator's persona — pick by domain:
 - **Frontend** (`design-contract.json` present) → frontend-developer
@@ -241,8 +242,8 @@ Evaluator's task:
 }
 ```
 
-Then write `.build-loop/iterations/<n>/handoff.json` (COMPAT schema): `agent_role: "test-owner"`, `model_used`,
-`collegium_verdict` (`agreed` if verdict pass, else `disagreed`), `test_status`, `blocking_criteria`
+Then write `.build-loop/iterations/<n>/handoff.json` (`role-handoff.schema.json`): `agent_role: "test-owner"`, `model_id`,
+`lifecycle_status`, `verdict`, `next_transition`, `test_status`, `blocking_criteria`
 → `uncertain_about`, `next_agent: "orchestrator"`. Also an audit record — the evaluator stays blind
 to the generator's handoff.
 

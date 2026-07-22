@@ -23,11 +23,32 @@ def render(machine: dict) -> str:
         "flowchart LR",
     ]
     phase_ids = {phase: "P" + phase.replace("-", "m").replace(".", "d") for phase in transitions}
-    ordered = list(transitions)
     for phase, transition in transitions.items():
         lines.append(f'    {phase_ids[phase]}["{phase} · {transition["skill"]}"]')
-    for left, right in zip(ordered, ordered[1:]):
-        lines.append(f"    {phase_ids[left]} --> {phase_ids[right]}")
+    order = {phase: index for index, phase in enumerate(transitions)}
+    edges: dict[tuple[str, str], set[str]] = {}
+    for tier, policy in machine["risk_policy"]["tiers"].items():
+        route = list(policy["required_phases"])
+        # A conditional phase is part of the route only when its predicate is true.  Insert it
+        # at its canonical transition position, then render both possibilities as labelled edges.
+        for phase in policy.get("conditional_phases", {}):
+            insertion = next((index for index, item in enumerate(route) if order[item] > order[phase]), len(route))
+            conditional_route = [*route[:insertion], phase, *route[insertion:]]
+            for left, right in zip(conditional_route, conditional_route[1:]):
+                edges.setdefault((left, right), set()).add(f"{tier} conditional")
+        for left, right in zip(route, route[1:]):
+            edges.setdefault((left, right), set()).add(tier)
+    for (left, right), tiers in sorted(edges.items(), key=lambda item: (order[item[0][0]], order[item[0][1]])):
+        label = ", ".join(sorted(tiers))
+        lines.append(f"    {phase_ids[left]} -->|{label}| {phase_ids[right]}")
+    for phase, transition in transitions.items():
+        for verdict, outcome in transition.get("outcomes", {}).items():
+            target = outcome.get("next") or outcome.get("return_to")
+            if target:
+                direction = "next" if "next" in outcome else "return"
+                lines.append(f"    {phase_ids[phase]} -. {verdict} ({direction}) .-> {phase_ids[target]}")
+            elif outcome.get("stop"):
+                lines.append(f'    {phase_ids[phase]} -. {verdict} (stop) .-> STOP["stop"]')
     lines.extend(["```", "", "| Phase | Skill | Tiers | Run when | Entry inputs | Entry gate | Completion |", "|---|---|---|---|---|---|---|"])
     for phase, transition in transitions.items():
         inputs = []

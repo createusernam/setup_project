@@ -5,6 +5,7 @@
   "additionalProperties": false,
   "required": ["version", "stories"],
   "properties": {
+    "$schema": {"const": "./index.schema.json"},
     "version": {"const": "1"},
     "stories": {
       "type": "array",

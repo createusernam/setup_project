@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pm-review.schema.json",
+  "title": "PM review gate output",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "$schema": {"const": "./pm-review.schema.json"},
+    "version": {"const": "1"},
+    "lifecycle_status": {"enum": ["draft", "ready", "approved", "complete"]},
+    "status": {"enum": ["DRAFT", "APPROVE", "REVISE"]},
+    "gate": {"const": "2-PM"},
+    "reviewer_profile": {"const": "review_acceptance"},
+    "model_id": {"type": "string", "minLength": 1},
+    "isolated_context": {"type": "boolean"},
+    "checks": {"type": "object"},
+    "issues": {"type": "array"},
+    "approved_at": {"type": ["string", "null"]}
+  }
+}

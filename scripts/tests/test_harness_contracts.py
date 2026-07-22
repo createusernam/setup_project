@@ -61,6 +61,36 @@ class HarnessContractTests(unittest.TestCase):
         generated = (ROOT / "docs" / "agent" / "PIPELINE-MACHINE.md").read_text(encoding="utf-8")
         self.assertIn("universal pre-route intake; required after classification for T3, T4", generated)
 
+    def test_generated_graph_uses_real_route_edges_not_transition_key_order(self) -> None:
+        generated = (ROOT / "docs" / "agent" / "PIPELINE-MACHINE.md").read_text(encoding="utf-8")
+        self.assertNotIn("P5d5 -->|T3, T4| P6f", generated)
+        self.assertIn("P5d5 -->", generated)
+        self.assertIn("P6f -->|T0, T1| P7", generated)
+        self.assertIn("P6f -->|T0, T1| P7", generated)
+        self.assertIn("REVISE (return)", generated)
+
+    def test_boundary_json_contracts_are_registered_with_schemas(self) -> None:
+        machine = json.loads((ROOT / "pipeline-machine.json").read_text(encoding="utf-8"))
+        for artifact in (
+            "docs/research-state.json", "pm-review.json", "design-contract.json", "api-contract.json",
+            "judge-report.json", "feature-judge-report.json",
+        ):
+            contract = machine["artifact_owners"][artifact]
+            self.assertEqual(contract["media_type"], "application/json")
+            self.assertTrue((ROOT / contract["schema"]).is_file())
+            self.assertTrue((ROOT / contract["template"]).is_file())
+        story = ROOT / "templates/project/docs/stories/index.json"
+        story_schema = ROOT / "templates/project/docs/stories/index.schema.json"
+        self.assertEqual(schema.validate_file(story, story_schema), [])
+
+    def test_story_and_design_inputs_invalidate_full_downstream_closure(self) -> None:
+        machine = json.loads((ROOT / "pipeline-machine.json").read_text(encoding="utf-8"))
+        story_targets = set(machine["invalidations"]["docs/stories/index.json"])
+        self.assertTrue({"SUPERVISION.md", "issues-manifest.json", "build-evidence.json", "feature-judge-report.json"} <= story_targets)
+        self.assertEqual(machine["gate_invalidations"]["docs/stories/index.json"], ["viz_before_tickets", "human_acceptance"])
+        for source in ("task_plan.md", "pm-review.json"):
+            self.assertTrue({"design-contract.json", "api-contract.json", "docs/wireframe-*.md"} <= set(machine["invalidations"][source]))
+
     def test_every_tier_terminal_requirement_has_a_producer_on_its_route(self) -> None:
         machine = json.loads((ROOT / "pipeline-machine.json").read_text(encoding="utf-8"))
         terminal_requirements = machine["transitions"]["7"]["requires"]

@@ -197,10 +197,11 @@ it is a few-shot example, and it will be imitated in both directions.
 Commit the scaffold on its own (`scaffold: <feature> — N modules, M blocks awaiting implementation`),
 so the implementer's diff is *only* logic and the review can tell them apart.
 
-Write `handoff.json` (COMPAT schema): `agent_role: "architect"`, `model_used`, `files_touched`,
+Write `handoff.json` (`role-handoff.schema.json`): `agent_role: "architect"`, `model_id`, `lifecycle_status`, `verdict`, `next_transition`, `files_touched`,
 `done` (modules scaffolded), `uncertain_about` (anything you had to assume), `next_agent:
 "implementer"`, `next_agent_goal: "fill NOT_IMPLEMENTED blocks; do not alter contracts, block names,
 or log anchors"`.
+Validate it before the implementer reads it: `python3 scripts/validate-role-handoff.py handoff.json`.
 
 Write root `scaffold-manifest.json` from the project template. Record the exact contract SHA-256,
 the selected issue ID, every scaffolded file/module/PBS leaf/block count, and the commands actually checked. Set `status`

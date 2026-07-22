@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "role-handoff.schema.json",
+  "title": "Cross-role handoff",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "version", "agent_role", "model_id", "lifecycle_status", "verdict", "next_transition", "done", "files_touched", "uncertain_about"],
+  "properties": {
+    "$schema": {"const": "./role-handoff.schema.json"},
+    "version": {"const": "1"},
+    "agent_role": {"enum": ["architect", "generator", "implementer", "worker", "test-owner", "test_owner", "evaluator", "acceptor", "code-review-expert", "pm-review"]},
+    "capability_profile": {"type": "string", "minLength": 1},
+    "model_id": {"type": "string", "minLength": 1},
+    "task_ref": {"type": ["string", "null"]},
+    "lifecycle_status": {"enum": ["draft", "ready", "approved", "complete", "blocked"]},
+    "verdict": {"type": "string", "minLength": 1},
+    "next_transition": {"type": "object", "additionalProperties": false, "required": ["kind"], "properties": {"kind": {"enum": ["next", "return_to", "stop"]}, "phase": {"type": "string"}, "reason": {"type": "string"}}},
+    "done": {"type": "array", "items": {"type": "string"}},
+    "files_touched": {"type": "array", "items": {"type": "string"}},
+    "uncertain_about": {"type": "array", "items": {"type": "string"}},
+    "next_agent": {"type": "string"},
+    "next_agent_goal": {"type": "string"}
+  }
+}

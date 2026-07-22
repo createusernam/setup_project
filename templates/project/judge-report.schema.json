@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "judge-report.schema.json",
+  "title": "Contract judge output",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["data"],
+  "properties": {
+    "$schema": {"const": "./judge-report.schema.json"},
+    "version": {"type": ["string", "number"]},
+    "lifecycle_status": {"enum": ["draft", "ready", "approved", "complete"]},
+    "data": {"type": "object", "required": ["verdict"], "properties": {"verdict": {"enum": ["PASS", "CONDITIONAL", "FAIL"]}}}
+  }
+}

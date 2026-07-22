@@ -146,12 +146,13 @@ Not the default. Default `/tdd` is single-context red-green-refactor.
 ## Handoff (pipeline Phase 6 mode)
 
 When `/tdd` runs as a **Phase 6 build task** (contract present — not a standalone bugfix), close the
-session by writing `handoff.json` in the COMPAT schema (`handoff.md`): `agent_role: "implementer"`
-(or `"test-owner"` after a separate-evaluator checkpoint), `model_used`, `done`, `files_touched`,
+session by writing `handoff.json` in `role-handoff.schema.json`: `agent_role: "implementer"`
+(or `"test-owner"` after a separate-evaluator checkpoint), `model_id`, `lifecycle_status`, `verdict`, `next_transition`, `done`, `files_touched`,
 `uncertain_about`, `test_status` (pass/fail/not_run + `tests_run`), `collegium_verdict`, `next_agent`
 (`test-owner` / `acceptor` / `code-review-expert`), `next_agent_goal`. This is the Belief-State the
 next agent reads — unlike `/build-loop`, `/tdd`'s handoff *is* passed forward (human-paced, no
 adversarial isolation).
+Run `python3 scripts/validate-role-handoff.py handoff.json` before the next role consumes this record.
 
 For a standalone bugfix (`/diagnose` → `/tdd`, no contract), the regression test itself is the record —
 skip `handoff.json`.

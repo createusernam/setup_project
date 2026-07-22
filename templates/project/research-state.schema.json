@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "research-state.schema.json",
+  "title": "Research state boundary",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "$schema": {"const": "./research-state.schema.json"},
+    "version": {"type": ["string", "number"]},
+    "lifecycle_status": {"enum": ["draft", "ready", "approved", "complete"]},
+    "phase": {"enum": ["intake", "distortion-check", "probe", "decompose", "research", "consensus", "synthesis", "validation", "done"]},
+    "question": {"type": "string"}
+  }
+}

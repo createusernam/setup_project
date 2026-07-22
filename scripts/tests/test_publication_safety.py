@@ -53,6 +53,9 @@ class PublisherSafetyTests(unittest.TestCase):
         (self.source / "docs" / "human" / "SETUP.md").write_text(marker, encoding="utf-8")
         (self.source / "docs" / "agent" / "COMPAT.md").write_text(marker, encoding="utf-8")
         (self.source / "README.md").write_text("private source projection\n", encoding="utf-8")
+        private_skill = self.source / "skills" / "game-development"
+        private_skill.mkdir(parents=True)
+        (private_skill / "SKILL.md").write_text("private current game skill\n", encoding="utf-8")
         git(self.source, "init", "-b", "main")
         git(self.source, "config", "user.name", "Publisher Test")
         git(self.source, "config", "user.email", "publisher@example.test")
@@ -65,6 +68,9 @@ class PublisherSafetyTests(unittest.TestCase):
         git(seed, "config", "user.name", "Publisher Test")
         git(seed, "config", "user.email", "publisher@example.test")
         (seed / "README.md").write_text("old public tree\n", encoding="utf-8")
+        stale_skill = seed / "skills" / "game-development"
+        stale_skill.mkdir(parents=True)
+        (stale_skill / "SKILL.md").write_text("stale leaked game skill\n", encoding="utf-8")
         git(seed, "add", ".")
         git(seed, "commit", "-m", "seed")
         self.origin = self.root / "public.git"
@@ -124,6 +130,7 @@ class PublisherSafetyTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual((self.target / "README.md").read_text(encoding="utf-8"), "private source projection\n")
         self.assertFalse((self.target / "publish-public.sh").exists())
+        self.assertFalse((self.target / "skills" / "game-development").exists())
         self.assertEqual(run("git", "status", "--porcelain", cwd=self.target).stdout, "")
 
 

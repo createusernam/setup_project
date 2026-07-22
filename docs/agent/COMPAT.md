@@ -317,4 +317,6 @@ When changing wider setup behavior, update its canonical public-safe rule in bot
 `docs/agent/` before publishing. If the change affects the engineering conveyor, update the
 handbook's `setup-pipeline.html` only after `docs/human/PIPELINE.md`, then rebuild/validate the
 handbook package. Commit the private source before running `publish-public.sh`; never repair drift
-only in the generated public mirror. Private-only details remain in excluded owner paths.
+only in the generated public mirror. Private-only details remain in excluded owner paths. The
+publisher must delete stale excluded roots from the target and verify their absence before commit or
+push; `skills/game-development/` is a private root and must never appear in the public projection.

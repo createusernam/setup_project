@@ -202,6 +202,8 @@ operator runbooks that must not enter the public projection.
 
 Commit the private source first, then run `publish-public.sh`. Never patch the generated public copy
 to hide source drift; the publisher rewrites public URLs and fails closed on private markers.
+Private skill roots such as `skills/game-development/` are excluded with deletion semantics: a
+publish removes any stale copy already present in the public mirror and aborts if it remains.
 
 ## Troubleshooting
 
